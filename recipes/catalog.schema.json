@@ -87,6 +87,7 @@
         "ctx_size": { "type": "integer", "minimum": 512, "maximum": 262144, "description": "Memory (context) in tokens, llama.cpp -c" },
         "quant": { "type": "string", "minLength": 1, "description": "A different quantization for this workstation (e.g. Q8 where memory allows). Set together with files." },
         "files": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/file" }, "description": "GGUF files for this workstation's quant. Set together with quant; leave both out to use the model's." },
+        "mtp": { "$ref": "#/$defs/mtp" },
         "gpu_layers": { "type": "integer", "minimum": 0, "description": "-ngl, default 999 (all on GPU)" },
         "flash_attn": { "type": "boolean", "description": "-fa on/off, default true" },
         "mmap": { "type": "boolean", "description": "false adds --no-mmap" },
@@ -94,6 +95,16 @@
         "top_p": { "type": "number" },
         "top_k": { "type": "integer" },
         "min_p": { "type": "number" }
+      }
+    },
+    "mtp": {
+      "type": "object",
+      "description": "Speculative decoding with the model's MTP head (--spec-type draft-mtp): same answers, faster. Leave out for models without MTP.",
+      "required": ["draft_n_max"],
+      "additionalProperties": false,
+      "properties": {
+        "draft_n_max": { "type": "integer", "minimum": 1, "maximum": 16, "description": "Tokens drafted per step, --spec-draft-n-max. Measure 2–4 and keep the fastest." },
+        "draft": { "$ref": "#/$defs/file", "description": "Separate GGUF with the MTP head (-md), e.g. mtp-*.gguf. Leave out when the MTP head is inside the model's GGUF." }
       }
     }
   }

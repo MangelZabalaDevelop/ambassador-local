@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { formatBytes } from "../api";
-import { filesFor, quantFor, type Family, type Hardware, type Model, type Status } from "../types";
+import { downloadsFor, quantFor, type Family, type Hardware, type Model, type Status } from "../types";
 import { labLogoSrc } from "./Illustrations";
 
 type Props = {
@@ -24,7 +24,7 @@ export function RunScreen(props: Props) {
   const recipe = model.recipes[hardware.id];
   const live = status.stage === "ready";
   const active = status.stage !== "idle" && status.stage !== "error";
-  const size = filesFor(model, hardware.id).reduce((a, f) => a + f.size, 0);
+  const size = downloadsFor(model, hardware.id).reduce((a, f) => a + f.size, 0);
 
   return (
     <div className="@container mt-8 flex flex-col gap-5">
@@ -55,7 +55,7 @@ export function RunScreen(props: Props) {
             </div>
             <div className="mt-6 grid grid-cols-2 gap-2 @lg:grid-cols-4">
               <Tile label="Parameters" value={model.size} />
-              <Tile label="Quantization" value={quantFor(model, hardware.id)} />
+              <Tile label={recipe.mtp ? "Quantization · MTP boost" : "Quantization"} value={quantFor(model, hardware.id)} />
               <Tile label="Context" value={`${(recipe.ctx_size / 1024).toFixed(0)}K`} />
               <Tile label={props.downloaded ? "On disk" : "Download"} value={formatBytes(size)} />
             </div>

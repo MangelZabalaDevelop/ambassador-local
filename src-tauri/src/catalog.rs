@@ -123,6 +123,16 @@ impl Model {
     pub fn files_for(&self, hardware_id: &str) -> &[RemoteFile] {
         self.recipes.get(hardware_id).and_then(|r| r.files.as_deref()).unwrap_or(&self.files)
     }
+
+    /// Archivo MTP aparte de la receta de este equipo, si lo usa.
+    pub fn mtp_draft_for(&self, hardware_id: &str) -> Option<&RemoteFile> {
+        self.recipes.get(hardware_id)?.mtp.as_ref()?.draft.as_ref()
+    }
+
+    /// Todo lo que hay que descargar para este equipo: el modelo y, si aplica, su archivo MTP.
+    pub fn downloads_for(&self, hardware_id: &str) -> Vec<&RemoteFile> {
+        self.files_for(hardware_id).iter().chain(self.mtp_draft_for(hardware_id)).collect()
+    }
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -156,6 +166,9 @@ pub struct Recipe {
     pub quant: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub files: Option<Vec<RemoteFile>>,
+    /// Decodificación especulativa con la cabeza MTP del modelo: misma calidad, bastante más rápido.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mtp: Option<Mtp>,
     #[serde(default)]
     pub gpu_layers: Option<u32>,
     #[serde(default)]
@@ -172,9 +185,22 @@ pub struct Recipe {
     pub min_p: Option<f32>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Mtp {
+    /// Tokens que propone en cada paso (--spec-draft-n-max).
+    pub draft_n_max: u32,
+    /// GGUF aparte con la cabeza MTP (-md). Vacío = viene dentro del modelo.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub draft: Option<RemoteFile>,
+}
+
 impl Recipe {
     pub fn to_args(&self) -> Vec<String> {
         let mut args = vec![
+            // Un solo usuario: un solo canal, con todo el contexto y toda la velocidad.
+            "-np".into(),
+            "1".into(),
             "-c".into(),
             self.ctx_size.to_string(),
             "-ngl".into(),
@@ -195,6 +221,9 @@ impl Recipe {
         if let Some(k) = self.top_k {
             args.push("--top-k".into());
             args.push(k.to_string());
+        }
+        if let Some(m) = &self.mtp {
+            args.extend(["--spec-type".into(), "draft-mtp".into(), "--spec-draft-n-max".into(), m.draft_n_max.to_string()]);
         }
         args
     }
@@ -273,6 +302,12 @@ impl Catalog {
                 }
                 if r.quant.is_some() != r.files.is_some() || r.quant.as_ref().is_some_and(|q| q.is_empty()) {
                     return Err(format!("{}: recipe for {hw} must set quant and files together", m.id));
+                }
+                if let Some(mtp) = &r.mtp {
+                    if !(1..=16).contains(&mtp.draft_n_max) {
+                        return Err(format!("{}: mtp.draft_n_max for {hw} must be 1 to 16", m.id));
+                    }
+                    mtp.draft.iter().try_for_each(validate_file)?;
                 }
                 if let Some(files) = &r.files {
                     if files.is_empty() {

@@ -111,7 +111,7 @@ fn model_dir(root: &Path, model: &Model) -> PathBuf {
 
 fn model_downloaded(root: &Path, model: &Model, hardware_id: &str) -> bool {
     let dir = model_dir(root, model);
-    model.files_for(hardware_id).iter().all(|f| download::is_verified(f, &dir.join(f.file_name())))
+    model.downloads_for(hardware_id).iter().all(|f| download::is_verified(f, &dir.join(f.file_name())))
 }
 
 #[tauri::command]
@@ -209,8 +209,9 @@ async fn run_job(app: &AppHandle, inner: &Arc<Mutex<Inner>>, cancel: &AtomicBool
         }
     }
     let files = model.files_for(hardware_id);
-    let n = files.len();
-    for (i, f) in files.iter().enumerate() {
+    let downloads = model.downloads_for(hardware_id);
+    let n = downloads.len();
+    for (i, f) in downloads.into_iter().enumerate() {
         let label = if n > 1 { format!("{} ({}/{n})", model.name, i + 1) } else { model.name.clone() };
         queue.push((label, f, mdir.join(f.file_name())));
     }
@@ -258,6 +259,7 @@ async fn run_job(app: &AppHandle, inner: &Arc<Mutex<Inner>>, cancel: &AtomicBool
         .arg("--api-key-file")
         .arg(&key_path)
         .args(recipe.to_args())
+        .args(model.mtp_draft_for(hardware_id).map(|d| ["-md".into(), mdir.join(d.file_name()).into_os_string()]).into_iter().flatten())
         .current_dir(eng.server.parent().unwrap_or(&root))
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
@@ -370,7 +372,7 @@ mod smoke {
         let (hw, recipe) = model.recipes.iter().next().unwrap();
         let files = model.files_for(hw);
         let mdir = model_dir(&root, model);
-        for f in files {
+        for f in model.downloads_for(hw) {
             download::fetch(&client, f, &mdir.join(f.file_name()), progress()).await.unwrap();
         }
         assert!(model_downloaded(&root, model, hw));
@@ -378,6 +380,9 @@ mod smoke {
         let mut cmd = std::process::Command::new(&eng.server);
         cmd.arg("-m").arg(mdir.join(files[0].file_name()));
         cmd.args(["--host", "127.0.0.1", "--port", "8177", "--jinja"]).args(recipe.to_args());
+        if let Some(d) = model.mtp_draft_for(hw) {
+            cmd.arg("-md").arg(mdir.join(d.file_name()));
+        }
         let lib_var = if cfg!(windows) { "PATH" } else { "LD_LIBRARY_PATH" };
         let mut paths = eng.lib_dirs.clone();
         paths.extend(std::env::split_paths(&std::env::var_os(lib_var).unwrap_or_default()));

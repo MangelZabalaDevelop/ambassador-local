@@ -35,6 +35,8 @@ export type Recipe = {
   /** Otra cuantización para este equipo; va junto con `files`. */
   quant?: string | null;
   files?: RemoteFile[] | null;
+  /** Decodificación especulativa MTP; `draft` es el GGUF aparte con la cabeza MTP, si no viene dentro del modelo. */
+  mtp?: { draft_n_max: number; draft?: RemoteFile | null } | null;
   gpu_layers?: number;
   flash_attn?: boolean;
   mmap?: boolean;
@@ -56,7 +58,12 @@ export type Model = {
 
 /** Archivos y cuantización que usa un equipo: los de su receta si los cambia, si no los del modelo. */
 export const filesFor = (m: Model, hardwareId: string) => m.recipes[hardwareId]?.files ?? m.files;
-export const quantFor = (m: Model, hardwareId: string) => m.recipes[hardwareId]?.quant ?? m.quant;
+/** Todo lo que baja para un equipo: el modelo y, si aplica, su archivo MTP. */
+export const downloadsFor = (m: Model, hardwareId: string) => {
+  const draft = m.recipes[hardwareId]?.mtp?.draft;
+  return draft ? [...filesFor(m, hardwareId), draft] : filesFor(m, hardwareId);
+};
+export const quantFor =(m: Model, hardwareId: string) => m.recipes[hardwareId]?.quant ?? m.quant;
 /** Clave de `downloaded_models`: el mismo modelo puede estar bajado para un equipo y no para otro. */
 export const downloadKey = (m: Model, hardwareId: string) => `${m.id}@${hardwareId}`;
 

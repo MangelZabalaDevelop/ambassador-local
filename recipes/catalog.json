@@ -378,6 +378,264 @@
   ],
   "models": [
     {
+      "id": "nemotron35-super-vl-120b",
+      "family": "nvidia",
+      "name": "Nemotron 3.5 Super VL",
+      "size": "120B-A12B",
+      "tagline": "NVIDIA's biggest model that fits in one GB10.",
+      "quant": "UD-Q4_K_XL",
+      "size_class": "large",
+      "intelligence": 5,
+      "best_for": [
+        "Reasoning",
+        "Agents",
+        "Coding"
+      ],
+      "files": [
+        {
+          "url": "https://huggingface.co/unsloth/NVIDIA-Nemotron-3.5-Super-VL-120B-A12B-GGUF/resolve/75a5829055f69a0359085ae6bbd0a81b60bc05c6/UD-Q4_K_XL/NVIDIA-Nemotron-3.5-Super-VL-120B-A12B-UD-Q4_K_XL-00001-of-00003.gguf",
+          "sha256": "04e0b45e70ab5c86c6b5d3b0133cc35fc10861015bac7dcff867dcf115dc81c5",
+          "size": 7874568
+        },
+        {
+          "url": "https://huggingface.co/unsloth/NVIDIA-Nemotron-3.5-Super-VL-120B-A12B-GGUF/resolve/75a5829055f69a0359085ae6bbd0a81b60bc05c6/UD-Q4_K_XL/NVIDIA-Nemotron-3.5-Super-VL-120B-A12B-UD-Q4_K_XL-00002-of-00003.gguf",
+          "sha256": "868a7fa360ff10bc7e072e4bb4f8771b280ca35a087a55125bc21f7ebb9962b7",
+          "size": 49851272832
+        },
+        {
+          "url": "https://huggingface.co/unsloth/NVIDIA-Nemotron-3.5-Super-VL-120B-A12B-GGUF/resolve/75a5829055f69a0359085ae6bbd0a81b60bc05c6/UD-Q4_K_XL/NVIDIA-Nemotron-3.5-Super-VL-120B-A12B-UD-Q4_K_XL-00003-of-00003.gguf",
+          "sha256": "684abb5b5306b18a046ee69e3375a0e863d14d265e0ffa52c33442d375d08b7d",
+          "size": 37048096032
+        }
+      ],
+      "recipes": {
+        "pro-max-gb10": {
+          "speed": 3,
+          "tokens_per_sec": 27.9,
+          "ctx_size": 262144,
+          "mtp": {
+            "draft_n_max": 2
+          }
+        }
+      }
+    },
+    {
+      "id": "nemotron35-bolt-74b",
+      "family": "nvidia",
+      "name": "Nemotron 3.5 Bolt",
+      "size": "74B-A9B",
+      "tagline": "Mid-size Nemotron for agents and tool use.",
+      "quant": "UD-Q4_K_XL",
+      "size_class": "large",
+      "intelligence": 4,
+      "best_for": [
+        "Agents",
+        "Reasoning",
+        "Coding"
+      ],
+      "files": [
+        {
+          "url": "https://huggingface.co/unsloth/NVIDIA-Nemotron-3.5-Bolt-74B-A9B-GGUF/resolve/34841e360524d421c564cc3ed247aa04a865473b/UD-Q4_K_XL/NVIDIA-Nemotron-3.5-Bolt-74B-A9B-UD-Q4_K_XL-00001-of-00003.gguf",
+          "sha256": "d6f33b5e8a49ea57a0a3ae922dfd0b3033a19429993d3215fc4992f4270aa2df",
+          "size": 7876160
+        },
+        {
+          "url": "https://huggingface.co/unsloth/NVIDIA-Nemotron-3.5-Bolt-74B-A9B-GGUF/resolve/34841e360524d421c564cc3ed247aa04a865473b/UD-Q4_K_XL/NVIDIA-Nemotron-3.5-Bolt-74B-A9B-UD-Q4_K_XL-00002-of-00003.gguf",
+          "sha256": "93c8485db6f9e9d26085acc368ca3b0993a36aa870e8f8b7748c1fbd174c6276",
+          "size": 49524981280
+        },
+        {
+          "url": "https://huggingface.co/unsloth/NVIDIA-Nemotron-3.5-Bolt-74B-A9B-GGUF/resolve/34841e360524d421c564cc3ed247aa04a865473b/UD-Q4_K_XL/NVIDIA-Nemotron-3.5-Bolt-74B-A9B-UD-Q4_K_XL-00003-of-00003.gguf",
+          "sha256": "f97b7a5443b3f77150a1bf7bac6c00862411ee2f26b7bf57a599fb61dbe867df",
+          "size": 686620928
+        }
+      ],
+      "recipes": {
+        "pro-max-gb10": {
+          "speed": 2,
+          "tokens_per_sec": 21.9,
+          "ctx_size": 262144
+        }
+      }
+    },
+    {
+      "id": "qwen38-flash-next",
+      "family": "qwen",
+      "name": "Qwen3.8 Flash Next",
+      "size": "180B",
+      "tagline": "The largest Qwen that fits in one GB10.",
+      "quant": "UD-IQ4_XS",
+      "size_class": "large",
+      "intelligence": 5,
+      "best_for": [
+        "Coding",
+        "Agents",
+        "Long documents"
+      ],
+      "files": [
+        {
+          "url": "https://huggingface.co/unsloth/Qwen3.8-Flash-Next-GGUF/resolve/766911a6b7369840a91dbcd95f9f997acaab6cd6/UD-IQ4_XS/Qwen3.8-Flash-Next-UD-IQ4_XS-00001-of-00003.gguf",
+          "sha256": "5ce89370720f8bf90890f439361282104c1aa1482d4013bb9a50923e758e71a4",
+          "size": 10946624
+        },
+        {
+          "url": "https://huggingface.co/unsloth/Qwen3.8-Flash-Next-GGUF/resolve/766911a6b7369840a91dbcd95f9f997acaab6cd6/UD-IQ4_XS/Qwen3.8-Flash-Next-UD-IQ4_XS-00002-of-00003.gguf",
+          "sha256": "577a38a2392b40ca2193cea502e1d92f60b8cd370675d308e0ec21885d9daaa7",
+          "size": 49835229856
+        },
+        {
+          "url": "https://huggingface.co/unsloth/Qwen3.8-Flash-Next-GGUF/resolve/766911a6b7369840a91dbcd95f9f997acaab6cd6/UD-IQ4_XS/Qwen3.8-Flash-Next-UD-IQ4_XS-00003-of-00003.gguf",
+          "sha256": "d4634e6d84f0ebb0940be15c90d3790bf6464e3dea3a1cddc567dc0e83ad8833",
+          "size": 43836407744
+        }
+      ],
+      "recipes": {
+        "pro-max-gb10": {
+          "speed": 3,
+          "tokens_per_sec": 29.2,
+          "ctx_size": 262144
+        }
+      }
+    },
+    {
+      "id": "qwen35-35b-a3b",
+      "family": "qwen",
+      "name": "Qwen3.5 35B-A3B",
+      "size": "35B-A3B",
+      "tagline": "Fast all-rounder: only 3B active per token.",
+      "quant": "UD-Q4_K_XL",
+      "size_class": "medium",
+      "intelligence": 3,
+      "best_for": [
+        "Chat",
+        "Coding",
+        "Agents"
+      ],
+      "files": [
+        {
+          "url": "https://huggingface.co/unsloth/Qwen3.5-35B-A3B-MTP-GGUF/resolve/63af8373893a7a73c6dfcb84cb63d815981da5e0/Qwen3.5-35B-A3B-UD-Q4_K_XL.gguf",
+          "sha256": "26445264c88d8bd4bf465763962b222cc8f816f9abe3717421f916ec4661fa9e",
+          "size": 22853662880
+        }
+      ],
+      "recipes": {
+        "pro-max-gb10": {
+          "speed": 5,
+          "tokens_per_sec": 87.2,
+          "ctx_size": 262144,
+          "mtp": {
+            "draft_n_max": 2
+          }
+        }
+      }
+    },
+    {
+      "id": "qwen38-27b",
+      "family": "qwen",
+      "name": "Qwen3.8 27B",
+      "size": "27B",
+      "tagline": "Dense model: careful answers, slower on GB10.",
+      "quant": "UD-Q4_K_XL",
+      "size_class": "medium",
+      "intelligence": 4,
+      "best_for": [
+        "Coding",
+        "Reasoning",
+        "Agents"
+      ],
+      "files": [
+        {
+          "url": "https://huggingface.co/unsloth/Qwen3.8-27B-GGUF/resolve/4ca720788d1e01f1bff70c033e0d0028fd02e502/Qwen3.8-27B-UD-Q4_K_XL.gguf",
+          "sha256": "3f227079003add2511437e5b1e94812e363385225bf6a9b47b0054a72bc8b01e",
+          "size": 17559178144
+        }
+      ],
+      "recipes": {
+        "pro-max-gb10": {
+          "speed": 2,
+          "tokens_per_sec": 22.4,
+          "ctx_size": 262144,
+          "mtp": {
+            "draft_n_max": 3
+          }
+        }
+      }
+    },
+    {
+      "id": "gemma4-26b-a4b",
+      "family": "google",
+      "name": "Gemma 4 26B-A4B",
+      "size": "26B-A4B",
+      "tagline": "The fastest model on GB10.",
+      "quant": "QAT UD-Q4_K_XL",
+      "size_class": "medium",
+      "intelligence": 3,
+      "best_for": [
+        "Chat",
+        "Writing",
+        "Coding"
+      ],
+      "files": [
+        {
+          "url": "https://huggingface.co/unsloth/gemma-4-26B-A4B-it-qat-GGUF/resolve/7b92b5b28818151e8669af2e45e88d6086f490dd/gemma-4-26B-A4B-it-qat-UD-Q4_K_XL.gguf",
+          "sha256": "a7c5bc715f5ff8e99a3e8901ce7d2b42b402c669bf24f7c5250747633d0f5891",
+          "size": 14249047104
+        }
+      ],
+      "recipes": {
+        "pro-max-gb10": {
+          "speed": 5,
+          "tokens_per_sec": 120.5,
+          "ctx_size": 262144,
+          "mtp": {
+            "draft_n_max": 2,
+            "draft": {
+              "url": "https://huggingface.co/unsloth/gemma-4-26B-A4B-it-qat-GGUF/resolve/7b92b5b28818151e8669af2e45e88d6086f490dd/mtp-gemma-4-26B-A4B-it.gguf",
+              "sha256": "7272d97595f0d4c74bd7b623492b7dbdaafd8b7c72f329a8270ba4eca68f768a",
+              "size": 251939328
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "gemma4-12b",
+      "family": "google",
+      "name": "Gemma 4 12B",
+      "size": "12B",
+      "tagline": "Small and quick, with the full 256K memory.",
+      "quant": "QAT UD-Q4_K_XL",
+      "size_class": "small",
+      "intelligence": 3,
+      "best_for": [
+        "Chat",
+        "Writing",
+        "Summaries"
+      ],
+      "files": [
+        {
+          "url": "https://huggingface.co/unsloth/gemma-4-12B-it-qat-GGUF/resolve/980b060c40a8539ac159e0501a3e0f66a6365af3/gemma-4-12B-it-qat-UD-Q4_K_XL.gguf",
+          "sha256": "90fd44e29e0d7cffeb0fd00dc73cfdab9ed0b0e95306ecf7821ea634c940c370",
+          "size": 6716356800
+        }
+      ],
+      "recipes": {
+        "pro-max-gb10": {
+          "speed": 4,
+          "tokens_per_sec": 76.3,
+          "ctx_size": 262144,
+          "mtp": {
+            "draft_n_max": 4,
+            "draft": {
+              "url": "https://huggingface.co/unsloth/gemma-4-12B-it-qat-GGUF/resolve/980b060c40a8539ac159e0501a3e0f66a6365af3/mtp-gemma-4-12B-it.gguf",
+              "sha256": "fcb35dea42c71333db904cee11baac525c9ef872818ee3753f6cb156f3c6f4f6",
+              "size": 253708800
+            }
+          }
+        }
+      }
+    },
+    {
       "id": "gemma3-12b",
       "family": "google",
       "name": "Gemma 3 12B",

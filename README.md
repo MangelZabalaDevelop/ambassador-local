@@ -51,10 +51,14 @@ Allowed recipe fields:
 | `tokens_per_sec` | — (only for the table) | not measured |
 | `ctx_size` (512–262144) | `-c` | required |
 | `quant` + `files` | `-m` (other GGUF for this workstation) | the model's `quant` and `files` |
+| `mtp.draft_n_max` (1–16) | `--spec-type draft-mtp --spec-draft-n-max` (MTP speculative decoding) | off |
+| `mtp.draft` | `-md` (separate `mtp-*.gguf`; leave out when the MTP head is inside the model) | — |
 | `gpu_layers` | `-ngl` | 999 |
 | `flash_attn` | `-fa on/off` | `true` |
 | `mmap` | `--no-mmap` when `false` | `true` |
 | `temp`, `top_p`, `top_k`, `min_p` | sampling | llama.cpp defaults |
+
+The app always runs one slot (`-np 1`): one user gets the whole context and the full speed.
 
 Each file needs a URL pinned to a commit (`/resolve/<commit-sha>/file.gguf`), its `sha256` and its `size`.
 Hugging Face lists them at `https://huggingface.co/api/models/<repo>/tree/main` (`lfs.oid` is the sha256).

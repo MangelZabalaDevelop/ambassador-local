@@ -82,6 +82,9 @@ export type System = {
   suggested_hardware: string | null;
 };
 
+/** Versión nueva publicada en las releases del repo, firmada con nuestra clave. */
+export type UpdateInfo = { version: string; current: string; notes: string | null };
+
 export type Status =
   | { stage: "idle" }
   | { stage: "downloading"; label: string; step: number; steps: number; downloaded: number; total: number }

@@ -25,8 +25,16 @@
       "csp": "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src ipc: http://ipc.localhost"
     }
   },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEVGNkUwNEFDNjM2MkZDMzQKUldRMC9HSmpyQVJ1NzBYT1hDbnpEU2QzMWZOYmZnSDVVUzJyNVpKemFlOVp5OG9Nb3dWbGlYT0YK",
+      "endpoints": ["https://github.com/MangelZabalaDevelop/ambassador-local/releases/latest/download/latest.json"],
+      "windows": { "installMode": "passive" }
+    }
+  },
   "bundle": {
     "active": true,
+    "createUpdaterArtifacts": true,
     "targets": ["nsis", "deb", "appimage"],
     "icon": [
       "icons/32x32.png",

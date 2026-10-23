@@ -47,8 +47,13 @@ jobs:
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Firma de las actualizaciones. Sin ella el build falla: nunca sale un paquete sin firmar.
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           tagName: ${{ github.ref_name }}
           releaseName: Ambassador Local ${{ github.ref_name }}
+          # Borrador: los embajadores no ven nada hasta que lo pruebas y le das "Publish".
           releaseDraft: true
           prerelease: false
+          includeUpdaterJson: true

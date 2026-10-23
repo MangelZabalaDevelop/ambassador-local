@@ -12,6 +12,7 @@ import {
 import { ModelTable } from "./components/ModelTable";
 import { RunScreen } from "./components/RunScreen";
 import { SpecsModal } from "./components/SpecsModal";
+import { UpdateBox } from "./components/UpdateBox";
 import { useTheme, type ThemePref } from "./theme";
 import logo from "./assets/ai-factory-logo-dark.webp";
 
@@ -503,6 +504,7 @@ function Sidebar(props: {
         <div className="mt-4 text-center text-[11px] text-sidebar-muted [@media(max-height:760px)]:mt-2">
           llama.cpp {props.engine} · runs on 127.0.0.1 only
         </div>
+        <UpdateBox busy={props.busy} running={props.running} />
       </div>
     </aside>
   );

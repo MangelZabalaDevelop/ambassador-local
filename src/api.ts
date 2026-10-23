@@ -1,6 +1,7 @@
+import { getVersion } from "@tauri-apps/api/app";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import type { Catalog, Status, System } from "./types";
+import type { Catalog, Status, System, UpdateInfo } from "./types";
 import bundled from "../recipes/catalog.json";
 
 const inTauri = "__TAURI_INTERNALS__" in window;
@@ -13,6 +14,9 @@ const tauriApi = {
   start: (hardwareId: string, modelId: string) => invoke<void>("start_model", { hardwareId, modelId }),
   stop: () => invoke<void>("stop_model"),
   cancel: () => invoke<void>("cancel"),
+  version: () => getVersion(),
+  checkUpdate: () => invoke<UpdateInfo | null>("check_update"),
+  installUpdate: () => invoke<void>("install_update"),
   onStatus: (cb: (s: Status) => void) => listen<Status>("status", (e) => cb(e.payload)),
   onLog: (cb: (line: string) => void) => listen<string>("log", (e) => cb(e.payload)),
 };
@@ -37,6 +41,12 @@ function mockApi(): typeof tauriApi {
     },
     stop: async () => emit({ stage: "idle" }),
     cancel: async () => emit({ stage: "error", message: "Cancelled." }),
+    version: async () => "0.1.0",
+    checkUpdate: async () => ({ version: "0.2.0", current: "0.1.0", notes: "New models for GB10." }),
+    installUpdate: async () => {
+      await new Promise((r) => setTimeout(r, 1500));
+      throw new Error("Preview only.");
+    },
     onStatus: async (cb) => {
       emit = cb;
       return () => {};

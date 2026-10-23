@@ -3,6 +3,7 @@ mod detect;
 mod download;
 mod engine;
 mod lifetime;
+mod update;
 
 use catalog::{Catalog, Model, RemoteFile};
 use serde::Serialize;
@@ -416,6 +417,7 @@ mod smoke {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(AppState::default())
         .invoke_handler(tauri::generate_handler![
             get_catalog,
@@ -424,7 +426,9 @@ pub fn run() {
             current_status,
             start_model,
             stop_model,
-            cancel
+            cancel,
+            update::check_update,
+            update::install_update
         ])
         .build(tauri::generate_context!())
         .expect("error while starting the app")

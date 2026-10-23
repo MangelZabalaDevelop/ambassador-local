@@ -19,6 +19,7 @@ Pick your operating system, your workstation and a model, press **Run**, and the
 - Every file is checked against the **SHA256** in the catalog. If it doesn't match, it is deleted and never run.
 - Recipes are **data, not commands**: they can only set the fields below. The app always adds `--host 127.0.0.1` and `--jinja`.
 - No admin rights, no telemetry.
+- **Updates are optional and signed.** At startup the app asks GitHub once whether this repo has a newer release (nothing is downloaded or sent). It installs only when you click **Update** and confirm, and only a package signed with the project's key: the public key is built into the app, so a tampered or third-party package is rejected. New models come with the update, since the catalog is part of the app.
 
 Files live in the app data folder
 (Windows: `%LOCALAPPDATA%\io.github.ambassadorlocal.app`, Linux: `~/.local/share/io.github.ambassadorlocal.app`).
@@ -91,6 +92,19 @@ npm run tauri build
 ```
 
 Pushing a `v*` tag makes GitHub Actions build Windows x64, Linux x64 and Linux ARM64 (GB10) and create a draft release.
+
+## Shipping an update
+
+Ambassadors get a new version (new models or features) when you publish a release:
+
+1. Bump `version` in `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml` and `package.json`.
+2. Push a tag, e.g. `git tag v0.2.0 && git push origin v0.2.0`. Actions builds and **signs** every installer and adds `latest.json`, all in a **draft** release.
+3. Test the draft installers on your workstations. The release notes you write are shown in the app.
+4. Click **Publish**. Only then does the app offer the update (it reads `releases/latest/download/latest.json`; drafts are invisible to it).
+
+Signing needs two repository secrets: `TAURI_SIGNING_PRIVATE_KEY` (the contents of the private key file) and `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`. Never commit the private key, and keep a backup: if it is lost, installed apps can no longer receive updates. The matching public key is `plugins.updater.pubkey` in `tauri.conf.json`.
+
+The repository must be public for ambassadors' apps to reach the releases.
 
 ## Credits
 

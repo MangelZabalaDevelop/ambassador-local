@@ -1,0 +1,153 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+ * Colores semánticos. Claro: paleta de los PDFs del programa (Dell blue, slate).
+ * Oscuro: negro grafito con azul Dell más brillante y verde NVIDIA para "en marcha".
+ */
+:root {
+  --bg: #f4f6f8;
+  --surface: #ffffff;
+  --surface-2: #eef1f4;
+  --border: #dde2e8;
+  --text: #0e1111;
+  --muted: #5b6b7a;
+  --accent: #0672cb;
+  --accent-hover: #0557a0;
+  --accent-soft: rgb(6 114 203 / 0.1);
+  --on-accent: #ffffff;
+  --go: #3f8f00;
+  --go-soft: rgb(118 185 0 / 0.14);
+  --sidebar: #22374a;
+  --sidebar-text: #ffffff;
+  --sidebar-muted: rgb(255 255 255 / 0.62);
+  --stage: radial-gradient(ellipse at 50% 60%, #ffffff 0%, #eef1f4 75%);
+  color-scheme: light;
+}
+
+.dark {
+  --bg: #0b0d10;
+  --surface: #14171c;
+  --surface-2: #1b1f26;
+  --border: #272c35;
+  --text: #eef1f5;
+  --muted: #8b97a6;
+  --accent: #2f8fff;
+  --accent-hover: #5aa7ff;
+  --accent-soft: rgb(47 143 255 / 0.14);
+  --on-accent: #ffffff;
+  --go: #76b900;
+  --go-soft: rgb(118 185 0 / 0.16);
+  --sidebar: #0f1216;
+  --sidebar-text: #eef1f5;
+  --sidebar-muted: #7d8896;
+  --stage: radial-gradient(ellipse at 50% 60%, #3a4250 0%, #1b1f26 70%);
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-border: var(--border);
+  --color-text: var(--text);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-soft: var(--accent-soft);
+  --color-on-accent: var(--on-accent);
+  --color-go: var(--go);
+  --color-go-soft: var(--go-soft);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-text: var(--sidebar-text);
+  --color-sidebar-muted: var(--sidebar-muted);
+  --font-sans: "Helvetica Neue", Helvetica, "Segoe UI", Arial, sans-serif;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  user-select: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+.stage {
+  background: var(--stage);
+}
+
+@keyframes pulse-ring {
+  0% { box-shadow: 0 0 0 0 rgb(118 185 0 / 0.55); }
+  100% { box-shadow: 0 0 0 10px rgb(118 185 0 / 0); }
+}
+
+.pulse-dot {
+  animation: pulse-ring 1.6s ease-out infinite;
+}
+
+/* Pantalla Run: tarjeta oscura con brillo azul Dell → verde NVIDIA, igual en claro y oscuro. */
+.hero {
+  background:
+    radial-gradient(ellipse at 15% 20%, rgb(6 114 203 / 0.45), transparent 55%),
+    radial-gradient(ellipse at 100% 110%, rgb(118 185 0 / 0.18), transparent 50%),
+    linear-gradient(135deg, #111a24 0%, #0a0e13 100%);
+  transition: background 0.8s;
+}
+
+.hero-live {
+  background:
+    radial-gradient(ellipse at 15% 20%, rgb(118 185 0 / 0.35), transparent 55%),
+    radial-gradient(ellipse at 100% 110%, rgb(6 114 203 / 0.3), transparent 50%),
+    linear-gradient(135deg, #101a12 0%, #0a0e13 100%);
+}
+
+.hero-grid {
+  background-image:
+    linear-gradient(rgb(255 255 255 / 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(255 255 255 / 0.05) 1px, transparent 1px);
+  background-size: 28px 28px;
+  mask-image: radial-gradient(ellipse at 30% 40%, black 0%, transparent 75%);
+}
+
+.run-button {
+  background: linear-gradient(135deg, #2f8fff 0%, #0672cb 55%, #3f8f00 140%);
+  box-shadow: 0 10px 30px -8px rgb(47 143 255 / 0.7), inset 0 1px 0 rgb(255 255 255 / 0.25);
+}
+
+.run-button:hover {
+  box-shadow: 0 14px 36px -8px rgb(118 185 0 / 0.65), inset 0 1px 0 rgb(255 255 255 / 0.3);
+}
+
+@keyframes shimmer {
+  from { background-position: -200% 0; }
+  to { background-position: 200% 0; }
+}
+
+.shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.35), transparent);
+  background-size: 200% 100%;
+  animation: shimmer 1.6s linear infinite;
+}
+
+@keyframes indeterminate {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(300%); }
+}
+
+.indeterminate {
+  animation: indeterminate 1.4s ease-in-out infinite;
+}

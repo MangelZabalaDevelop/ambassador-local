@@ -1,0 +1,430 @@
+{
+  "$schema": "./catalog.schema.json",
+  "schema": 1,
+  "engine": {
+    "name": "llama.cpp",
+    "version": "b11827",
+    "builds": [
+      {
+        "os": "windows",
+        "arch": "x86_64",
+        "files": [
+          {
+            "url": "https://github.com/ggml-org/llama.cpp/releases/download/b11827/llama-b11827-bin-win-cuda-13.4-x64.zip",
+            "sha256": "5d54c5fa2f26d9c80fa7439692e5929e8f7f1e7b2d00e3d6ab5a919154c768fa",
+            "size": 159849608
+          },
+          {
+            "url": "https://github.com/ggml-org/llama.cpp/releases/download/b11827/cudart-llama-bin-win-cuda-13.4-x64.zip",
+            "sha256": "738f8c251ac22b70c3ae6f83a10cf222725df0395246a2cf58f32bdb85fbe668",
+            "size": 423535356
+          }
+        ]
+      },
+      {
+        "os": "linux",
+        "arch": "x86_64",
+        "files": [
+          {
+            "url": "https://github.com/ggml-org/llama.cpp/releases/download/b11827/llama-b11827-bin-ubuntu-cuda-13.4-x64.tar.gz",
+            "sha256": "1baf6ae4459bfcccb04b66bc6acb2914923ae5698bc40cf475be0ab1c939d95a",
+            "size": 158793855
+          },
+          {
+            "url": "https://github.com/ggml-org/llama.cpp/releases/download/b11827/cudart-llama-b11827-bin-ubuntu-cuda-13.4-x64.tar.gz",
+            "sha256": "7c55cfc0ab65e36c0fcb03868f7c281273fcf7a91426c4343c3960fff3b17c20",
+            "size": 440236709
+          }
+        ]
+      },
+      {
+        "os": "linux",
+        "arch": "aarch64",
+        "files": [
+          {
+            "url": "https://github.com/ggml-org/llama.cpp/releases/download/b11827/llama-b11827-bin-ubuntu-cuda-13.4-arm64.tar.gz",
+            "sha256": "a73d21437f6d46cd764987c1011de61dd289e5f806d8de607dc6aafadf1c75d4",
+            "size": 153922734
+          },
+          {
+            "url": "https://github.com/ggml-org/llama.cpp/releases/download/b11827/cudart-llama-b11827-bin-ubuntu-cuda-13.4-arm64.tar.gz",
+            "sha256": "81eb43df00f59f4d13f49d9a4a8d751609af82bc4bfbe0f352600bca4feb114b",
+            "size": 552522184
+          }
+        ]
+      }
+    ]
+  },
+  "hardware": [
+    {
+      "id": "pro-max-t2",
+      "name": "Dell Pro Max Tower T2",
+      "kind": "tower",
+      "gpu": "NVIDIA RTX PRO 6000 Blackwell",
+      "memory_gb": 96,
+      "os": [
+        "windows",
+        "linux"
+      ],
+      "arch": [
+        "x86_64"
+      ],
+      "gpu_match": [
+        "RTX PRO 6000"
+      ],
+      "specs": {
+        "model": "FCT2250",
+        "summary": "The no-compromise desktop. A datacenter-class GPU on your desk for large models, rendering and simulation.",
+        "highlights": [
+          {
+            "label": "GPU memory",
+            "value": "96 GB"
+          },
+          {
+            "label": "System memory",
+            "value": "96–128 GB"
+          },
+          {
+            "label": "Storage",
+            "value": "4 TB"
+          }
+        ],
+        "details": [
+          {
+            "label": "Graphics",
+            "value": "NVIDIA RTX PRO 6000 Blackwell Workstation Edition · 96 GB GDDR7 ECC · 24,064 CUDA cores · 125 TFLOPS FP32 · 1,792 GB/s"
+          },
+          {
+            "label": "Processor",
+            "value": "Intel Core Ultra 9 285K · 24 cores · up to 5.7 GHz · 125 W"
+          },
+          {
+            "label": "Memory",
+            "value": "96 GB or 128 GB DDR5 5600 MT/s"
+          },
+          {
+            "label": "Storage",
+            "value": "4 TB NVMe M.2 PCIe Gen5 SSD"
+          },
+          {
+            "label": "Power supply",
+            "value": "Up to 1500 W"
+          },
+          {
+            "label": "Expansion",
+            "value": "Four PCIe slots · up to 2 Ethernet · Wi-Fi 7"
+          },
+          {
+            "label": "Operating system",
+            "value": "Windows 11 Pro · Ubuntu 24.04 LTS · RHEL 9.6"
+          }
+        ],
+        "best_for": [
+          "Training and fine-tuning",
+          "70B models at Q4",
+          "GPU path tracing",
+          "Simulation",
+          "Virtual production"
+        ]
+      }
+    },
+    {
+      "id": "pro-max-16-plus",
+      "name": "Dell Pro Max 16 Plus",
+      "kind": "laptop",
+      "gpu": "NVIDIA RTX PRO 5000 Blackwell",
+      "memory_gb": 24,
+      "os": [
+        "windows",
+        "linux"
+      ],
+      "arch": [
+        "x86_64"
+      ],
+      "gpu_match": [
+        "RTX PRO 5000"
+      ],
+      "specs": {
+        "model": "MB16250",
+        "summary": "The flagship mobile workstation. Desktop performance in a bag for local AI and real-time rendering.",
+        "highlights": [
+          {
+            "label": "GPU memory",
+            "value": "24 GB"
+          },
+          {
+            "label": "System memory",
+            "value": "96–128 GB"
+          },
+          {
+            "label": "Storage",
+            "value": "4 TB"
+          }
+        ],
+        "details": [
+          {
+            "label": "Graphics",
+            "value": "NVIDIA RTX PRO 5000 Blackwell · 24 GB GDDR7 ECC · 10,496 CUDA cores · 1,824 AI TOPS"
+          },
+          {
+            "label": "Processor",
+            "value": "Intel Core Ultra 9 285HX · 55 W · vPro"
+          },
+          {
+            "label": "Memory",
+            "value": "96 GB or 128 GB DDR5 6400 MT/s (CAMM2)"
+          },
+          {
+            "label": "Storage",
+            "value": "4 TB NVMe M.2 PCIe Gen5 SSD"
+          },
+          {
+            "label": "Display",
+            "value": "16\" FHD+ 400-nit · UHD+ OLED option"
+          },
+          {
+            "label": "Battery",
+            "value": "6-cell 96 Wh · ExpressCharge"
+          },
+          {
+            "label": "Operating system",
+            "value": "Windows 11 Pro · Ubuntu 24.04 LTS"
+          }
+        ],
+        "best_for": [
+          "13B–34B models",
+          "Real-time rendering",
+          "CFD and FEA",
+          "Multi-app workflows"
+        ]
+      }
+    },
+    {
+      "id": "pro-precision-7-16",
+      "name": "Dell Pro Precision 7 16",
+      "kind": "laptop",
+      "gpu": "NVIDIA RTX PRO 3000 Blackwell",
+      "memory_gb": 12,
+      "os": [
+        "windows",
+        "linux"
+      ],
+      "arch": [
+        "x86_64"
+      ],
+      "gpu_match": [
+        "RTX PRO 3000"
+      ],
+      "specs": {
+        "model": "PW716260",
+        "summary": "The thin-and-light mobile workstation. Portability first, with real GPU compute away from the desk.",
+        "highlights": [
+          {
+            "label": "GPU memory",
+            "value": "12 GB"
+          },
+          {
+            "label": "System memory",
+            "value": "64 GB"
+          },
+          {
+            "label": "Storage",
+            "value": "2 TB"
+          }
+        ],
+        "details": [
+          {
+            "label": "Graphics",
+            "value": "NVIDIA RTX PRO 3000 Blackwell · 12 GB GDDR7 ECC · 5,888 CUDA cores · 992 AI TOPS"
+          },
+          {
+            "label": "Processor",
+            "value": "Intel Core Ultra 9 386H · vPro"
+          },
+          {
+            "label": "Memory",
+            "value": "64 GB LPDDR5x 8533 MT/s"
+          },
+          {
+            "label": "Storage",
+            "value": "2 TB NVMe M.2 PCIe Gen5 SSD"
+          },
+          {
+            "label": "Display",
+            "value": "16\" FHD+ · 120 Hz VRR · 500-nit · 100% DCI-P3"
+          },
+          {
+            "label": "Battery",
+            "value": "6-cell 96 Wh · ExpressCharge"
+          },
+          {
+            "label": "Operating system",
+            "value": "Windows 11 Pro · Ubuntu 24.04 LTS"
+          }
+        ],
+        "best_for": [
+          "Models up to ~8B",
+          "4K editing on set",
+          "Look-dev in Blender",
+          "CAD on the go"
+        ]
+      }
+    },
+    {
+      "id": "pro-max-gb10",
+      "name": "Dell Pro Max with GB10",
+      "kind": "mini",
+      "gpu": "NVIDIA GB10 Grace Blackwell",
+      "memory_gb": 128,
+      "os": [
+        "linux"
+      ],
+      "arch": [
+        "aarch64"
+      ],
+      "gpu_match": [
+        "GB10"
+      ],
+      "specs": {
+        "model": "FCM1253",
+        "summary": "NVIDIA Grace Blackwell in a compact desktop. 128 GB of unified memory for large local models.",
+        "highlights": [
+          {
+            "label": "Unified memory",
+            "value": "128 GB"
+          },
+          {
+            "label": "FP4 AI compute",
+            "value": "1 PFLOP"
+          },
+          {
+            "label": "Storage (max)",
+            "value": "4 TB"
+          }
+        ],
+        "details": [
+          {
+            "label": "Superchip",
+            "value": "NVIDIA GB10 Grace Blackwell"
+          },
+          {
+            "label": "Processor",
+            "value": "20-core Arm · 10× Cortex-X925 + 10× Cortex-A725"
+          },
+          {
+            "label": "Graphics",
+            "value": "NVIDIA Blackwell GPU · up to 1 petaflop FP4"
+          },
+          {
+            "label": "Memory",
+            "value": "128 GB LPDDR5x unified (CPU + GPU)"
+          },
+          {
+            "label": "Storage",
+            "value": "Up to 4 TB NVMe M.2"
+          },
+          {
+            "label": "Operating system",
+            "value": "NVIDIA DGX OS (Ubuntu-based, ARM64)"
+          }
+        ],
+        "best_for": [
+          "Large models in unified memory",
+          "AI development",
+          "Robotics and edge AI",
+          "The NVIDIA AI stack"
+        ]
+      }
+    }
+  ],
+  "families": [
+    {
+      "id": "nvidia",
+      "name": "NVIDIA",
+      "series": "Nemotron",
+      "description": "NVIDIA's open Nemotron models, tuned for agents and reasoning.",
+      "color": "#76b900",
+      "featured": true
+    },
+    {
+      "id": "qwen",
+      "name": "Qwen",
+      "series": "Qwen",
+      "description": "Alibaba's open family: strong at code, reasoning and many languages.",
+      "color": "#615ced",
+      "featured": true
+    },
+    {
+      "id": "google",
+      "name": "Google",
+      "series": "Gemma",
+      "description": "Open models from Google DeepMind, built from the same research as Gemini.",
+      "color": "#4285f4"
+    },
+    {
+      "id": "deepseek",
+      "name": "DeepSeek",
+      "series": "DeepSeek",
+      "description": "Reasoning-first open models with long chains of thought.",
+      "color": "#4d6bfe"
+    },
+    {
+      "id": "glm",
+      "name": "GLM",
+      "series": "GLM by Z.ai",
+      "description": "Z.ai's GLM models, built for agentic coding and tool use.",
+      "color": "#0d9488"
+    }
+  ],
+  "models": [
+    {
+      "id": "gemma3-12b",
+      "family": "google",
+      "name": "Gemma 3 12B",
+      "size": "12B",
+      "tagline": "Example model to try the launcher.",
+      "quant": "UD-Q4_K_XL",
+      "size_class": "small",
+      "intelligence": 3,
+      "best_for": [
+        "Chat",
+        "Writing",
+        "Summaries"
+      ],
+      "files": [
+        {
+          "url": "https://huggingface.co/unsloth/gemma-3-12b-it-GGUF/resolve/d15e4c7dc21dc55d56bf8549db57a71ad8a2a35d/gemma-3-12b-it-UD-Q4_K_XL.gguf",
+          "sha256": "68d0b2d09575a5ad04c71c61598d1a74b63d26db89cc6e379314ade5f3beb0b3",
+          "size": 7432229216
+        }
+      ],
+      "recipes": {
+        "pro-max-t2": {
+          "speed": 5,
+          "tokens_per_sec": 91,
+          "ctx_size": 131072,
+          "quant": "UD-Q8_K_XL",
+          "files": [
+            {
+              "url": "https://huggingface.co/unsloth/gemma-3-12b-it-GGUF/resolve/d15e4c7dc21dc55d56bf8549db57a71ad8a2a35d/gemma-3-12b-it-UD-Q8_K_XL.gguf",
+              "sha256": "fedf9f286e58873315ececd1dfbb162e89205f6241219fa88f532ecff990a8a0",
+              "size": 14394193376
+            }
+          ]
+        },
+        "pro-max-16-plus": {
+          "speed": 4,
+          "ctx_size": 8192
+        },
+        "pro-precision-7-16": {
+          "speed": 3,
+          "ctx_size": 8192
+        },
+        "pro-max-gb10": {
+          "speed": 3,
+          "ctx_size": 8192
+        }
+      }
+    }
+  ]
+}

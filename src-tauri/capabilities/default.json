@@ -1,0 +1,14 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Minimal permissions: app events, window theme, and opening the local chat in the browser.",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "core:window:allow-set-theme",
+    {
+      "identifier": "opener:allow-open-url",
+      "allow": [{ "url": "http://127.0.0.1:*" }]
+    }
+  ]
+}

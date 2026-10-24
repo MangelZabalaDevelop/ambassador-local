@@ -5,7 +5,7 @@
 
 use std::net::{Ipv4Addr, SocketAddr, TcpStream};
 use std::path::Path;
-use std::process::{Command, Stdio};
+use std::process::{Child, Command, Stdio};
 use std::time::{Duration, Instant};
 
 pub const RPC_PORT: u16 = 50052;
@@ -81,6 +81,17 @@ fn ssh(peer: Ipv4Addr) -> Command {
     c
 }
 
+fn ssh_works(peer: Ipv4Addr) -> bool {
+    ssh(peer).arg("true").stdout(Stdio::null()).stderr(Stdio::null()).status().is_ok_and(|s| s.success())
+}
+
+/// El otro GB10 y si su SSH sin contraseña funciona. Con dos cables hay una IP por cable y
+/// el asistente de NVIDIA Sync solo registra la clave de host de una: se usa la que responde.
+pub fn peer() -> Option<(Ipv4Addr, bool)> {
+    let all = peers();
+    all.iter().find(|p| ssh_works(**p)).map(|p| (*p, true)).or_else(|| all.first().map(|p| (*p, false)))
+}
+
 fn run(mut cmd: Command, what: &str) -> Result<(), String> {
     let out = cmd.stderr(Stdio::piped()).output().map_err(|e| format!("{what}: {e}"))?;
     if out.status.success() {
@@ -91,8 +102,9 @@ fn run(mut cmd: Command, what: &str) -> Result<(), String> {
 }
 
 /// Arranca el servidor RPC en `peer` (copiando antes el motor si no lo tiene) y espera a que responda.
-/// `server` es el llama-server local; el RPC está en la misma carpeta.
-pub fn start_worker(peer: Ipv4Addr, engine_dir: &Path, server: &Path, lib_dirs: &[std::path::PathBuf], version: &str) -> Result<(), String> {
+/// `server` es el llama-server local; el RPC está en la misma carpeta. Devuelve la sesión SSH que lo
+/// mantiene encendido: al cerrarla, se apaga.
+pub fn start_worker(peer: Ipv4Addr, engine_dir: &Path, server: &Path, lib_dirs: &[std::path::PathBuf], version: &str) -> Result<Child, String> {
     let rel = |p: &Path| p.strip_prefix(engine_dir).map(|r| r.to_string_lossy().replace('\\', "/")).map_err(|_| "Engine layout not supported".to_string());
     let rpc = rel(&server.with_file_name(RPC_NAME))?;
     let remote = format!("{REMOTE_ROOT}/{version}");
@@ -110,20 +122,31 @@ pub fn start_worker(peer: Ipv4Addr, engine_dir: &Path, server: &Path, lib_dirs: 
     }
 
     let libs = lib_dirs.iter().map(|d| rel(d).map(|r| format!("$HOME/{remote}/{r}"))).collect::<Result<Vec<_>, _>>()?.join(":");
-    let mut start = ssh(peer);
-    start.arg(format!(
-        "{} ; cd {remote} && LD_LIBRARY_PATH={libs} setsid nohup ./{rpc} -H {peer} -p {RPC_PORT} -c > rpc.log 2>&1 < /dev/null &",
-        kill_cmd(peer)
-    ));
-    run(start, "Starting the second GB10")?;
+    // Se para en otra llamada: la línea de abajo lleva el nombre del servidor y pkill mataría su propia shell.
+    stop_worker(peer);
+    // El servidor RPC vive mientras esta sesión SSH siga abierta: `cat` espera a que se cierre su entrada
+    // y entonces lo apaga. La entrada es una tubería de la app: se cierra con Stop, al cerrar la app o si
+    // la app muere (el sistema la cierra). Sin PDEATHSIG: aquí sería el hilo que lanza ssh, no la app.
+    let mut tether = Command::new("ssh");
+    tether
+        .args(["-o", "BatchMode=yes", "-o", "ConnectTimeout=5", "-o", "ServerAliveInterval=10", &peer.to_string()])
+        .arg(format!("cd {remote} || exit 1; LD_LIBRARY_PATH={libs} ./{rpc} -H {peer} -p {RPC_PORT} -c > rpc.log 2>&1 < /dev/null & p=$!; cat > /dev/null; kill $p"))
+        .stdin(Stdio::piped())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null());
+    let mut session = tether.spawn().map_err(|e| format!("Starting the second GB10: {e}"))?;
 
     let deadline = Instant::now() + Duration::from_secs(60);
     while Instant::now() < deadline {
         if TcpStream::connect_timeout(&SocketAddr::from((peer, RPC_PORT)), Duration::from_secs(1)).is_ok() {
-            return Ok(());
+            return Ok(session);
+        }
+        if session.try_wait().is_ok_and(|s| s.is_some()) {
+            break;
         }
         std::thread::sleep(Duration::from_millis(500));
     }
+    let _ = session.kill();
     Err(format!("The second GB10 ({peer}) did not answer. Check the technical log on it: ~/{remote}/rpc.log"))
 }
 

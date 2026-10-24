@@ -102,7 +102,7 @@ pub fn verify(v: &Vllm) -> Vec<Check> {
     let pending = |label: &str| Check { label: label.into(), state: State::Wait, detail: "Needs the step above.".into() };
     let labels = ["Docker with GPU access", "vLLM engine image", "Model weights", "GPUs free"];
 
-    let Some(peer) = cluster::peers().first().copied() else {
+    let Some((peer, ssh_ok)) = cluster::peer() else {
         let mut out = vec![check(
             "Second GB10 on the direct cable",
             false,
@@ -113,8 +113,6 @@ pub fn verify(v: &Vllm) -> Vec<Check> {
         return out;
     };
     let mut out = vec![check("Second GB10 on the direct cable", true, format!("Found at {peer}"))];
-
-    let ssh_ok = ssh_cmd(peer).arg("true").stderr(Stdio::null()).status().is_ok_and(|s| s.success());
     out.push(check(
         "Passwordless SSH to the second GB10",
         ssh_ok,

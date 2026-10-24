@@ -19,7 +19,7 @@ Pick your operating system, your workstation and a model, press **Run**, and the
 - Every file is checked against the **SHA256** in the catalog. If it doesn't match, it is deleted and never run.
 - Recipes are **data, not commands**: they can only set the fields below. The app always adds `--host 127.0.0.1` and `--jinja`.
 - No admin rights, no telemetry.
-- **GB10 ×2:** the app runs on one GB10 and borrows the second one's memory with llama.cpp's `ggml-rpc-server`. It reaches the second GB10 over the passwordless SSH that NVIDIA's cluster setup leaves between the two, copies the same engine there if it is missing, and starts the RPC server bound **only to the direct ConnectX cable's IP** (never your home or office network). It is stopped when you stop the model or close the app.
+- **GB10 ×2:** the app runs on one GB10 and borrows the second one's memory with llama.cpp's `ggml-rpc-server`. It reaches the second GB10 over the passwordless SSH that NVIDIA's cluster setup leaves between the two, copies the same engine there if it is missing, and starts the RPC server bound **only to the direct ConnectX cable's IP** (never your home or office network). It is stopped when you stop the model or close the app, and also if the app crashes.
 - **Updates are optional and signed.** At startup the app asks GitHub once whether this repo has a newer release (nothing is downloaded or sent). It installs only when you click **Update** and confirm, and only a package signed with the project's key: the public key is built into the app, so a tampered or third-party package is rejected. New models come with the update, since the catalog is part of the app.
 
 Files live in the app data folder

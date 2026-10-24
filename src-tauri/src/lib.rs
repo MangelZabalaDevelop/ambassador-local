@@ -46,8 +46,9 @@ enum Status {
 struct Inner {
     busy: bool,
     child: Option<tokio::process::Child>,
-    /// GB10 ×2: el otro equipo con el servidor RPC encendido.
+    /// GB10 ×2: el otro equipo con el servidor RPC encendido y la sesión SSH que lo mantiene vivo.
     peer: Option<std::net::Ipv4Addr>,
+    worker: Option<std::process::Child>,
     status: Option<Status>,
     logs: VecDeque<String>,
 }
@@ -64,6 +65,10 @@ impl AppState {
             let mut g = self.inner.lock().unwrap();
             if let Some(mut child) = g.child.take() {
                 let _ = child.start_kill();
+            }
+            if let Some(mut w) = g.worker.take() {
+                let _ = w.kill();
+                let _ = w.wait();
             }
             g.peer.take()
         };
@@ -279,14 +284,22 @@ async fn run_job(app: &AppHandle, inner: &Arc<Mutex<Inner>>, cancel: &AtomicBool
     let mut rpc = Vec::new();
     if hw.units > 1 {
         let (dir, server, libs, version) = (engine_dir.clone(), eng.server.clone(), eng.lib_dirs.clone(), cat.engine.version.clone());
-        let peer = tauri::async_runtime::spawn_blocking(move || -> Result<std::net::Ipv4Addr, String> {
-            let peer = *cluster::peers().first().ok_or("The second GB10 was not found on the direct cable.")?;
-            cluster::start_worker(peer, &dir, &server, &libs, &version)?;
-            Ok(peer)
-        })
-        .await
-        .map_err(|e| e.to_string())??;
+        let (peer, ssh_ok) = tauri::async_runtime::spawn_blocking(cluster::peer)
+            .await
+            .map_err(|e| e.to_string())?
+            .ok_or("The second GB10 was not found on the direct cable.")?;
+        if !ssh_ok {
+            return Err(format!("The second GB10 ({peer}) refused passwordless SSH. The cluster setup in NVIDIA Sync turns it on."));
+        }
+        // Antes de arrancarlo, para que un error o Cancel lo paren también.
         inner.lock().unwrap().peer = Some(peer);
+        let worker = tauri::async_runtime::spawn_blocking(move || cluster::start_worker(peer, &dir, &server, &libs, &version))
+            .await
+            .map_err(|e| e.to_string())??;
+        inner.lock().unwrap().worker = Some(worker);
+        if cancel.load(Ordering::Relaxed) {
+            return Err("cancelled".into());
+        }
         push_log(app, inner, format!("Second GB10 ready at {peer}:{}", cluster::RPC_PORT));
         rpc = vec!["--rpc".to_string(), format!("{peer}:{}", cluster::RPC_PORT)];
     }

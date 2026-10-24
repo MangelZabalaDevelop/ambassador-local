@@ -1,4 +1,5 @@
 import type { Hardware } from "../types";
+import { HardwarePhoto } from "./Illustrations";
 
 /** Ficha del producto; aparece mientras el ratón está sobre el "?" de la tarjeta. */
 export function SpecsModal({ hardware }: { hardware: Hardware }) {
@@ -13,7 +14,7 @@ export function SpecsModal({ hardware }: { hardware: Hardware }) {
       >
         <div className="grid grid-cols-[minmax(0,5fr)_minmax(0,6fr)] bg-sidebar text-sidebar-text">
           <div className="grid place-items-center stage p-8">
-            <img src={`/hardware/${hardware.id}.webp`} alt={hardware.name} className="max-h-64 max-w-full object-contain drop-shadow-xl" draggable={false} />
+            <HardwarePhoto hardware={hardware} className="max-h-64 drop-shadow-xl" />
           </div>
           <div className="flex flex-col justify-center p-8">
             <div className="text-xs font-bold tracking-[0.2em] text-white/60 uppercase">Model {specs.model}</div>

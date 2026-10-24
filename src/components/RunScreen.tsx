@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { formatBytes } from "../api";
-import { downloadsFor, quantFor, type Family, type Hardware, type Model, type Status } from "../types";
-import { labLogoSrc } from "./Illustrations";
+import { api, formatBytes } from "../api";
+import { downloadsFor, quantFor, type ClusterCheck, type Family, type Hardware, type Model, type Status } from "../types";
+import { HardwarePhoto, labLogoSrc } from "./Illustrations";
 
 type Props = {
   hardware: Hardware;
@@ -24,7 +24,8 @@ export function RunScreen(props: Props) {
   const recipe = model.recipes[hardware.id];
   const live = status.stage === "ready";
   const active = status.stage !== "idle" && status.stage !== "error";
-  const size = downloadsFor(model, hardware.id).reduce((a, f) => a + f.size, 0);
+  const vllm = recipe.vllm;
+  const size = vllm ? vllm.size : downloadsFor(model, hardware.id).reduce((a, f) => a + f.size, 0);
 
   return (
     <div className="@container mt-8 flex flex-col gap-5">
@@ -34,7 +35,9 @@ export function RunScreen(props: Props) {
         <div className="relative grid grid-cols-1 items-center gap-6 px-6 pt-7 pb-6 @2xl:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] @2xl:gap-8 @2xl:px-8 @2xl:pt-8 @2xl:pb-7">
           <div className="relative grid place-items-center">
             <div className={`absolute h-44 w-44 rounded-full blur-3xl transition-colors duration-700 ${live ? "bg-[#76b900]/40" : "bg-[#0672cb]/40"}`} />
-            <img src={`/hardware/${hardware.id}.webp`} alt={hardware.name} className="relative max-h-32 max-w-full object-contain drop-shadow-2xl @2xl:max-h-44" draggable={false} />
+            <div className="relative">
+              <HardwarePhoto hardware={hardware} className="max-h-32 drop-shadow-2xl @2xl:max-h-44" />
+            </div>
           </div>
 
           <div className="min-w-0">
@@ -47,7 +50,11 @@ export function RunScreen(props: Props) {
               <span className="text-xs font-bold tracking-[0.2em] text-white/60 uppercase">
                 {lab ? `${lab.name} · ${lab.series}` : "Model"}
               </span>
-              <StatusPill status={status} />
+              {vllm ? (
+                <span className="ml-auto rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-white/70">vLLM · cluster check</span>
+              ) : (
+                <StatusPill status={status} />
+              )}
             </div>
             <h2 className="mt-3 text-3xl font-bold tracking-tight @2xl:text-4xl">{model.name}</h2>
             <div className="mt-1 text-white/60">
@@ -56,14 +63,14 @@ export function RunScreen(props: Props) {
             <div className="mt-6 grid grid-cols-2 gap-2 @lg:grid-cols-4">
               <Tile label="Parameters" value={model.size} />
               <Tile label={recipe.mtp ? "Quantization · MTP boost" : "Quantization"} value={quantFor(model, hardware.id)} />
-              <Tile label="Context" value={`${(recipe.ctx_size / 1024).toFixed(0)}K`} />
-              <Tile label={props.downloaded ? "On disk" : "Download"} value={formatBytes(size)} />
+              <Tile label="Context" value={recipe.ctx_size >= 1048576 ? `${recipe.ctx_size / 1048576}M` : `${(recipe.ctx_size / 1024).toFixed(0)}K`} />
+              <Tile label={vllm ? "Weights per GB10" : props.downloaded ? "On disk" : "Download"} value={formatBytes(size)} />
             </div>
           </div>
         </div>
 
         <div className="relative border-t border-white/10 bg-black/25 px-6 py-5 backdrop-blur @2xl:px-8">
-          <ActionBar {...props} />
+          {vllm ? <ClusterCheckBar hardwareId={hardware.id} modelId={model.id} /> : <ActionBar {...props} />}
         </div>
       </section>
 
@@ -150,6 +157,60 @@ function ActionBar(props: Props) {
   }
 
   return <LiveBar status={status} onStop={props.onStop} />;
+}
+
+/** GB10 ×2 con vLLM: revisa que las dos GB10 estén listas. Arrancar desde la app viene después. */
+function ClusterCheckBar({ hardwareId, modelId }: { hardwareId: string; modelId: string }) {
+  const [checks, setChecks] = useState<ClusterCheck[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [checking, setChecking] = useState(false);
+
+  const run = () => {
+    setChecking(true);
+    setError(null);
+    api
+      .checkCluster(hardwareId, modelId)
+      .then(setChecks)
+      .catch((e) => setError(String(e)))
+      .finally(() => setChecking(false));
+  };
+  useEffect(run, [hardwareId, modelId]);
+
+  const ready = checks?.every((c) => c.state === "ok") ?? false;
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+        <div className="min-w-[16rem] flex-1">
+          <div className="font-bold">{checking ? "Checking both GB10…" : ready ? "Both GB10 are ready for this model" : "Cluster check"}</div>
+          <div className="mt-0.5 text-sm text-white/60">
+            {ready
+              ? "Starting vLLM models from the app arrives in a coming update."
+              : "vLLM runs this model across both GB10. This only looks, it changes nothing."}
+          </div>
+        </div>
+        <GhostButton onClick={run}>{checking ? "Checking…" : "Check again"}</GhostButton>
+      </div>
+      {error && <div className="text-sm text-red-200">{error}</div>}
+      {checks && (
+        <ul className="grid grid-cols-1 gap-2 @2xl:grid-cols-2">
+          {checks.map((c) => (
+            <li key={c.label} className={`flex gap-3 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 ${checking ? "opacity-60" : ""}`}>
+              <CheckMark state={c.state} />
+              <div className="min-w-0">
+                <div className="text-sm font-bold">{c.label}</div>
+                <div className={`text-xs ${c.state === "fail" ? "text-red-200" : "text-white/55"}`}>{c.detail}</div>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function CheckMark({ state }: { state: ClusterCheck["state"] }) {
+  const [text, cls] = { ok: ["✓", "bg-[#76b900] text-white"], fail: ["✕", "bg-red-500/80 text-white"], wait: ["·", "bg-white/10 text-white/50"] }[state];
+  return <span className={`mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full text-[11px] font-bold ${cls}`}>{text}</span>;
 }
 
 function Assurances() {

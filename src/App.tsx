@@ -158,6 +158,8 @@ export default function App() {
 
             {step === 1 && (
               <Grid
+                // Tres por fila: así la GB10 y la GB10 ×2 quedan juntas.
+                cols="grid-cols-2 lg:grid-cols-3"
                 hint={
                   system.gpus.length
                     ? `GPU detected: ${system.gpus.map((g) => g.name).join(", ")}`
@@ -165,19 +167,19 @@ export default function App() {
                 }
               >
                 {catalog.hardware.map((h) => {
-                  const fits =
-                    h.os.includes(system.os) && h.arch.includes(system.arch);
+                  // Solo se usa el equipo que se detecta en esta máquina.
+                  const detected = system.detected_hardware.includes(h.id);
                   return (
                     <Card
                       key={h.id}
                       selected={hardwareId === h.id}
-                      disabled={!fits}
+                      disabled={!detected}
                       badge={
-                        h.id === system.suggested_hardware
-                          ? "Detected"
-                          : fits
-                            ? undefined
-                            : "Other OS"
+                        !h.available
+                          ? "Coming soon"
+                          : detected
+                            ? "Detected"
+                            : "Not detected"
                       }
                       onClick={() => {
                         setHardwareId(h.id);
@@ -198,7 +200,7 @@ export default function App() {
                         </span>
                       }
                     >
-                      <HardwareImage id={h.id} name={h.name} />
+                      <HardwareImage hardware={h} />
                       <div className="w-full text-left">
                         <div className="font-bold">{h.name}</div>
                         <div className="mt-1 text-sm text-muted">{h.gpu}</div>
@@ -206,11 +208,13 @@ export default function App() {
                       <div className="flex w-full gap-2">
                         <Chip>{h.memory_gb} GB</Chip>
                         <Chip>
-                          {h.kind === "laptop"
-                            ? "Mobile"
-                            : h.kind === "tower"
-                              ? "Tower"
-                              : "Compact"}
+                          {h.units > 1
+                            ? `${h.units} linked`
+                            : h.kind === "laptop"
+                              ? "Mobile"
+                              : h.kind === "tower"
+                                ? "Tower"
+                                : "Compact"}
                         </Chip>
                       </div>
                     </Card>
@@ -510,11 +514,11 @@ function Sidebar(props: {
   );
 }
 
-function Grid({ hint, children }: { hint?: string; children: ReactNode }) {
+function Grid({ hint, cols, children }: { hint?: string; cols?: string; children: ReactNode }) {
   return (
     <>
       {hint && <p className="mt-2 text-muted">{hint}</p>}
-      <div className="mt-8 grid grid-cols-[repeat(auto-fill,minmax(230px,1fr))] gap-5">
+      <div className={`mt-8 grid gap-5 ${cols ?? "grid-cols-[repeat(auto-fill,minmax(230px,1fr))]"}`}>
         {children}
       </div>
     </>

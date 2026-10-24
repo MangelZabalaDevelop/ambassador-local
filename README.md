@@ -19,6 +19,7 @@ Pick your operating system, your workstation and a model, press **Run**, and the
 - Every file is checked against the **SHA256** in the catalog. If it doesn't match, it is deleted and never run.
 - Recipes are **data, not commands**: they can only set the fields below. The app always adds `--host 127.0.0.1` and `--jinja`.
 - No admin rights, no telemetry.
+- **GB10 ×2:** the app runs on one GB10 and borrows the second one's memory with llama.cpp's `ggml-rpc-server`. It reaches the second GB10 over the passwordless SSH that NVIDIA's cluster setup leaves between the two, copies the same engine there if it is missing, and starts the RPC server bound **only to the direct ConnectX cable's IP** (never your home or office network). It is stopped when you stop the model or close the app.
 - **Updates are optional and signed.** At startup the app asks GitHub once whether this repo has a newer release (nothing is downloaded or sent). It installs only when you click **Update** and confirm, and only a package signed with the project's key: the public key is built into the app, so a tampered or third-party package is rejected. New models come with the update, since the catalog is part of the app.
 
 Files live in the app data folder
@@ -29,7 +30,7 @@ Files live in the app data folder
 Everything lives in [`recipes/catalog.json`](recipes/catalog.json). It points to [`recipes/catalog.schema.json`](recipes/catalog.schema.json), so editors like VS Code autocomplete every field and flag mistakes while you type.
 
 - `engine`: the pinned llama.cpp version and its files per OS/architecture.
-- `hardware`: the program's workstations. `gpu_match` is used to detect them with `nvidia-smi`. Product images go in `public/hardware/<id>.webp`.
+- `hardware`: the program's workstations. `gpu_match` is used to detect them with `nvidia-smi`, and only the workstation detected on the machine can be used. `"available": false` shows it as *Coming soon* (not tested yet). `"units": 2` is for linked systems (two GB10), and `"image"` reuses another workstation's photo. Product images go in `public/hardware/<id>.webp`.
 - `families`: the lab cards (name, series, description, color). Logos go in `src/assets/labs/<id>.svg`.
 - `models`: each model with its GGUF files and one `recipe` per hardware id. A model without a recipe for a workstation is hidden on that workstation.
 
@@ -54,12 +55,28 @@ Allowed recipe fields:
 | `quant` + `files` | `-m` (other GGUF for this workstation) | the model's `quant` and `files` |
 | `mtp.draft_n_max` (1–16) | `--spec-type draft-mtp --spec-draft-n-max` (MTP speculative decoding) | off |
 | `mtp.draft` | `-md` (separate `mtp-*.gguf`; leave out when the MTP head is inside the model) | — |
+| `vllm` | GB10 ×2 only: serve with vLLM instead of llama.cpp (see below) | off |
 | `gpu_layers` | `-ngl` | 999 |
 | `flash_attn` | `-fa on/off` | `true` |
 | `mmap` | `--no-mmap` when `false` | `true` |
 | `temp`, `top_p`, `top_k`, `min_p` | sampling | llama.cpp defaults |
 
 The app always runs one slot (`-np 1`): one user gets the whole context and the full speed.
+
+### vLLM on two GB10 (NVFP4)
+
+The best recipes for two linked GB10 are NVFP4 models served by vLLM with tensor parallelism. A recipe for `pro-max-gb10-x2` can carry a `vllm` block instead of GGUF files:
+
+| Field | Meaning |
+|---|---|
+| `image` | Container image pinned by digest (`repo@sha256:…`) |
+| `image_id` | `docker image inspect --format '{{.Id}}'` of the same image; accepted when the digest is missing (an image copied with `docker save/load` keeps only its id) |
+| `repo`, `revision` | Hugging Face weights pinned to a commit; each GB10 needs them in its Hugging Face cache |
+| `size` | Bytes of those weights, per GB10 |
+
+`ctx_size` is `--max-model-len` here and can go up to 1M. Those models have `"files": []`.
+
+The app doesn't set up the cluster: the cluster setup in NVIDIA Sync does. Today the app **checks** that both GB10 are ready (it only looks, it changes nothing): the second GB10 on the ConnectX cable, passwordless SSH to it, Docker with the NVIDIA runtime on both, the pinned image on both, complete weights on both, and both GPUs free. Starting vLLM models from the app comes next.
 
 Each file needs a URL pinned to a commit (`/resolve/<commit-sha>/file.gguf`), its `sha256` and its `size`.
 Hugging Face lists them at `https://huggingface.co/api/models/<repo>/tree/main` (`lfs.oid` is the sha256).

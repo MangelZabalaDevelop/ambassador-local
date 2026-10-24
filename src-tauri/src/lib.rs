@@ -1,9 +1,11 @@
 mod catalog;
+mod cluster;
 mod detect;
 mod download;
 mod engine;
 mod lifetime;
 mod update;
+mod vllm;
 
 use catalog::{Catalog, Model, RemoteFile};
 use serde::Serialize;
@@ -44,6 +46,8 @@ enum Status {
 struct Inner {
     busy: bool,
     child: Option<tokio::process::Child>,
+    /// GB10 ×2: el otro equipo con el servidor RPC encendido.
+    peer: Option<std::net::Ipv4Addr>,
     status: Option<Status>,
     logs: VecDeque<String>,
 }
@@ -56,8 +60,15 @@ struct AppState {
 
 impl AppState {
     fn kill_now(&self) {
-        if let Some(mut child) = self.inner.lock().unwrap().child.take() {
-            let _ = child.start_kill();
+        let peer = {
+            let mut g = self.inner.lock().unwrap();
+            if let Some(mut child) = g.child.take() {
+                let _ = child.start_kill();
+            }
+            g.peer.take()
+        };
+        if let Some(peer) = peer {
+            cluster::stop_worker(peer);
         }
     }
 }
@@ -132,11 +143,20 @@ fn downloaded_models(app: AppHandle) -> Result<Vec<String>, String> {
     // "modelo@equipo": cada receta puede usar otra cuantización (otros archivos).
     let mut out = Vec::new();
     for m in &catalog::get()?.models {
-        for hw in m.recipes.keys().filter(|hw| model_downloaded(&root, m, hw)) {
+        // Los de vLLM viven en la caché de Hugging Face de cada GB10: los revisa check_cluster.
+        for hw in m.recipes.keys().filter(|hw| m.vllm_for(hw).is_none() && model_downloaded(&root, m, hw)) {
             out.push(format!("{}@{hw}", m.id));
         }
     }
     Ok(out)
+}
+
+/// GB10 ×2 con vLLM: ¿están las dos listas para esta receta? Solo mira, no cambia nada.
+#[tauri::command]
+async fn check_cluster(hardware_id: String, model_id: String) -> Result<Vec<vllm::Check>, String> {
+    let model = catalog::get()?.model(&model_id).ok_or("Unknown model")?;
+    let v = model.vllm_for(&hardware_id).ok_or("This recipe does not use vLLM.")?.clone();
+    tauri::async_runtime::spawn_blocking(move || vllm::verify(&v)).await.map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -173,6 +193,7 @@ async fn start_model(app: AppHandle, state: State<'_, AppState>, hardware_id: St
     let result = run_job(&app, &inner, &state.cancel, &hardware_id, &model_id).await;
     inner.lock().unwrap().busy = false;
     if let Err(message) = &result {
+        state.kill_now();
         let message = if message == "cancelled" { "Cancelled.".to_string() } else { message.clone() };
         emit_status(&app, &inner, Status::Error { message });
     }
@@ -186,8 +207,14 @@ async fn run_job(app: &AppHandle, inner: &Arc<Mutex<Inner>>, cancel: &AtomicBool
     if !hw.os.iter().any(|o| o == os) || !hw.arch.iter().any(|a| a == arch) {
         return Err(format!("{} does not run on this system ({os}/{arch}).", hw.name));
     }
+    if !detect::is_detected(hw) {
+        return Err(format!("{} was not detected on this machine.", hw.name));
+    }
     let model = cat.model(model_id).ok_or("Unknown model")?;
     let recipe = model.recipes.get(hardware_id).ok_or("This model has no recipe for your hardware.")?;
+    if recipe.vllm.is_some() {
+        return Err("vLLM models can't be started from the app yet. Use the cluster check to see if both GB10 are ready.".into());
+    }
     let build = cat
         .engine
         .builds
@@ -247,6 +274,22 @@ async fn run_job(app: &AppHandle, inner: &Arc<Mutex<Inner>>, cancel: &AtomicBool
     let eng = engine::locate(&engine_dir).ok_or("llama-server was not found after installing the engine.")?;
 
     emit_status(app, inner, Status::Starting { model_id: model.id.clone() });
+
+    // GB10 ×2: la otra GB10 presta su memoria por el cable directo.
+    let mut rpc = Vec::new();
+    if hw.units > 1 {
+        let (dir, server, libs, version) = (engine_dir.clone(), eng.server.clone(), eng.lib_dirs.clone(), cat.engine.version.clone());
+        let peer = tauri::async_runtime::spawn_blocking(move || -> Result<std::net::Ipv4Addr, String> {
+            let peer = *cluster::peers().first().ok_or("The second GB10 was not found on the direct cable.")?;
+            cluster::start_worker(peer, &dir, &server, &libs, &version)?;
+            Ok(peer)
+        })
+        .await
+        .map_err(|e| e.to_string())??;
+        inner.lock().unwrap().peer = Some(peer);
+        push_log(app, inner, format!("Second GB10 ready at {peer}:{}", cluster::RPC_PORT));
+        rpc = vec!["--rpc".to_string(), format!("{peer}:{}", cluster::RPC_PORT)];
+    }
     let port = (8080..8200)
         .find(|p| std::net::TcpListener::bind(("127.0.0.1", *p)).is_ok())
         .ok_or("No free ports.")?;
@@ -260,6 +303,7 @@ async fn run_job(app: &AppHandle, inner: &Arc<Mutex<Inner>>, cancel: &AtomicBool
         .arg("--api-key-file")
         .arg(&key_path)
         .args(recipe.to_args())
+        .args(&rpc)
         .args(model.mtp_draft_for(hardware_id).map(|d| ["-md".into(), mdir.join(d.file_name()).into_os_string()]).into_iter().flatten())
         .current_dir(eng.server.parent().unwrap_or(&root))
         .stdin(Stdio::null())
@@ -424,6 +468,7 @@ pub fn run() {
             detect_system,
             downloaded_models,
             current_status,
+            check_cluster,
             start_model,
             stop_model,
             cancel,

@@ -63,7 +63,24 @@ pub struct Hardware {
     pub os: Vec<String>,
     pub arch: Vec<String>,
     pub gpu_match: Vec<String>,
+    /// false = se muestra como "Coming soon" y no se puede elegir (p. ej. sin equipo para probar).
+    #[serde(default = "yes")]
+    pub available: bool,
+    /// Equipos enlazados (2 = dos GB10 para modelos grandes). Solo cambia la ficha y la foto.
+    #[serde(default = "one")]
+    pub units: u32,
+    /// Foto en public/hardware/<image>.webp; vacío = la del id.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub image: Option<String>,
     pub specs: Specs,
+}
+
+fn yes() -> bool {
+    true
+}
+
+fn one() -> u32 {
+    1
 }
 
 /// Ficha del producto que se muestra dentro de la app.
@@ -133,6 +150,10 @@ impl Model {
     pub fn downloads_for(&self, hardware_id: &str) -> Vec<&RemoteFile> {
         self.files_for(hardware_id).iter().chain(self.mtp_draft_for(hardware_id)).collect()
     }
+
+    pub fn vllm_for(&self, hardware_id: &str) -> Option<&Vllm> {
+        self.recipes.get(hardware_id)?.vllm.as_ref()
+    }
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -169,6 +190,9 @@ pub struct Recipe {
     /// Decodificación especulativa con la cabeza MTP del modelo: misma calidad, bastante más rápido.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub mtp: Option<Mtp>,
+    /// En vez de llama.cpp, vLLM en contenedor (solo GB10 ×2, recetas NVFP4).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub vllm: Option<Vllm>,
     #[serde(default)]
     pub gpu_layers: Option<u32>,
     #[serde(default)]
@@ -193,6 +217,41 @@ pub struct Mtp {
     /// GGUF aparte con la cabeza MTP (-md). Vacío = viene dentro del modelo.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub draft: Option<RemoteFile>,
+}
+
+/// Modelo de vLLM: la imagen va fijada por digest y los pesos por commit, para que corra
+/// exactamente lo que probamos. Cada GB10 necesita su copia de los pesos en la caché de Hugging Face.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Vllm {
+    /// `repositorio@sha256:<digest>`, p. ej. eugr/spark-vllm-b12x@sha256:03a9…
+    pub image: String,
+    /// `sha256:<id>` de la misma imagen. Una imagen copiada a la otra GB10 con
+    /// docker save/load pierde el digest pero conserva este id (también es un hash del contenido).
+    pub image_id: String,
+    /// Repo de Hugging Face, p. ej. nvidia/GLM-5.3-Flash-FP4-Local.
+    pub repo: String,
+    /// Commit del repo (40 hex).
+    pub revision: String,
+    /// Bytes de los pesos en esa revisión, en cada GB10.
+    pub size: u64,
+}
+
+impl Vllm {
+    /// Carpeta de la revisión en la caché de Hugging Face, relativa a `hub/`.
+    pub fn snapshot_dir(&self) -> String {
+        format!("models--{}/snapshots/{}", self.repo.replace('/', "--"), self.revision)
+    }
+}
+
+fn valid_vllm(v: &Vllm) -> bool {
+    let hex = |s: &str, n: usize| s.len() == n && s.chars().all(|c| c.is_ascii_digit() || ('a'..='f').contains(&c));
+    let name_ok = |s: &str| !s.is_empty() && !s.starts_with(['-', '.', '/']) && s.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || "._/-".contains(c));
+    let repo_part = |s: &str| !s.is_empty() && !s.starts_with(['-', '.']) && s.chars().all(|c| c.is_ascii_alphanumeric() || "._-".contains(c));
+    let image_ok = v.image.split_once("@sha256:").is_some_and(|(name, digest)| name_ok(name) && hex(digest, 64));
+    let repo_ok = v.repo.split_once('/').is_some_and(|(org, name)| repo_part(org) && repo_part(name));
+    let id_ok = v.image_id.strip_prefix("sha256:").is_some_and(|id| hex(id, 64));
+    image_ok && id_ok && repo_ok && hex(&v.revision, 40) && v.size > 0
 }
 
 impl Recipe {
@@ -264,6 +323,11 @@ impl Catalog {
         }
         let hw_ids: HashSet<&str> = self.hardware.iter().map(|h| h.id.as_str()).collect();
         let fam_ids: HashSet<&str> = self.families.iter().map(|f| f.id.as_str()).collect();
+        for h in &self.hardware {
+            if !(1..=8).contains(&h.units) || h.image.as_deref().is_some_and(|i| !is_safe_id(i)) {
+                return Err(format!("{}: invalid units or image", h.id));
+            }
+        }
         for id in hw_ids.iter().chain(fam_ids.iter()) {
             if !is_safe_id(id) {
                 return Err(format!("Invalid id: {id}"));
@@ -277,7 +341,8 @@ impl Catalog {
             if !fam_ids.contains(m.family.as_str()) {
                 return Err(format!("{}: unknown family {}", m.id, m.family));
             }
-            if m.files.is_empty() {
+            // Un modelo solo de vLLM no tiene GGUF.
+            if m.files.is_empty() && m.recipes.values().any(|r| r.vllm.is_none()) {
                 return Err(format!("{}: no files", m.id));
             }
             m.files.iter().try_for_each(validate_file)?;
@@ -297,7 +362,20 @@ impl Catalog {
                 if !hw_ids.contains(hw.as_str()) {
                     return Err(format!("{}: unknown hardware {hw}", m.id));
                 }
-                if !(512..=262_144).contains(&r.ctx_size) {
+                if let Some(v) = &r.vllm {
+                    if !valid_vllm(v) {
+                        return Err(format!("{}: invalid vllm image, repo or revision for {hw}", m.id));
+                    }
+                    if self.hardware(hw).is_some_and(|h| h.units < 2) {
+                        return Err(format!("{}: vllm recipes are only for linked GB10 ({hw})", m.id));
+                    }
+                    if r.files.is_some() || r.mtp.is_some() {
+                        return Err(format!("{}: a vllm recipe for {hw} can't set GGUF files or mtp", m.id));
+                    }
+                }
+                // vLLM llega a 1M de contexto; llama.cpp se queda en 256K.
+                let max_ctx = if r.vllm.is_some() { 1_048_576 } else { 262_144 };
+                if !(512..=max_ctx).contains(&r.ctx_size) {
                     return Err(format!("{}: ctx_size out of range", m.id));
                 }
                 if r.quant.is_some() != r.files.is_some() || r.quant.as_ref().is_some_and(|q| q.is_empty()) {

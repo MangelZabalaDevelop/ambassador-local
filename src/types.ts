@@ -11,6 +11,12 @@ export type Hardware = {
   os: string[];
   arch: string[];
   gpu_match: string[];
+  /** false = "Coming soon": todavía sin probar en ese equipo. */
+  available: boolean;
+  /** Equipos enlazados; 2 = dos GB10. */
+  units: number;
+  /** Foto en public/hardware/<image>.webp si no es la del id. */
+  image?: string | null;
   specs: Specs;
 };
 
@@ -37,10 +43,18 @@ export type Recipe = {
   files?: RemoteFile[] | null;
   /** Decodificación especulativa MTP; `draft` es el GGUF aparte con la cabeza MTP, si no viene dentro del modelo. */
   mtp?: { draft_n_max: number; draft?: RemoteFile | null } | null;
+  /** GB10 ×2: vLLM en contenedor en vez de llama.cpp. */
+  vllm?: Vllm | null;
   gpu_layers?: number;
   flash_attn?: boolean;
   mmap?: boolean;
 };
+
+/** Imagen fijada por digest y pesos de Hugging Face fijados por commit; `size` en bytes por GB10. */
+export type Vllm = { image: string; image_id: string; repo: string; revision: string; size: number };
+
+/** Un punto del verificador del cluster: `wait` = no se pudo mirar porque falló uno anterior. */
+export type ClusterCheck = { label: string; state: "ok" | "fail" | "wait"; detail: string };
 
 export type Model = {
   id: string;
@@ -80,6 +94,8 @@ export type System = {
   arch: string;
   gpus: { name: string; memory_mib: number | null }[];
   suggested_hardware: string | null;
+  /** Equipos del catálogo que coinciden con esta máquina; solo esos se pueden usar. */
+  detected_hardware: string[];
 };
 
 /** Versión nueva publicada en las releases del repo, firmada con nuestra clave. */

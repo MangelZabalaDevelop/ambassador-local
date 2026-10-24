@@ -1,6 +1,6 @@
 //! Detecta sistema operativo, arquitectura y GPU NVIDIA para preseleccionar el equipo.
 
-use crate::catalog::Catalog;
+use crate::catalog::{Catalog, Hardware};
 use serde::Serialize;
 
 #[derive(Debug, Clone, Serialize)]
@@ -15,6 +15,8 @@ pub struct System {
     pub arch: String,
     pub gpus: Vec<Gpu>,
     pub suggested_hardware: Option<String>,
+    /// Equipos del catálogo que coinciden con esta máquina: solo esos se pueden usar.
+    pub detected_hardware: Vec<String>,
 }
 
 pub fn current_os() -> &'static str {
@@ -42,18 +44,26 @@ fn nvidia_smi() -> Vec<Gpu> {
         .collect()
 }
 
+fn matches(hw: &Hardware, os: &str, arch: &str, gpus: &[Gpu]) -> bool {
+    // Varios equipos enlazados (GB10 ×2): además de la GPU, hace falta el cable ConnectX entre ellos.
+    (hw.units <= 1 || crate::cluster::links() > 0)
+        && hw.available
+        && hw.os.iter().any(|o| o == os)
+        && hw.arch.iter().any(|a| a == arch)
+        && gpus.iter().any(|g| hw.gpu_match.iter().any(|m| g.name.to_uppercase().contains(&m.to_uppercase())))
+}
+
+/// ¿Esta máquina es ese equipo? Se vuelve a mirar al arrancar un modelo.
+pub fn is_detected(hw: &Hardware) -> bool {
+    matches(hw, current_os(), current_arch(), &nvidia_smi())
+}
+
 pub fn detect(catalog: &Catalog) -> System {
     let os = current_os().to_string();
     let arch = current_arch().to_string();
     let gpus = nvidia_smi();
-    let suggested_hardware = catalog
-        .hardware
-        .iter()
-        .find(|hw| {
-            hw.os.contains(&os)
-                && hw.arch.contains(&arch)
-                && gpus.iter().any(|g| hw.gpu_match.iter().any(|m| g.name.to_uppercase().contains(&m.to_uppercase())))
-        })
-        .map(|hw| hw.id.clone());
-    System { os, arch, gpus, suggested_hardware }
+    let detected_hardware: Vec<String> =
+        catalog.hardware.iter().filter(|hw| matches(hw, &os, &arch, &gpus)).map(|hw| hw.id.clone()).collect();
+    let suggested_hardware = detected_hardware.first().cloned();
+    System { os, arch, gpus, suggested_hardware, detected_hardware }
 }

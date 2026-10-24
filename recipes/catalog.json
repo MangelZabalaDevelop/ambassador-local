@@ -144,6 +144,7 @@
       "gpu_match": [
         "RTX PRO 5000"
       ],
+      "available": false,
       "specs": {
         "model": "MB16250",
         "summary": "The flagship mobile workstation. Desktop performance in a bag for local AI and real-time rendering.",
@@ -215,6 +216,7 @@
       "gpu_match": [
         "RTX PRO 3000"
       ],
+      "available": false,
       "specs": {
         "model": "PW716260",
         "summary": "The thin-and-light mobile workstation. Portability first, with real GPU compute away from the desk.",
@@ -335,6 +337,69 @@
           "The NVIDIA AI stack"
         ]
       }
+    },
+    {
+      "id": "pro-max-gb10-x2",
+      "name": "Dell Pro Max with GB10 ×2",
+      "kind": "mini",
+      "gpu": "2 × NVIDIA GB10 Grace Blackwell",
+      "memory_gb": 256,
+      "os": [
+        "linux"
+      ],
+      "arch": [
+        "aarch64"
+      ],
+      "gpu_match": [
+        "GB10"
+      ],
+      "units": 2,
+      "image": "pro-max-gb10",
+      "specs": {
+        "model": "2 × FCM1253",
+        "summary": "Two GB10 systems linked together. 256 GB of unified memory for the largest local models.",
+        "highlights": [
+          {
+            "label": "Unified memory",
+            "value": "256 GB"
+          },
+          {
+            "label": "FP4 AI compute",
+            "value": "2 PFLOP"
+          },
+          {
+            "label": "Systems",
+            "value": "2 linked"
+          }
+        ],
+        "details": [
+          {
+            "label": "Superchip",
+            "value": "2 × NVIDIA GB10 Grace Blackwell"
+          },
+          {
+            "label": "Processor",
+            "value": "2 × 20-core Arm · 10× Cortex-X925 + 10× Cortex-A725 each"
+          },
+          {
+            "label": "Graphics",
+            "value": "2 × NVIDIA Blackwell GPU · up to 1 petaflop FP4 each"
+          },
+          {
+            "label": "Memory",
+            "value": "2 × 128 GB LPDDR5x unified (CPU + GPU)"
+          },
+          {
+            "label": "Operating system",
+            "value": "NVIDIA DGX OS (Ubuntu-based, ARM64)"
+          }
+        ],
+        "best_for": [
+          "Models over 128 GB",
+          "Large MoE models",
+          "Long context"
+        ]
+      }
     }
   ],
   "families": [
@@ -374,6 +439,13 @@
       "series": "GLM by Z.ai",
       "description": "Z.ai's GLM models, built for agentic coding and tool use.",
       "color": "#0d9488"
+    },
+    {
+      "id": "openai",
+      "name": "OpenAI",
+      "series": "gpt-oss",
+      "description": "OpenAI's open-weight gpt-oss models, built for reasoning and tool use.",
+      "color": "#10a37f"
     }
   ],
   "models": [
@@ -459,6 +531,38 @@
       }
     },
     {
+      "id": "nemotron35-lightning-30b",
+      "family": "nvidia",
+      "name": "Nemotron 3.5 Lightning",
+      "size": "30B-A3B",
+      "tagline": "The quick Nemotron: 3B active per token.",
+      "quant": "UD-Q4_K_XL",
+      "size_class": "medium",
+      "intelligence": 3,
+      "best_for": [
+        "Chat",
+        "Agents",
+        "Coding"
+      ],
+      "files": [
+        {
+          "url": "https://huggingface.co/unsloth/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-GGUF/resolve/f2d3fe3694501008786e81e5f20360cbf715496a/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-UD-Q4_K_XL.gguf",
+          "sha256": "112bf957489a497c18f60bf8bd44ee1dfa05e87368b8ed7f68998a4e38f275c9",
+          "size": 25505724480
+        }
+      ],
+      "recipes": {
+        "pro-max-gb10": {
+          "speed": 5,
+          "tokens_per_sec": 81.0,
+          "ctx_size": 262144,
+          "mtp": {
+            "draft_n_max": 2
+          }
+        }
+      }
+    },
+    {
       "id": "qwen38-flash-next",
       "family": "qwen",
       "name": "Qwen3.8 Flash Next",
@@ -498,9 +602,9 @@
       }
     },
     {
-      "id": "qwen35-35b-a3b",
+      "id": "qwen36-35b-a3b",
       "family": "qwen",
-      "name": "Qwen3.5 35B-A3B",
+      "name": "Qwen3.6 35B-A3B",
       "size": "35B-A3B",
       "tagline": "Fast all-rounder: only 3B active per token.",
       "quant": "UD-Q4_K_XL",
@@ -513,15 +617,15 @@
       ],
       "files": [
         {
-          "url": "https://huggingface.co/unsloth/Qwen3.5-35B-A3B-MTP-GGUF/resolve/63af8373893a7a73c6dfcb84cb63d815981da5e0/Qwen3.5-35B-A3B-UD-Q4_K_XL.gguf",
-          "sha256": "26445264c88d8bd4bf465763962b222cc8f816f9abe3717421f916ec4661fa9e",
-          "size": 22853662880
+          "url": "https://huggingface.co/unsloth/Qwen3.6-35B-A3B-MTP-GGUF/resolve/5bc3e238d916f48a861bac2f8a1990a0e9b7e98d/Qwen3.6-35B-A3B-UD-Q4_K_XL.gguf",
+          "sha256": "55983c5a75a1ab969824077b3bb3de4146e82a9234072b48ad4e8f92ad3fe9f1",
+          "size": 22853663008
         }
       ],
       "recipes": {
         "pro-max-gb10": {
           "speed": 5,
-          "tokens_per_sec": 87.2,
+          "tokens_per_sec": 84.8,
           "ctx_size": 262144,
           "mtp": {
             "draft_n_max": 2
@@ -557,6 +661,71 @@
           "ctx_size": 262144,
           "mtp": {
             "draft_n_max": 3
+          }
+        }
+      }
+    },
+    {
+      "id": "qwen3-coder-next",
+      "family": "qwen",
+      "name": "Qwen3-Coder-Next",
+      "size": "80B-A3B",
+      "tagline": "Qwen's coding specialist, built for coding agents.",
+      "quant": "UD-Q4_K_XL",
+      "size_class": "large",
+      "intelligence": 4,
+      "best_for": [
+        "Coding",
+        "Agents"
+      ],
+      "files": [
+        {
+          "url": "https://huggingface.co/unsloth/Qwen3-Coder-Next-GGUF/resolve/ce09c67b53bc8739eef83fe67b2f5d293c270632/Qwen3-Coder-Next-UD-Q4_K_XL.gguf",
+          "sha256": "4bb93f0a0221ef4ff963ca9094df629c8dfdfabc3b4fdd85c1a2e4c0624fce36",
+          "size": 49608478720
+        }
+      ],
+      "recipes": {
+        "pro-max-gb10": {
+          "speed": 4,
+          "tokens_per_sec": 54.3,
+          "ctx_size": 262144
+        }
+      }
+    },
+    {
+      "id": "gemma4-31b",
+      "family": "google",
+      "name": "Gemma 4 31B",
+      "size": "31B",
+      "tagline": "The largest Gemma 4: dense and careful.",
+      "quant": "QAT UD-Q4_K_XL",
+      "size_class": "medium",
+      "intelligence": 4,
+      "best_for": [
+        "Writing",
+        "Reasoning",
+        "Chat"
+      ],
+      "files": [
+        {
+          "url": "https://huggingface.co/unsloth/gemma-4-31B-it-qat-GGUF/resolve/43cc1aeb31adf47ec06a854507ce552cd9862e6f/gemma-4-31B-it-qat-UD-Q4_K_XL.gguf",
+          "sha256": "00b5a7c497f0c8934033088c10a7fa9a4c015e46ee6d89e9c6890650ba5d0e71",
+          "size": 17287670048
+        }
+      ],
+      "recipes": {
+        "pro-max-gb10": {
+          "speed": 3,
+          "tokens_per_sec": 34.0,
+          "ctx_size": 262144,
+          "mtp": {
+            "draft_n_max": 4,
+            "draft": {
+              "url": "https://huggingface.co/unsloth/gemma-4-31B-it-qat-GGUF/resolve/43cc1aeb31adf47ec06a854507ce552cd9862e6f/mtp-gemma-4-31B-it.gguf",
+              "sha256": "3a5e99fd8d0b23afb1fccd1ee0c9ebd1f571d00399c2dae2292d217feeec0f6b",
+              "size": 279955968
+            }
           }
         }
       }
@@ -636,6 +805,108 @@
       }
     },
     {
+      "id": "glm47-flash",
+      "family": "glm",
+      "name": "GLM-4.7-Flash",
+      "size": "30B-A3B",
+      "tagline": "Z.ai's quick model for coding and tools.",
+      "quant": "UD-Q4_K_XL",
+      "size_class": "medium",
+      "intelligence": 3,
+      "best_for": [
+        "Coding",
+        "Agents",
+        "Chat"
+      ],
+      "files": [
+        {
+          "url": "https://huggingface.co/unsloth/GLM-4.7-Flash-GGUF/resolve/0d32489ecb9db6d2a4fc93bd27ef01519f95474d/GLM-4.7-Flash-UD-Q4_K_XL.gguf",
+          "sha256": "b0d4fbc1211f891b4cfbf2a497160bfe06a49412420068904d426b7a13f4ba7f",
+          "size": 17520169312
+        }
+      ],
+      "recipes": {
+        "pro-max-gb10": {
+          "speed": 4,
+          "tokens_per_sec": 69.1,
+          "ctx_size": 262144
+        }
+      }
+    },
+    {
+      "id": "deepseek-v4-flash",
+      "family": "deepseek",
+      "name": "DeepSeek V4 Flash",
+      "size": "284B-A13B",
+      "tagline": "DeepSeek's big reasoner, squeezed into one GB10.",
+      "quant": "UD-IQ3_XXS",
+      "size_class": "large",
+      "intelligence": 5,
+      "best_for": [
+        "Reasoning",
+        "Coding",
+        "Long documents"
+      ],
+      "files": [
+        {
+          "url": "https://huggingface.co/unsloth/DeepSeek-V4-Flash-0731-GGUF/resolve/fbbb5b93fb787c21338159b0af3318bb3f4d9768/UD-IQ3_XXS/DeepSeek-V4-Flash-0731-UD-IQ3_XXS-00001-of-00004.gguf",
+          "sha256": "dec1cee704800267d9d836d5a61aefc33705be939bbb3058fa9006d98191576d",
+          "size": 5257696
+        },
+        {
+          "url": "https://huggingface.co/unsloth/DeepSeek-V4-Flash-0731-GGUF/resolve/fbbb5b93fb787c21338159b0af3318bb3f4d9768/UD-IQ3_XXS/DeepSeek-V4-Flash-0731-UD-IQ3_XXS-00002-of-00004.gguf",
+          "sha256": "3064d3c4c1d6363e9f9ad88e90a3e2c5fb2d6f7ae16ca72135c3ce6a5c984da5",
+          "size": 49910532416
+        },
+        {
+          "url": "https://huggingface.co/unsloth/DeepSeek-V4-Flash-0731-GGUF/resolve/fbbb5b93fb787c21338159b0af3318bb3f4d9768/UD-IQ3_XXS/DeepSeek-V4-Flash-0731-UD-IQ3_XXS-00003-of-00004.gguf",
+          "sha256": "2e9b2732eca7da8324f731653624a4f5c9846258926fd9f468cc703afb51a019",
+          "size": 49257859456
+        },
+        {
+          "url": "https://huggingface.co/unsloth/DeepSeek-V4-Flash-0731-GGUF/resolve/fbbb5b93fb787c21338159b0af3318bb3f4d9768/UD-IQ3_XXS/DeepSeek-V4-Flash-0731-UD-IQ3_XXS-00004-of-00004.gguf",
+          "sha256": "4ca79d8e5107dd1b9bb57b176a7c09948837425dee49f0f1dfd6547a3769fea7",
+          "size": 5034198464
+        }
+      ],
+      "recipes": {
+        "pro-max-gb10": {
+          "speed": 2,
+          "tokens_per_sec": 17.0,
+          "ctx_size": 131072
+        }
+      }
+    },
+    {
+      "id": "gpt-oss-120b",
+      "family": "openai",
+      "name": "gpt-oss-120b",
+      "size": "117B-A5B",
+      "tagline": "OpenAI's open-weight reasoning model.",
+      "quant": "MXFP4",
+      "size_class": "large",
+      "intelligence": 4,
+      "best_for": [
+        "Reasoning",
+        "Coding",
+        "Agents"
+      ],
+      "files": [
+        {
+          "url": "https://huggingface.co/unsloth/gpt-oss-120b-GGUF/resolve/ff1a82da6ad466e32284fa3d2b86694db3204789/gpt-oss-120b-F16.gguf",
+          "sha256": "2d1f0298ae4b6c874d5a468598c5ce17c1763b3fea99de10b1a07df93cef014f",
+          "size": 65369017728
+        }
+      ],
+      "recipes": {
+        "pro-max-gb10": {
+          "speed": 3,
+          "tokens_per_sec": 43.0,
+          "ctx_size": 131072
+        }
+      }
+    },
+    {
       "id": "gemma3-12b",
       "family": "google",
       "name": "Gemma 3 12B",
@@ -681,6 +952,94 @@
         "pro-max-gb10": {
           "speed": 3,
           "ctx_size": 8192
+        }
+      }
+    },
+    {
+      "id": "glm53-flash-fp4",
+      "family": "glm",
+      "name": "GLM-5.3-Flash FP4",
+      "size": "320B-A18B",
+      "tagline": "Z.ai's big agentic coder, in NVIDIA's FP4 for two GB10.",
+      "quant": "NVFP4 (FP4-Local)",
+      "size_class": "xlarge",
+      "intelligence": 5,
+      "best_for": [
+        "Coding",
+        "Agents",
+        "Reasoning"
+      ],
+      "files": [],
+      "recipes": {
+        "pro-max-gb10-x2": {
+          "speed": 3,
+          "ctx_size": 1048576,
+          "tokens_per_sec": 33.9,
+          "vllm": {
+            "image": "eugr/spark-vllm-b12x@sha256:03a956544e9f9b4b7ba91690469fbe7848bdbef29a7d2e0f5788368467bb3595",
+            "image_id": "sha256:a7f76ae9f18c7701c9cde5f72c606393d9a21ca94dd8e53b27589935f64fcbe2",
+            "repo": "nvidia/GLM-5.3-Flash-FP4-Local",
+            "revision": "76348ddb2be2e35e39ecfc00e75dc07703f4f3d5",
+            "size": 177519524972
+          }
+        }
+      }
+    },
+    {
+      "id": "qwen38-flash-next-fp4",
+      "family": "qwen",
+      "name": "Qwen3.8 Flash Next FP4",
+      "size": "180B",
+      "tagline": "The largest Qwen, in NVIDIA's FP4 for two GB10.",
+      "quant": "NVFP4 (FP4-Local)",
+      "size_class": "xlarge",
+      "intelligence": 5,
+      "best_for": [
+        "Coding",
+        "Agents",
+        "Long documents"
+      ],
+      "files": [],
+      "recipes": {
+        "pro-max-gb10-x2": {
+          "speed": 3,
+          "ctx_size": 262144,
+          "vllm": {
+            "image": "eugr/spark-vllm-b12x@sha256:03a956544e9f9b4b7ba91690469fbe7848bdbef29a7d2e0f5788368467bb3595",
+            "image_id": "sha256:a7f76ae9f18c7701c9cde5f72c606393d9a21ca94dd8e53b27589935f64fcbe2",
+            "repo": "nvidia/Qwen3.8-Flash-Next-FP4-Local",
+            "revision": "b9ce18a6887e18c089fdea8509a33e63429a3300",
+            "size": 102262310289
+          }
+        }
+      }
+    },
+    {
+      "id": "deepseek-v4-flash-vision",
+      "family": "deepseek",
+      "name": "DeepSeek V4 Flash Vision",
+      "size": "284B-A13B",
+      "tagline": "DeepSeek's reasoner that also reads images, on two GB10.",
+      "quant": "Native FP4/FP8",
+      "size_class": "xlarge",
+      "intelligence": 5,
+      "best_for": [
+        "Reasoning",
+        "Coding",
+        "Images"
+      ],
+      "files": [],
+      "recipes": {
+        "pro-max-gb10-x2": {
+          "speed": 3,
+          "ctx_size": 1048576,
+          "vllm": {
+            "image": "eugr/spark-vllm-b12x@sha256:306f84a62fc59e34e3b573587282f8f58232218acf9ca7be3c6313c81fae58a2",
+            "image_id": "sha256:4d2539dfebb73b7a335c777e69be5330f580e948670a7333b5ddcc7e13276cd3",
+            "repo": "deepseek-ai/DeepSeek-V4-Flash-Vision-Exp",
+            "revision": "6821d6ad3681a4b137b066b76094fa82ebd0a380",
+            "size": 167831848791
+          }
         }
       }
     }

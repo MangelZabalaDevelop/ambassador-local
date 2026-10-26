@@ -88,9 +88,13 @@ export default function App() {
         : [],
     [catalog, hardwareId],
   );
+  // Recommended recipes for this hardware go first; the rest keep the catalog's order.
   const labModels = useMemo(
-    () => models.filter((m) => m.family === familyId),
-    [models, familyId],
+    () =>
+      models
+        .filter((m) => m.family === familyId)
+        .sort((a, b) => Number(!!b.recipes[hardwareId!]?.recommended) - Number(!!a.recipes[hardwareId!]?.recommended)),
+    [models, familyId, hardwareId],
   );
 
   if (loadError) return <Centered>Could not start: {loadError}</Centered>;

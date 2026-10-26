@@ -154,6 +154,15 @@ impl Model {
     pub fn vllm_for(&self, hardware_id: &str) -> Option<&Vllm> {
         self.recipes.get(hardware_id)?.vllm.as_ref()
     }
+
+    pub fn tensorfold_for(&self, hardware_id: &str) -> Option<&TensorFold> {
+        self.recipes.get(hardware_id)?.tensorfold.as_ref()
+    }
+
+    /// La receta corre en contenedores repartidos en las dos GB10 (vLLM o TensorFold), no con llama.cpp.
+    pub fn in_container(&self, hardware_id: &str) -> bool {
+        self.recipes.get(hardware_id).is_some_and(Recipe::in_container)
+    }
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -193,6 +202,15 @@ pub struct Recipe {
     /// En vez de llama.cpp, vLLM en contenedor (solo GB10 ×2, recetas NVFP4).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub vllm: Option<Vllm>,
+    /// En vez de llama.cpp, TensorFold en contenedor (solo GB10 ×2): imagen construida con la receta del repo.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tensorfold: Option<TensorFold>,
+    /// Receta afinada a mano por el autor del catálogo: se ve con la etiqueta "Miguel Tuned".
+    #[serde(default)]
+    pub tuned: bool,
+    /// Recomendada en este equipo: va primero en la tabla, con coronita.
+    #[serde(default)]
+    pub recommended: bool,
     #[serde(default)]
     pub gpu_layers: Option<u32>,
     #[serde(default)]
@@ -244,17 +262,60 @@ impl Vllm {
     }
 }
 
+/// TensorFold en contenedor. La imagen no está en ningún registro: cada GB10 la construye con
+/// `recipes/tensorfold/<recipe>/` (fuentes fijadas por commit) y la etiqueta lleva el commit del motor.
+/// `prepare.sh` deja los pesos en la caché de Hugging Face y los archivos de cada rank en su carpeta.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct TensorFold {
+    /// `nombre:tag` local, p. ej. ambassador-local/tensorfold-dsv41:6366d2c
+    pub image: String,
+    /// Commit de bertholomus/TensorFold que lleva la imagen (40 hex), en su etiqueta.
+    pub engine_commit: String,
+    /// Carpeta con Dockerfile y scripts: recipes/tensorfold/<recipe>/
+    pub recipe: String,
+    pub repo: String,
+    pub revision: String,
+    /// Bytes de los pesos en esa revisión, en cada GB10.
+    pub size: u64,
+}
+
+impl TensorFold {
+    pub fn snapshot_dir(&self) -> String {
+        format!("models--{}/snapshots/{}", self.repo.replace('/', "--"), self.revision)
+    }
+}
+
+fn hex(s: &str, n: usize) -> bool {
+    s.len() == n && s.chars().all(|c| c.is_ascii_digit() || ('a'..='f').contains(&c))
+}
+
+fn image_name_ok(s: &str) -> bool {
+    !s.is_empty() && !s.starts_with(['-', '.', '/']) && s.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || "._/-".contains(c))
+}
+
+fn repo_ok(repo: &str) -> bool {
+    let part = |s: &str| !s.is_empty() && !s.starts_with(['-', '.']) && s.chars().all(|c| c.is_ascii_alphanumeric() || "._-".contains(c));
+    repo.split_once('/').is_some_and(|(org, name)| part(org) && part(name))
+}
+
 fn valid_vllm(v: &Vllm) -> bool {
-    let hex = |s: &str, n: usize| s.len() == n && s.chars().all(|c| c.is_ascii_digit() || ('a'..='f').contains(&c));
-    let name_ok = |s: &str| !s.is_empty() && !s.starts_with(['-', '.', '/']) && s.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || "._/-".contains(c));
-    let repo_part = |s: &str| !s.is_empty() && !s.starts_with(['-', '.']) && s.chars().all(|c| c.is_ascii_alphanumeric() || "._-".contains(c));
-    let image_ok = v.image.split_once("@sha256:").is_some_and(|(name, digest)| name_ok(name) && hex(digest, 64));
-    let repo_ok = v.repo.split_once('/').is_some_and(|(org, name)| repo_part(org) && repo_part(name));
+    let image_ok = v.image.split_once("@sha256:").is_some_and(|(name, digest)| image_name_ok(name) && hex(digest, 64));
     let id_ok = v.image_id.strip_prefix("sha256:").is_some_and(|id| hex(id, 64));
-    image_ok && id_ok && repo_ok && hex(&v.revision, 40) && v.size > 0
+    image_ok && id_ok && repo_ok(&v.repo) && hex(&v.revision, 40) && v.size > 0
+}
+
+fn valid_tensorfold(t: &TensorFold) -> bool {
+    let tag_ok = |s: &str| !s.is_empty() && s.len() <= 128 && s.chars().all(|c| c.is_ascii_alphanumeric() || "._-".contains(c));
+    let image_ok = t.image.rsplit_once(':').is_some_and(|(name, tag)| image_name_ok(name) && tag_ok(tag));
+    image_ok && hex(&t.engine_commit, 40) && is_safe_id(&t.recipe) && repo_ok(&t.repo) && hex(&t.revision, 40) && t.size > 0
 }
 
 impl Recipe {
+    pub fn in_container(&self) -> bool {
+        self.vllm.is_some() || self.tensorfold.is_some()
+    }
+
     pub fn to_args(&self) -> Vec<String> {
         let mut args = vec![
             // Un solo usuario: un solo canal, con todo el contexto y toda la velocidad.
@@ -341,8 +402,8 @@ impl Catalog {
             if !fam_ids.contains(m.family.as_str()) {
                 return Err(format!("{}: unknown family {}", m.id, m.family));
             }
-            // Un modelo solo de vLLM no tiene GGUF.
-            if m.files.is_empty() && m.recipes.values().any(|r| r.vllm.is_none()) {
+            // Un modelo solo de contenedores (vLLM, TensorFold) no tiene GGUF.
+            if m.files.is_empty() && m.recipes.values().any(|r| !r.in_container()) {
                 return Err(format!("{}: no files", m.id));
             }
             m.files.iter().try_for_each(validate_file)?;
@@ -362,19 +423,25 @@ impl Catalog {
                 if !hw_ids.contains(hw.as_str()) {
                     return Err(format!("{}: unknown hardware {hw}", m.id));
                 }
-                if let Some(v) = &r.vllm {
-                    if !valid_vllm(v) {
-                        return Err(format!("{}: invalid vllm image, repo or revision for {hw}", m.id));
-                    }
+                if r.vllm.as_ref().is_some_and(|v| !valid_vllm(v)) {
+                    return Err(format!("{}: invalid vllm image, repo or revision for {hw}", m.id));
+                }
+                if r.tensorfold.as_ref().is_some_and(|t| !valid_tensorfold(t)) {
+                    return Err(format!("{}: invalid tensorfold image, engine commit, recipe, repo or revision for {hw}", m.id));
+                }
+                if r.vllm.is_some() && r.tensorfold.is_some() {
+                    return Err(format!("{}: the recipe for {hw} can't use vllm and tensorfold at once", m.id));
+                }
+                if r.in_container() {
                     if self.hardware(hw).is_some_and(|h| h.units < 2) {
-                        return Err(format!("{}: vllm recipes are only for linked GB10 ({hw})", m.id));
+                        return Err(format!("{}: vllm and tensorfold recipes are only for linked GB10 ({hw})", m.id));
                     }
                     if r.files.is_some() || r.mtp.is_some() {
-                        return Err(format!("{}: a vllm recipe for {hw} can't set GGUF files or mtp", m.id));
+                        return Err(format!("{}: a vllm or tensorfold recipe for {hw} can't set GGUF files or mtp", m.id));
                     }
                 }
-                // vLLM llega a 1M de contexto; llama.cpp se queda en 256K.
-                let max_ctx = if r.vllm.is_some() { 1_048_576 } else { 262_144 };
+                // vLLM y TensorFold llegan a 1M de contexto; llama.cpp se queda en 256K.
+                let max_ctx = if r.in_container() { 1_048_576 } else { 262_144 };
                 if !(512..=max_ctx).contains(&r.ctx_size) {
                     return Err(format!("{}: ctx_size out of range", m.id));
                 }
@@ -424,5 +491,26 @@ mod tests {
     #[test]
     fn bundled_catalog_is_valid() {
         super::get().unwrap();
+    }
+
+    /// La carpeta de cada receta de TensorFold existe y su config.sh fija lo mismo que el catálogo.
+    #[test]
+    fn tensorfold_recipes_match_their_folder() {
+        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../recipes/tensorfold");
+        for m in &super::get().unwrap().models {
+            for t in m.recipes.values().filter_map(|r| r.tensorfold.as_ref()) {
+                let config = std::fs::read_to_string(root.join(&t.recipe).join("config.sh")).unwrap();
+                for line in [
+                    format!("IMAGE=\"${{IMAGE:-{}}}\"", t.image),
+                    format!("ENGINE_COMMIT={}", t.engine_commit),
+                    format!("REPO={}", t.repo),
+                    format!("REVISION={}", t.revision),
+                ] {
+                    assert!(config.lines().any(|l| l.starts_with(&line)), "{}: config.sh has no {line}", m.id);
+                }
+                let docker = std::fs::read_to_string(root.join(&t.recipe).join("Dockerfile")).unwrap();
+                assert!(docker.contains(&format!("ARG TF_REF={}", t.engine_commit)), "{}: Dockerfile builds another engine", m.id);
+            }
+        }
     }
 }

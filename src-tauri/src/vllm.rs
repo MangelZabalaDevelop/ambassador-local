@@ -1,8 +1,8 @@
-//! GB10 ×2 con vLLM: verificador de que las dos GB10 pueden correr una receta.
+//! GB10 ×2 con vLLM o TensorFold: verificador de que las dos GB10 pueden correr una receta.
 //! No monta el cluster (eso lo hace NVIDIA Sync) ni cambia nada: solo mira, en esta GB10
 //! y por SSH en la otra, lo mismo que necesitará el arranque.
 
-use crate::catalog::Vllm;
+use crate::catalog::{TensorFold, Vllm};
 use crate::cluster;
 use serde::Serialize;
 use std::collections::HashMap;
@@ -29,14 +29,63 @@ fn check(label: &str, ok: bool, detail: impl Into<String>) -> Check {
     Check { label: label.into(), state: if ok { State::Ok } else { State::Fail }, detail: detail.into() }
 }
 
+/// Lo que el verificador mira de una receta en contenedor, sea de vLLM o de TensorFold.
+pub struct Target {
+    engine: &'static str,
+    /// Comando de shell que sale con 0 si la imagen está.
+    image_test: String,
+    image_hint: String,
+    snapshot: String,
+    repo: String,
+    revision: String,
+    /// TensorFold: carpeta de `prepare.sh` (relativa a $HOME) y lo que debe decir su `.ready`.
+    prepared: Option<(String, String)>,
+}
+
+impl From<&Vllm> for Target {
+    fn from(v: &Vllm) -> Self {
+        Target {
+            engine: "vLLM",
+            image_test: format!("{{ docker image inspect {} || docker image inspect {}; }}", v.image, v.image_id),
+            image_hint: short_image(&v.image),
+            snapshot: v.snapshot_dir(),
+            repo: v.repo.clone(),
+            revision: v.revision.clone(),
+            prepared: None,
+        }
+    }
+}
+
+impl From<&TensorFold> for Target {
+    fn from(t: &TensorFold) -> Self {
+        Target {
+            engine: "TensorFold",
+            // La imagen se construye en casa: vale si su etiqueta lleva el commit del motor de la receta.
+            image_test: format!(
+                "[ \"$(docker image inspect -f '{{{{index .Config.Labels \"io.github.ambassadorlocal.engine\"}}}}' {} 2>/dev/null)\" = \"bertholomus/TensorFold@{}\" ]",
+                t.image, t.engine_commit
+            ),
+            image_hint: format!("{} (build it with prepare.sh)", t.image),
+            snapshot: t.snapshot_dir(),
+            repo: t.repo.clone(),
+            revision: t.revision.clone(),
+            prepared: Some((format!(".cache/ambassador-local/tensorfold/{}", t.recipe), format!("{} {}", t.engine_commit, t.revision))),
+        }
+    }
+}
+
 /// Script de solo lectura; imprime `clave=valor`. Los valores de la receta ya vienen validados
 /// (solo letras, números y `._/-@:`), así que se pueden poner tal cual.
-fn probe_script(v: &Vllm) -> String {
+fn probe_script(v: &Target) -> String {
+    let prepared = match &v.prepared {
+        Some((dir, stamp)) => format!("[ \"$(cat \"$HOME/{dir}/.ready\" 2>/dev/null)\" = \"{stamp}\" ] && echo prepared=ok || echo prepared=no\n"),
+        None => String::new(),
+    };
     format!(
         r#"docker info >/dev/null 2>&1 && echo docker=ok || echo docker=no
 docker info --format '{{{{range $k, $v := .Runtimes}}}}{{{{$k}}}} {{{{end}}}}' 2>/dev/null | grep -qw nvidia && echo gpu_runtime=ok || echo gpu_runtime=no
-{{ docker image inspect {image} || docker image inspect {image_id}; }} >/dev/null 2>&1 && echo image=ok || echo image=no
-S="${{HF_HOME:-$HOME/.cache/huggingface}}/hub/{snap}"
+{image_test} >/dev/null 2>&1 && echo image=ok || echo image=no
+{prepared}S="${{HF_HOME:-$HOME/.cache/huggingface}}/hub/{snap}"
 if [ ! -d "$S" ]; then echo weights=none
 else
   n=$(find -L "$S" -type l 2>/dev/null | wc -l)
@@ -47,9 +96,8 @@ fi
 apps=$(nvidia-smi --query-compute-apps=name --format=csv,noheader 2>/dev/null | sed 's/.*\///' | sort -u | paste -sd, -)
 [ -z "$apps" ] && echo gpu_free=ok || echo "gpu_free=$apps"
 "#,
-        image = v.image,
-        image_id = v.image_id,
-        snap = v.snapshot_dir(),
+        image_test = v.image_test,
+        snap = v.snapshot,
     )
 }
 
@@ -95,12 +143,17 @@ fn both(label: &str, a: String, b: String, explain: impl Fn(&str) -> String) -> 
     check(label, false, format!("{} · {}", side("This GB10", &a), side("Second GB10", &b)))
 }
 
-pub fn verify(v: &Vllm) -> Vec<Check> {
+pub fn verify(v: &Target) -> Vec<Check> {
     if !cfg!(target_os = "linux") {
-        return vec![check("GB10 with DGX OS", false, "vLLM models run only on two linked GB10.")];
+        return vec![check("GB10 with DGX OS", false, format!("{} models run only on two linked GB10.", v.engine))];
     }
     let pending = |label: &str| Check { label: label.into(), state: State::Wait, detail: "Needs the step above.".into() };
-    let labels = ["Docker with GPU access", "vLLM engine image", "Model weights", "GPUs free"];
+    let image_label = format!("{} engine image", v.engine);
+    let mut labels = vec!["Docker with GPU access", image_label.as_str(), "Model weights"];
+    if v.prepared.is_some() {
+        labels.push("Prepared with prepare.sh");
+    }
+    labels.push("GPUs free");
 
     let Some((peer, ssh_ok)) = cluster::peer() else {
         let mut out = vec![check(
@@ -129,14 +182,22 @@ pub fn verify(v: &Vllm) -> Vec<Check> {
         (run_local(&script), remote.join().unwrap_or_default())
     });
     out.push(both(labels[0], docker_state(&here), docker_state(&there), |s| s.to_string()));
-    out.push(both(labels[1], get(&here, "image"), get(&there, "image"), |_| format!("missing {}", short_image(&v.image))));
+    out.push(both(labels[1], get(&here, "image"), get(&there, "image"), |_| format!("missing {}", v.image_hint)));
     out.push(both(labels[2], get(&here, "weights"), get(&there, "weights"), |w| match w {
         "none" => format!("not downloaded ({} @ {})", v.repo, &v.revision[..7]),
         w if w.starts_with("missing") => format!("incomplete ({} files missing)", w.trim_start_matches("missing ")),
         w => w.to_string(),
     }));
-    out.push(both(labels[3], get(&here, "gpu_free"), get(&there, "gpu_free"), |apps| format!("in use by {apps}. Stop it first.")));
+    if v.prepared.is_some() {
+        out.push(both("Prepared with prepare.sh", get(&here, "prepared"), get(&there, "prepared"), |_| "not yet. Run prepare.sh from the recipe folder.".into()));
+    }
+    out.push(both("GPUs free", get(&here, "gpu_free"), get(&there, "gpu_free"), |apps| format!("in use by {apps}. Stop it first.")));
     out
+}
+
+/// Qué revisar para la receta de este equipo, si corre en contenedor.
+pub fn target_for(model: &crate::catalog::Model, hardware_id: &str) -> Option<Target> {
+    model.vllm_for(hardware_id).map(Target::from).or_else(|| model.tensorfold_for(hardware_id).map(Target::from))
 }
 
 /// `repo@sha256:abcdef…` → `repo@abcdef1` para mostrarlo corto.
@@ -164,9 +225,11 @@ mod tests {
     #[test]
     #[ignore]
     fn print_probe() {
-        for v in crate::catalog::get().unwrap().models.iter().filter_map(|m| m.vllm_for("pro-max-gb10-x2")) {
-            println!("#### {}
-{}", v.repo, probe_script(v));
+        for m in &crate::catalog::get().unwrap().models {
+            if let Some(t) = target_for(m, "pro-max-gb10-x2") {
+                println!("#### {}
+{}", t.repo, probe_script(&t));
+            }
         }
     }
 }

@@ -175,7 +175,7 @@
           "items": {
             "$ref": "#/$defs/file"
           },
-          "description": "GGUF files for llama.cpp. Empty only when every recipe of the model is vllm."
+          "description": "GGUF files for llama.cpp. Empty only when every recipe of the model is vllm or tensorfold."
         },
         "recipes": {
           "type": "object",
@@ -216,7 +216,7 @@
           "type": "integer",
           "minimum": 512,
           "maximum": 1048576,
-          "description": "Memory (context) in tokens: llama.cpp -c (up to 262144) or vLLM --max-model-len (up to 1048576)"
+          "description": "Memory (context) in tokens: llama.cpp -c (up to 262144), vLLM --max-model-len or TensorFold --context (up to 1048576)"
         },
         "quant": {
           "type": "string",
@@ -261,7 +261,24 @@
         },
         "vllm": {
           "$ref": "#/$defs/vllm"
+        },
+        "tensorfold": {
+          "$ref": "#/$defs/tensorfold"
+        },
+        "tuned": {
+          "type": "boolean",
+          "description": "Tuned by hand by the catalog author: shown with the Miguel Tuned label."
+        },
+        "recommended": {
+          "type": "boolean",
+          "description": "Recommended on this workstation: listed first, with a crown."
         }
+      },
+      "not": {
+        "required": [
+          "vllm",
+          "tensorfold"
+        ]
       }
     },
     "mtp": {
@@ -310,6 +327,50 @@
           "type": "string",
           "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*/[A-Za-z0-9][A-Za-z0-9._-]*$",
           "description": "Hugging Face repo with the weights, e.g. nvidia/GLM-5.3-Flash-FP4-Local"
+        },
+        "revision": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$",
+          "description": "Commit of that repo"
+        },
+        "size": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Bytes of the weights at that revision (each GB10 keeps a copy)"
+        }
+      }
+    },
+    "tensorfold": {
+      "type": "object",
+      "description": "Serve this model with TensorFold in a container across two linked GB10 (units 2). The image is built from recipes/tensorfold/<recipe>/ on each GB10 (prepare.sh), not pulled from a registry.",
+      "required": [
+        "image",
+        "engine_commit",
+        "recipe",
+        "repo",
+        "revision",
+        "size"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "image": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9._/-]*:[A-Za-z0-9._-]{1,128}$",
+          "description": "Local tag the recipe's build.sh gives the image, e.g. ambassador-local/tensorfold-dsv41:6366d2c"
+        },
+        "engine_commit": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$",
+          "description": "Commit of bertholomus/TensorFold the image is built from; the app checks it in the image label"
+        },
+        "recipe": {
+          "$ref": "#/$defs/id",
+          "description": "Folder with the Dockerfile and scripts: recipes/tensorfold/<recipe>/"
+        },
+        "repo": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*/[A-Za-z0-9][A-Za-z0-9._-]*$",
+          "description": "Hugging Face repo with the weights"
         },
         "revision": {
           "type": "string",

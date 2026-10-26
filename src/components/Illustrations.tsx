@@ -103,6 +103,33 @@ export function Crown({ className }: { className?: string }) {
   );
 }
 
+/** Etiquetas de una receta: "Miguel Tuned" (afinada a mano) y "Recommended" (con coronita). `dark` = sobre el hero. */
+export function RecipeBadges({ tuned, recommended, dark }: { tuned?: boolean; recommended?: boolean; dark?: boolean }) {
+  return (
+    <>
+      {tuned && (
+        <span
+          title="Tuned by hand by Miguel on this workstation"
+          className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold tracking-wide whitespace-nowrap uppercase ${
+            dark ? "bg-white text-[#0672cb]" : "bg-accent text-on-accent"
+          }`}
+        >
+          <svg viewBox="0 0 24 24" className="h-3 w-3" fill="currentColor" aria-hidden>
+            <path d="M12 2.5l2.3 6.2 6.2 2.3-6.2 2.3L12 19.5l-2.3-6.2L3.5 11l6.2-2.3z" />
+          </svg>
+          Miguel Tuned
+        </span>
+      )}
+      {recommended && (
+        <span className="inline-flex items-center gap-1 rounded-md bg-gradient-to-r from-amber-300 to-amber-500 py-0.5 pr-2 pl-1 text-[10px] font-bold whitespace-nowrap text-amber-950 shadow-sm">
+          <Crown className="h-3.5 w-3.5" />
+          Recommended
+        </span>
+      )}
+    </>
+  );
+}
+
 // Marcas de NVIDIA y Dell Technologies, pequeñas y tenues en la esquina inferior derecha.
 // Los archivos se usan como máscara para pintarlos con el color del tema
 // (negro tenue en claro, gris tenue en oscuro).

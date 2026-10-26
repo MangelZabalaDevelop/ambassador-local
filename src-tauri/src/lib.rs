@@ -149,20 +149,20 @@ fn downloaded_models(app: AppHandle) -> Result<Vec<String>, String> {
     // "modelo@equipo": cada receta puede usar otra cuantización (otros archivos).
     let mut out = Vec::new();
     for m in &catalog::get()?.models {
-        // Los de vLLM viven en la caché de Hugging Face de cada GB10: los revisa check_cluster.
-        for hw in m.recipes.keys().filter(|hw| m.vllm_for(hw).is_none() && model_downloaded(&root, m, hw)) {
+        // Los de vLLM y TensorFold viven en la caché de Hugging Face de cada GB10: los revisa check_cluster.
+        for hw in m.recipes.keys().filter(|hw| !m.in_container(hw) && model_downloaded(&root, m, hw)) {
             out.push(format!("{}@{hw}", m.id));
         }
     }
     Ok(out)
 }
 
-/// GB10 ×2 con vLLM: ¿están las dos listas para esta receta? Solo mira, no cambia nada.
+/// GB10 ×2 con vLLM o TensorFold: ¿están las dos listas para esta receta? Solo mira, no cambia nada.
 #[tauri::command]
 async fn check_cluster(hardware_id: String, model_id: String) -> Result<Vec<vllm::Check>, String> {
     let model = catalog::get()?.model(&model_id).ok_or("Unknown model")?;
-    let v = model.vllm_for(&hardware_id).ok_or("This recipe does not use vLLM.")?.clone();
-    tauri::async_runtime::spawn_blocking(move || vllm::verify(&v)).await.map_err(|e| e.to_string())
+    let target = vllm::target_for(model, &hardware_id).ok_or("This recipe does not run in a container.")?;
+    tauri::async_runtime::spawn_blocking(move || vllm::verify(&target)).await.map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -220,6 +220,9 @@ async fn run_job(app: &AppHandle, inner: &Arc<Mutex<Inner>>, cancel: &AtomicBool
     let recipe = model.recipes.get(hardware_id).ok_or("This model has no recipe for your hardware.")?;
     if recipe.vllm.is_some() {
         return Err("vLLM models can't be started from the app yet. Use the cluster check to see if both GB10 are ready.".into());
+    }
+    if let Some(t) = &recipe.tensorfold {
+        return Err(format!("TensorFold models can't be started from the app yet. Run run.sh from recipes/tensorfold/{}.", t.recipe));
     }
     let build = cat
         .engine

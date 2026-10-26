@@ -84,6 +84,9 @@ Allowed recipe fields:
 | `mtp.draft_n_max` (1–16) | `--spec-type draft-mtp --spec-draft-n-max` (MTP speculative decoding) | off |
 | `mtp.draft` | `-md` (separate `mtp-*.gguf`; leave out when the MTP head is inside the model) | — |
 | `vllm` | GB10 ×2 only: serve with vLLM instead of llama.cpp (see below) | off |
+| `tensorfold` | GB10 ×2 only: serve with TensorFold instead of llama.cpp (see below) | off |
+| `tuned` | — (the **Miguel Tuned** label: a recipe tuned by hand) | `false` |
+| `recommended` | — (listed first in its lab, with a crown) | `false` |
 | `gpu_layers` | `-ngl` | 999 |
 | `flash_attn` | `-fa on/off` | `true` |
 | `mmap` | `--no-mmap` when `false` | `true` |
@@ -105,6 +108,22 @@ The best recipes for two linked GB10 are NVFP4 models served by vLLM with tensor
 `ctx_size` is `--max-model-len` here and can go up to 1M. Those models have `"files": []`.
 
 The app doesn't set up the cluster: the cluster setup in NVIDIA Sync does. Today the app **checks** that both GB10 are ready (it only looks, it changes nothing): the second GB10 on the ConnectX cable, passwordless SSH to it, Docker with the NVIDIA runtime on both, the pinned image on both, complete weights on both, and both GPUs free. Starting vLLM models from the app comes next.
+
+### TensorFold on two GB10
+
+Some models run best on an engine with no public image. A `tensorfold` block points to a folder in
+[`recipes/tensorfold/`](recipes/tensorfold) with a Dockerfile (every source pinned by commit or digest) and the scripts
+that build the image, download and check the weights on both GB10 (`prepare.sh`) and serve the model (`run.sh`):
+
+| Field | Meaning |
+|---|---|
+| `image` | Local tag that the folder's `build.sh` gives the image (`name:tag`) |
+| `engine_commit` | TensorFold commit the image is built from; the cluster check reads it from the image label |
+| `recipe` | Folder name under `recipes/tensorfold/` |
+| `repo`, `revision`, `size` | As in `vllm` |
+
+The cluster check also confirms that `prepare.sh` finished on both GB10. `cargo test` checks that the folder's
+`config.sh` and `Dockerfile` pin the same image, engine, repo and revision as the catalog.
 
 Each file needs a URL pinned to a commit (`/resolve/<commit-sha>/file.gguf`), its `sha256` and its `size`.
 Hugging Face lists them at `https://huggingface.co/api/models/<repo>/tree/main` (`lfs.oid` is the sha256).

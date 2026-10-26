@@ -1335,6 +1335,38 @@
           }
         }
       }
+    },
+    {
+      "id": "deepseek-v41-flash-1017",
+      "family": "deepseek",
+      "name": "DeepSeek-V4.1-Flash-1017",
+      "size": "552B-A16B",
+      "tagline": "DeepSeek's newest reasoner, tuned for speed on two GB10.",
+      "quant": "EXL3 2.9bpw",
+      "size_class": "xlarge",
+      "intelligence": 5,
+      "best_for": [
+        "Reasoning",
+        "Coding",
+        "Agents"
+      ],
+      "files": [],
+      "recipes": {
+        "pro-max-gb10-x2": {
+          "speed": 4,
+          "ctx_size": 1048576,
+          "tuned": true,
+          "recommended": true,
+          "tensorfold": {
+            "image": "ambassador-local/tensorfold-dsv41:6366d2c",
+            "engine_commit": "6366d2c585b4f05fe33bfe5cbdb33ea15264841a",
+            "recipe": "deepseek-v41-flash-1017",
+            "repo": "LibertAIDAI/DeepSeek-V4.1-Flash-1017-EXL3-2.9bpw",
+            "revision": "0be63c3337efbb2a0061d5b8bb4006fa186d433f",
+            "size": 210818813941
+          }
+        }
+      }
     }
   ]
 }

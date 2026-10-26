@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { api, formatBytes } from "../api";
 import { downloadsFor, quantFor, type ClusterCheck, type Family, type Hardware, type Model, type Status } from "../types";
-import { HardwarePhoto, labLogoSrc } from "./Illustrations";
+import { HardwarePhoto, labLogoSrc, RecipeBadges } from "./Illustrations";
 
 type Props = {
   hardware: Hardware;
@@ -43,8 +43,10 @@ export function RunScreen(props: Props) {
   const recipe = model.recipes[hardware.id];
   const live = status.stage === "ready";
   const active = status.stage !== "idle" && status.stage !== "error";
-  const vllm = recipe.vllm;
-  const size = vllm ? vllm.size : downloadsFor(model, hardware.id).reduce((a, f) => a + f.size, 0);
+  // vLLM o TensorFold: corre en contenedores en las dos GB10 y por ahora solo se revisa.
+  const container = recipe.vllm ?? recipe.tensorfold;
+  const engine = recipe.vllm ? "vLLM" : "TensorFold";
+  const size = container ? container.size : downloadsFor(model, hardware.id).reduce((a, f) => a + f.size, 0);
 
   return (
     <div className="@container mt-8 flex flex-col gap-5">
@@ -69,13 +71,18 @@ export function RunScreen(props: Props) {
               <span className="text-xs font-bold tracking-[0.2em] text-white/60 uppercase">
                 {lab ? `${lab.name} · ${lab.series}` : "Model"}
               </span>
-              {vllm ? (
-                <span className="ml-auto rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-white/70">vLLM · cluster check</span>
+              {container ? (
+                <span className="ml-auto rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-white/70">{engine} · cluster check</span>
               ) : (
                 <StatusPill status={status} />
               )}
             </div>
             <h2 className="mt-3 text-3xl font-bold tracking-tight @2xl:text-4xl">{model.name}</h2>
+            {(recipe.tuned || recipe.recommended) && (
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <RecipeBadges tuned={recipe.tuned} recommended={recipe.recommended} dark />
+              </div>
+            )}
             <div className="mt-1 text-white/60">
               on {hardware.name} · {hardware.gpu}
             </div>
@@ -83,13 +90,17 @@ export function RunScreen(props: Props) {
               <Tile label="Parameters" value={model.size} />
               <Tile label={recipe.mtp ? "Quantization · MTP boost" : "Quantization"} value={quantFor(model, hardware.id)} />
               <Tile label="Context" value={recipe.ctx_size >= 1048576 ? `${recipe.ctx_size / 1048576}M` : `${(recipe.ctx_size / 1024).toFixed(0)}K`} />
-              <Tile label={vllm ? "Weights per GB10" : props.downloaded ? "On disk" : "Download"} value={formatBytes(size)} />
+              <Tile label={container ? "Weights per GB10" : props.downloaded ? "On disk" : "Download"} value={formatBytes(size)} />
             </div>
           </div>
         </div>
 
         <div className="relative border-t border-white/10 bg-black/25 px-6 py-5 backdrop-blur @2xl:px-8">
-          {vllm ? <ClusterCheckBar hardwareId={hardware.id} modelId={model.id} /> : <ActionBar {...props} />}
+          {container ? (
+            <ClusterCheckBar hardwareId={hardware.id} modelId={model.id} engine={engine} recipeFolder={recipe.tensorfold?.recipe} />
+          ) : (
+            <ActionBar {...props} />
+          )}
         </div>
       </section>
 
@@ -188,8 +199,9 @@ function ActionBar(props: Props) {
   return <LiveBar status={status} onStop={props.onStop} />;
 }
 
-/** GB10 ×2 con vLLM: revisa que las dos GB10 estén listas. Arrancar desde la app viene después. */
-function ClusterCheckBar({ hardwareId, modelId }: { hardwareId: string; modelId: string }) {
+/** GB10 ×2 con vLLM o TensorFold: revisa que las dos GB10 estén listas. Arrancar desde la app viene después. */
+function ClusterCheckBar(props: { hardwareId: string; modelId: string; engine: string; recipeFolder?: string }) {
+  const { hardwareId, modelId, engine, recipeFolder } = props;
   const [checks, setChecks] = useState<ClusterCheck[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [checking, setChecking] = useState(false);
@@ -213,9 +225,16 @@ function ClusterCheckBar({ hardwareId, modelId }: { hardwareId: string; modelId:
           <div className="font-bold">{checking ? "Checking both GB10…" : ready ? "Both GB10 are ready for this model" : "Cluster check"}</div>
           <div className="mt-0.5 text-sm text-white/60">
             {ready
-              ? "Starting vLLM models from the app arrives in a coming update."
-              : "vLLM runs this model across both GB10. This only looks, it changes nothing."}
+              ? `Starting ${engine} models from the app arrives in a coming update.`
+              : `${engine} runs this model across both GB10. This only looks, it changes nothing.`}
           </div>
+          {recipeFolder && (
+            <div className="mt-1.5 text-sm text-white/60">
+              Set it up once with <code className="rounded bg-white/10 px-1.5 py-0.5 text-white/85">prepare.sh</code>, then start it with{" "}
+              <code className="rounded bg-white/10 px-1.5 py-0.5 text-white/85">run.sh</code> from{" "}
+              <code className="rounded bg-white/10 px-1.5 py-0.5 text-white/85">recipes/tensorfold/{recipeFolder}</code>.
+            </div>
+          )}
         </div>
         <GhostButton onClick={run}>{checking ? "Checking…" : "Check again"}</GhostButton>
       </div>

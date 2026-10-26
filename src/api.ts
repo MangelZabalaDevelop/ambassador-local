@@ -35,14 +35,16 @@ function mockApi(): typeof tauriApi {
     downloaded: async () => [],
     currentStatus: async () => [{ stage: "idle" }, []],
     // Lo que respondió el verificador en las Spark reales mientras corría otra prueba.
-    checkCluster: async () => {
+    checkCluster: async (hardwareId, modelId) => {
       await new Promise((r) => setTimeout(r, 900));
+      const tensorfold = !!(bundled.models.find((m) => m.id === modelId)?.recipes as Record<string, { tensorfold?: unknown }> | undefined)?.[hardwareId]?.tensorfold;
       return [
         { label: "Second GB10 on the direct cable", state: "ok", detail: "Found at 10.100.88.1" },
         { label: "Passwordless SSH to the second GB10", state: "ok", detail: "Works over the direct cable" },
         { label: "Docker with GPU access", state: "ok", detail: "Both GB10" },
-        { label: "vLLM engine image", state: "ok", detail: "Both GB10" },
+        { label: `${tensorfold ? "TensorFold" : "vLLM"} engine image`, state: "ok", detail: "Both GB10" },
         { label: "Model weights", state: "ok", detail: "Both GB10" },
+        ...(tensorfold ? [{ label: "Prepared with prepare.sh", state: "ok" as const, detail: "Both GB10" }] : []),
         { label: "GPUs free", state: "fail", detail: "This GB10: in use by ggml-rpc-server. Stop it first. · Second GB10: in use by llama-server. Stop it first." },
       ];
     },

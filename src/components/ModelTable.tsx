@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from "react";
 import { downloadKey, type Model, type SizeClass } from "../types";
+import { RecipeBadges } from "./Illustrations";
 
 type Props = {
   family: string;
@@ -144,6 +145,7 @@ function Row(props: { model: Model; hardwareId: string; selected: boolean; downl
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-base font-bold">
           <span>{m.name}</span>
+          <RecipeBadges tuned={recipe.tuned} recommended={recipe.recommended} />
           {props.downloaded && <span className="rounded-full bg-go-soft px-2 py-0.5 text-[10px] font-bold text-go">Downloaded</span>}
         </div>
         <div className="mt-0.5 text-sm text-muted">{m.tagline}</div>

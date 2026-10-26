@@ -45,6 +45,12 @@ export type Recipe = {
   mtp?: { draft_n_max: number; draft?: RemoteFile | null } | null;
   /** GB10 ×2: vLLM en contenedor en vez de llama.cpp. */
   vllm?: Vllm | null;
+  /** GB10 ×2: TensorFold en contenedor, con imagen construida desde recipes/tensorfold/<recipe>/. */
+  tensorfold?: TensorFold | null;
+  /** Afinada a mano por el autor del catálogo: etiqueta "Miguel Tuned". */
+  tuned?: boolean;
+  /** Recomendada en este equipo: primera en la tabla, con coronita. */
+  recommended?: boolean;
   gpu_layers?: number;
   flash_attn?: boolean;
   mmap?: boolean;
@@ -52,6 +58,9 @@ export type Recipe = {
 
 /** Imagen fijada por digest y pesos de Hugging Face fijados por commit; `size` en bytes por GB10. */
 export type Vllm = { image: string; image_id: string; repo: string; revision: string; size: number };
+
+/** Imagen local con el commit del motor en su etiqueta; pesos fijados por commit; `size` en bytes por GB10. */
+export type TensorFold = { image: string; engine_commit: string; recipe: string; repo: string; revision: string; size: number };
 
 /** Un punto del verificador del cluster: `wait` = no se pudo mirar porque falló uno anterior. */
 export type ClusterCheck = { label: string; state: "ok" | "fail" | "wait"; detail: string };

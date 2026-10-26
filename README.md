@@ -4,9 +4,37 @@ A local inference launcher for the **Dell Pro Precision Ambassador** community.
 Pick your operating system, your workstation and a model, press **Run**, and the app starts
 `llama-server` (llama.cpp) on `http://127.0.0.1` with a recipe already tested on your hardware.
 
+## Install
+
+**Linux** (Pro Max Tower T2 and GB10): open a terminal and run
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/MangelZabalaDevelop/ambassador-local/main/install.sh | bash
+```
+
+It picks the package for your CPU (x64 or ARM64) from the latest release, checks its SHA256 against the one GitHub publishes, and installs it with `apt` (it asks for your password). Then open **Ambassador Local** from the app menu.
+
+**Windows:** open PowerShell and run
+
+```powershell
+irm https://raw.githubusercontent.com/MangelZabalaDevelop/ambassador-local/main/install.ps1 | iex
+```
+
+It downloads the installer from the latest release, checks its SHA256 the same way, and installs it for your user (no admin). Then open **Ambassador Local** from the Start menu.
+
+While the repository is private, sign in once with `gh auth login` and run the same scripts through the GitHub CLI:
+
+```bash
+gh api repos/MangelZabalaDevelop/ambassador-local/contents/install.sh -H "Accept: application/vnd.github.raw" | bash
+```
+
+```powershell
+gh api repos/MangelZabalaDevelop/ambassador-local/contents/install.ps1 -H "Accept: application/vnd.github.raw" | Out-String | iex
+```
+
 ## How to use it
 
-1. Install the app (Windows: `.exe` · Linux x64: `.deb`/`.AppImage` · GB10: ARM64 `.deb`).
+1. Install the app (see above).
 2. **System → Hardware → Family → Model → Run.** System and hardware are detected for you.
 3. When it says *Running*:
    - **Open chat** opens the llama.cpp web chat.

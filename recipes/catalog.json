@@ -1242,14 +1242,6 @@
             }
           ]
         },
-        "pro-max-16-plus": {
-          "speed": 4,
-          "ctx_size": 8192
-        },
-        "pro-precision-7-16": {
-          "speed": 3,
-          "ctx_size": 8192
-        },
         "pro-max-gb10": {
           "speed": 3,
           "ctx_size": 8192

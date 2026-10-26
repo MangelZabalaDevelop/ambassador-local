@@ -292,7 +292,7 @@ export default function App() {
                 status={status}
                 lab={catalog.families.find((f) => f.id === model.family)}
                 logs={logs}
-                onRun={() => api.start(hardware.id, model.id).catch(() => {})}
+                onRun={(lan) => api.start(hardware.id, model.id, lan).catch(() => {})}
                 onCancel={() => api.cancel()}
                 onStop={() => api.stop()}
               />
@@ -506,7 +506,7 @@ function Sidebar(props: {
           ))}
         </div>
         <div className="mt-4 text-center text-[11px] text-sidebar-muted [@media(max-height:760px)]:mt-2">
-          llama.cpp {props.engine} · runs on 127.0.0.1 only
+          llama.cpp {props.engine} · runs on your machine
         </div>
         <UpdateBox busy={props.busy} running={props.running} />
       </div>

@@ -106,5 +106,5 @@ export type Status =
   | { stage: "downloading"; label: string; step: number; steps: number; downloaded: number; total: number }
   | { stage: "extracting" }
   | { stage: "starting"; model_id: string }
-  | { stage: "ready"; model_id: string; url: string; api_url: string; api_key: string }
+  | { stage: "ready"; model_id: string; url: string; api_url: string; api_key: string; lan_url: string | null }
   | { stage: "error"; message: string };

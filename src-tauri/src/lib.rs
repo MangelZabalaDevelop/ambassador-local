@@ -38,7 +38,8 @@ enum Status {
     Downloading { label: String, step: usize, steps: usize, downloaded: u64, total: u64 },
     Extracting,
     Starting { model_id: String },
-    Ready { model_id: String, url: String, api_url: String, api_key: String },
+    /// `lan_url`: the endpoint for other devices, when the server listens on the network.
+    Ready { model_id: String, url: String, api_url: String, api_key: String, lan_url: Option<String> },
     Error { message: String },
 }
 
@@ -182,7 +183,7 @@ fn stop_model(app: AppHandle, state: State<'_, AppState>) {
 }
 
 #[tauri::command]
-async fn start_model(app: AppHandle, state: State<'_, AppState>, hardware_id: String, model_id: String) -> Result<(), String> {
+async fn start_model(app: AppHandle, state: State<'_, AppState>, hardware_id: String, model_id: String, lan: bool) -> Result<(), String> {
     {
         let mut g = state.inner.lock().unwrap();
         if g.busy {
@@ -195,7 +196,7 @@ async fn start_model(app: AppHandle, state: State<'_, AppState>, hardware_id: St
     state.cancel.store(false, Ordering::Relaxed);
 
     let inner = state.inner.clone();
-    let result = run_job(&app, &inner, &state.cancel, &hardware_id, &model_id).await;
+    let result = run_job(&app, &inner, &state.cancel, &hardware_id, &model_id, lan).await;
     inner.lock().unwrap().busy = false;
     if let Err(message) = &result {
         state.kill_now();
@@ -205,7 +206,7 @@ async fn start_model(app: AppHandle, state: State<'_, AppState>, hardware_id: St
     result
 }
 
-async fn run_job(app: &AppHandle, inner: &Arc<Mutex<Inner>>, cancel: &AtomicBool, hardware_id: &str, model_id: &str) -> Result<(), String> {
+async fn run_job(app: &AppHandle, inner: &Arc<Mutex<Inner>>, cancel: &AtomicBool, hardware_id: &str, model_id: &str, lan: bool) -> Result<(), String> {
     let cat = catalog::get()?;
     let (os, arch) = (detect::current_os(), detect::current_arch());
     let hw = cat.hardware(hardware_id).ok_or("Unknown hardware")?;
@@ -303,8 +304,10 @@ async fn run_job(app: &AppHandle, inner: &Arc<Mutex<Inner>>, cancel: &AtomicBool
         push_log(app, inner, format!("Second GB10 ready at {peer}:{}", cluster::RPC_PORT));
         rpc = vec!["--rpc".to_string(), format!("{peer}:{}", cluster::RPC_PORT)];
     }
+    // On the network (0.0.0.0) other devices can connect, e.g. Hermes on another PC; the API key is always required.
+    let host = if lan { "0.0.0.0" } else { "127.0.0.1" };
     let port = (8080..8200)
-        .find(|p| std::net::TcpListener::bind(("127.0.0.1", *p)).is_ok())
+        .find(|p| std::net::TcpListener::bind((host, *p)).is_ok())
         .ok_or("No free ports.")?;
 
     // La clave va en un archivo, no en la línea de comandos, para que no se vea en la lista de procesos.
@@ -312,7 +315,7 @@ async fn run_job(app: &AppHandle, inner: &Arc<Mutex<Inner>>, cancel: &AtomicBool
     let mut cmd = tokio::process::Command::new(&eng.server);
     cmd.arg("-m")
         .arg(mdir.join(files[0].file_name()))
-        .args(["--host", "127.0.0.1", "--port", &port.to_string(), "--jinja", "--alias", &model.id])
+        .args(["--host", host, "--port", &port.to_string(), "--jinja", "--alias", &model.id])
         .arg("--api-key-file")
         .arg(&key_path)
         .args(recipe.to_args())
@@ -369,7 +372,8 @@ async fn run_job(app: &AppHandle, inner: &Arc<Mutex<Inner>>, cancel: &AtomicBool
         }
     }
     let url = format!("http://127.0.0.1:{port}");
-    emit_status(app, inner, Status::Ready { model_id: model.id.clone(), api_url: format!("{url}/v1"), url, api_key });
+    let lan_url = if lan { lan_ip().map(|ip| format!("http://{ip}:{port}/v1")) } else { None };
+    emit_status(app, inner, Status::Ready { model_id: model.id.clone(), api_url: format!("{url}/v1"), url, api_key, lan_url });
 
     // Vigilar el proceso: si muere, avisar a la interfaz.
     let (app, inner) = (app.clone(), inner.clone());
@@ -386,6 +390,14 @@ async fn run_job(app: &AppHandle, inner: &Arc<Mutex<Inner>>, cancel: &AtomicBool
         }
     });
     Ok(())
+}
+
+/// La IP de este equipo en la red local. Un socket UDP "conectado" solo elige la ruta: no envía nada.
+fn lan_ip() -> Option<std::net::IpAddr> {
+    let s = std::net::UdpSocket::bind("0.0.0.0:0").ok()?;
+    s.connect("192.0.2.1:9").ok()?;
+    let ip = s.local_addr().ok()?.ip();
+    (!ip.is_loopback() && !ip.is_unspecified()).then_some(ip)
 }
 
 /// Si el hijo terminó, lo quita del estado y devuelve su código.

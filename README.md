@@ -2,7 +2,7 @@
 
 A local inference launcher for the **Dell Pro Precision Ambassador** community.
 Pick your operating system, your workstation and a model, press **Run**, and the app starts
-`llama-server` (llama.cpp) on `http://127.0.0.1` with a recipe already tested on your hardware.
+`llama-server` (llama.cpp) on your own machine with a recipe already tested on your hardware.
 
 ## Install
 
@@ -38,14 +38,14 @@ gh api repos/MangelZabalaDevelop/ambassador-local/contents/install.ps1 -H "Accep
 2. **System → Hardware → Family → Model → Run.** System and hardware are detected for you.
 3. When it says *Running*:
    - **Open chat** opens the llama.cpp web chat.
-   - **Copy URL for Hermes**: in `hermes setup` pick *Custom OpenAI-compatible endpoint* and paste the URL (`http://127.0.0.1:PORT/v1`).
+   - **Copy URL for Hermes**: in `hermes setup` pick *Custom OpenAI-compatible endpoint* and paste the URL (`http://127.0.0.1:PORT/v1` on the same machine, or the network URL the app shows for Hermes on another PC) and the API key.
 
 ## Security
 
-- The server listens on **127.0.0.1 only**; nobody else on your network can reach it.
+- **Network access is your choice.** With *Allow other devices on my network* (on by default, so Hermes or other apps on another PC can connect) the server listens on your local network; turn it off and it listens on **127.0.0.1 only**. Either way every request needs the **API key** the app generates. On Windows the firewall may ask once whether `llama-server` may accept connections.
 - Downloads come only from `github.com` (official llama.cpp builds) and `huggingface.co`, redirects included.
 - Every file is checked against the **SHA256** in the catalog. If it doesn't match, it is deleted and never run.
-- Recipes are **data, not commands**: they can only set the fields below. The app always adds `--host 127.0.0.1` and `--jinja`.
+- Recipes are **data, not commands**: they can only set the fields below. The app always sets `--host` itself (127.0.0.1, or your network when you allow it) and adds `--jinja`.
 - No admin rights, no telemetry.
 - **GB10 ×2:** the app runs on one GB10 and borrows the second one's memory with llama.cpp's `ggml-rpc-server`. It reaches the second GB10 over the passwordless SSH that NVIDIA's cluster setup leaves between the two, copies the same engine there if it is missing, and starts the RPC server bound **only to the direct ConnectX cable's IP** (never your home or office network). It is stopped when you stop the model or close the app, and also if the app crashes.
 - **Updates are optional and signed.** At startup the app asks GitHub once whether this repo has a newer release (nothing is downloaded or sent). It installs only when you click **Update** and confirm, and only a package signed with the project's key: the public key is built into the app, so a tampered or third-party package is rejected. New models come with the update, since the catalog is part of the app.

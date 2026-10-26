@@ -12,7 +12,7 @@ const tauriApi = {
   downloaded: () => invoke<string[]>("downloaded_models"),
   currentStatus: () => invoke<[Status, string[]]>("current_status"),
   checkCluster: (hardwareId: string, modelId: string) => invoke<ClusterCheck[]>("check_cluster", { hardwareId, modelId }),
-  start: (hardwareId: string, modelId: string) => invoke<void>("start_model", { hardwareId, modelId }),
+  start: (hardwareId: string, modelId: string, lan: boolean) => invoke<void>("start_model", { hardwareId, modelId, lan }),
   stop: () => invoke<void>("stop_model"),
   cancel: () => invoke<void>("cancel"),
   version: () => getVersion(),
@@ -46,14 +46,14 @@ function mockApi(): typeof tauriApi {
         { label: "GPUs free", state: "fail", detail: "This GB10: in use by ggml-rpc-server. Stop it first. · Second GB10: in use by llama-server. Stop it first." },
       ];
     },
-    start: async (_h, modelId) => {
+    start: async (_h, modelId, lan) => {
       for (let i = 0; i <= 10; i++) {
         emit({ stage: "downloading", label: "Gemma 3 12B", step: 1, steps: 1, downloaded: i * 7.3e8, total: 7.3e9 });
         await new Promise((r) => setTimeout(r, 200));
       }
       emit({ stage: "starting", model_id: modelId });
       await new Promise((r) => setTimeout(r, 800));
-      emit({ stage: "ready", model_id: modelId, url: "http://127.0.0.1:8080", api_url: "http://127.0.0.1:8080/v1", api_key: "sk-local-preview-0000000000000000000000000000" });
+      emit({ stage: "ready", model_id: modelId, url: "http://127.0.0.1:8080", api_url: "http://127.0.0.1:8080/v1", api_key: "sk-local-preview-0000000000000000000000000000", lan_url: lan ? "http://192.168.1.20:8080/v1" : null });
     },
     stop: async () => emit({ stage: "idle" }),
     cancel: async () => emit({ stage: "error", message: "Cancelled." }),

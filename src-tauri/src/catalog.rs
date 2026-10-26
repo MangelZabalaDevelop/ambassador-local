@@ -170,7 +170,7 @@ pub enum SizeClass {
 }
 
 /// Parámetros que una receta puede fijar. Todo lo demás lo decide la app
-/// (host 127.0.0.1, puerto, --jinja).
+/// (host, puerto, --jinja).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Recipe {

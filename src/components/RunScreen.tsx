@@ -11,12 +11,31 @@ type Props = {
   downloaded: boolean;
   status: Status;
   logs: string[];
-  onRun: () => void;
+  onRun: (lan: boolean) => void;
   onCancel: () => void;
   onStop: () => void;
 };
 
 const STAGES = ["Download", "Install engine", "Load on GPU", "Live"];
+const LAN_KEY = "al.lan";
+
+/** Whether other devices on the network may connect. On by default, so Hermes on another PC can use the model. */
+function useLan(): [boolean, (v: boolean) => void] {
+  const [lan, setLan] = useState(() => {
+    try {
+      return localStorage.getItem(LAN_KEY) !== "0";
+    } catch {
+      return true;
+    }
+  });
+  const set = (v: boolean) => {
+    setLan(v);
+    try {
+      localStorage.setItem(LAN_KEY, v ? "1" : "0");
+    } catch {}
+  };
+  return [lan, set];
+}
 
 /** Pantalla final: tarjeta "hero" con el estado del servidor y, cuando está en marcha, cómo usarlo. */
 export function RunScreen(props: Props) {
@@ -115,6 +134,7 @@ function Tile({ label, value }: { label: string; value: string }) {
 
 function ActionBar(props: Props) {
   const { status } = props;
+  const [lan, setLan] = useLan();
 
   if (status.stage === "idle" || status.stage === "error") {
     return (
@@ -126,11 +146,17 @@ function ActionBar(props: Props) {
               {status.message}
             </div>
           ) : (
-            <Assurances />
+            <Assurances lan={lan} />
           )}
+          <label className="mt-3 flex w-fit cursor-pointer items-center gap-2.5 text-sm text-white/80 select-none">
+            <input type="checkbox" checked={lan} onChange={(e) => setLan(e.target.checked)} className="peer sr-only" />
+            <span className="relative h-5 w-9 rounded-full bg-white/20 transition peer-checked:bg-[#76b900] after:absolute after:top-0.5 after:left-0.5 after:h-4 after:w-4 after:rounded-full after:bg-white after:transition peer-checked:after:translate-x-4" />
+            Allow other devices on my network
+            <span className="text-white/45">· for Hermes or apps on another PC</span>
+          </label>
         </div>
         <button
-          onClick={props.onRun}
+          onClick={() => props.onRun(lan)}
           className="run-button flex items-center gap-3 rounded-xl px-9 py-3.5 text-lg font-bold text-white transition hover:-translate-y-0.5"
         >
           <Icon d="M7 4.5v15l13-7.5z" fill />
@@ -216,8 +242,8 @@ function CheckMark({ state }: { state: ClusterCheck["state"] }) {
   return <span className={`mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full text-[11px] font-bold ${cls}`}>{text}</span>;
 }
 
-function Assurances() {
-  const items = ["Runs on this machine only", "Protected by an API key", "Files verified by SHA256"];
+function Assurances({ lan }: { lan: boolean }) {
+  const items = [lan ? "Runs on this machine, reachable on your network" : "Runs on this machine only", "Protected by an API key", "Files verified by SHA256"];
   return (
     <ul className="flex flex-wrap gap-x-5 gap-y-1 text-sm text-white/70">
       {items.map((t) => (
@@ -288,7 +314,7 @@ function LiveBar({ status, onStop }: { status: Extract<Status, { stage: "ready" 
       <div className="min-w-[16rem] flex-1">
         <div className="flex items-center gap-2 text-sm text-white/60">
           <Icon d="M7 11V8a5 5 0 0 1 10 0v3M6 11h12v9H6z" />
-          Private server · only this machine can reach it
+          {status.lan_url ? "Private server · devices on your network need the API key" : "Private server · only this machine can reach it"}
         </div>
         <div className="mt-1 flex items-baseline gap-3">
           <code className="font-mono text-xl font-bold text-[#b6f04a] select-text">{status.url}</code>
@@ -371,10 +397,16 @@ function ReadyCards({ status, modelName }: { status: Extract<Status, { stage: "r
           </div>
         </div>
 
-        <Field label="Endpoint URL">
+        <Field label={status.lan_url ? "Endpoint URL · this machine" : "Endpoint URL"}>
           <code className="flex-1 truncate font-mono text-sm select-text">{status.api_url}</code>
           <CopyButton label="Copy endpoint URL" done={copied === "url"} onClick={() => copy("url", status.api_url)} />
         </Field>
+        {status.lan_url && (
+          <Field label="Endpoint URL · other devices on your network">
+            <code className="flex-1 truncate font-mono text-sm select-text">{status.lan_url}</code>
+            <CopyButton label="Copy network URL" done={copied === "lan"} onClick={() => copy("lan", status.lan_url!)} />
+          </Field>
+        )}
         <Field label="API key">
           <code className="flex-1 truncate font-mono text-sm select-text">{reveal ? status.api_key : masked}</code>
           <button

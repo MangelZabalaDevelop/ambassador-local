@@ -47,7 +47,18 @@ The app's cluster check (Run screen) shows whether both GB10 have the image, the
 
 ## Measured
 
-Two GB10, `--context 524288 --parallel 4`, two runs of the same suite on the same day:
+With this folder's `run.sh` on two GB10 (1M context, 2 streams, the settings above), one request at a time, no
+reasoning, speeds from the server's own counters, three runs each:
+
+| | Run 1 | Run 2 | Run 3 |
+|---|---|---|---|
+| Decode, 1,500 tokens | 54.0 tok/s | 53.9 tok/s | 53.8 tok/s |
+| Time to first token, short prompt | 0.22 s | 0.20 s | 0.19 s |
+| Prefill, 25,630-token prompt (no cache) | 1,708 tok/s (15.0 s) | 1,718 tok/s (14.9 s) | 1,695 tok/s (15.1 s) |
+
+Loading both ranks takes about 35 s.
+
+Earlier, with `--context 524288 --parallel 4`, two runs of a small quality and speed suite on the same day:
 
 | | Run 1 | Run 2 |
 |---|---|---|
@@ -56,9 +67,8 @@ Two GB10, `--context 524288 --parallel 4`, two runs of the same suite on the sam
 | Four requests at once (total) | 114.0 tok/s | 114.2 tok/s |
 | Quality suite | 29 of 30 | 29 of 30 |
 
-The single-request speed differs between the runs; until it is measured again on the served configuration
-(1M context, 2 streams), the app shows no tokens/s for this recipe. The quality suite covers math, code run in a
-sandbox, instructions, knowledge, tool calls, images and three needles in ~49K tokens.
+Run 2's single-request speed was the outlier; the three runs above agree with run 1. The quality suite covers math,
+code run in a sandbox, instructions, knowledge, tool calls, images and three needles in ~49K tokens.
 
 ## Image
 

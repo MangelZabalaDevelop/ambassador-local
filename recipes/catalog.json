@@ -1354,6 +1354,7 @@
       "recipes": {
         "pro-max-gb10-x2": {
           "speed": 4,
+          "tokens_per_sec": 53.9,
           "ctx_size": 1048576,
           "tuned": true,
           "recommended": true,

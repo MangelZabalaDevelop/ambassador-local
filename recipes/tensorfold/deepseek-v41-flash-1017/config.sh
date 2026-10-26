@@ -22,12 +22,14 @@ KIT_REF=abe07c7d509a0199cc7fec15263be2aa52ac652f
 
 HUB="${HF_HUB_CACHE:-${HF_HOME:-$HOME/.cache/huggingface}/hub}"
 WORK="${WORK:-$HOME/.cache/ambassador-local/tensorfold/$RECIPE}"
-CKPT=$WORK/ckpt                         # flat checkpoint: hard links to the Hugging Face cache, our chat template
-ENGRAM=$HUB/models--${ENGRAM_REPO//\//--}/snapshots/$ENGRAM_REVISION
-KIT=$WORK/kit-repo/kit
-TOKEN_MAP=$WORK/data/dsv41_token_map.json
-RANK_CACHE=$WORK/rank-cache             # rank0of2-*.bin on this GB10, rank1of2-*.bin on the other
-LOGS=$WORK/logs
+# Where prepare.sh puts things. Override them only for files you already prepared elsewhere (that folder must be
+# under WORK or the Hugging Face cache, the two folders the containers see).
+CKPT="${CKPT:-$WORK/ckpt}"              # flat checkpoint: hard links to the Hugging Face cache, our chat template
+ENGRAM="${ENGRAM:-$HUB/models--${ENGRAM_REPO//\//--}/snapshots/$ENGRAM_REVISION}"
+KIT="${KIT:-$WORK/kit-repo/kit}"
+TOKEN_MAP="${TOKEN_MAP:-$WORK/data/dsv41_token_map.json}"
+RANK_CACHE="${RANK_CACHE:-$WORK/rank-cache}"   # rank0of2-*.bin on this GB10, rank1of2-*.bin on the other
+LOGS="${LOGS:-$WORK/logs}"
 NAME=al_dsv41                           # container name, the same on both GB10
 
 HOST="${HOST:-127.0.0.1}"               # 0.0.0.0 = reachable from your network (set API_KEY_FILE then)
@@ -71,11 +73,12 @@ link_iface() {
     ip -4 -o addr show dev "$d" | grep -q ' inet ' && { echo "$d"; return; }
   done
 }
-IFACE="${IFACE:-$(link_iface)}"
-MASTER_ADDR="${MASTER_ADDR:-$( [[ -n "$IFACE" ]] && ip -4 -o addr show dev "$IFACE" | awk '{split($4, a, "/"); print a[1]; exit}')}"
-PEER="${PEER:-$( [[ -n "$IFACE" ]] && ip -4 neigh show dev "$IFACE" | awk '$NF != "FAILED" && $NF != "INCOMPLETE" {print $1; exit}')}"
+# (Every probe ends in success even when it finds nothing: the scripts run with set -e, and need_link explains.)
+IFACE="${IFACE:-$(link_iface || true)}"
+MASTER_ADDR="${MASTER_ADDR:-$(if [[ -n "$IFACE" ]]; then ip -4 -o addr show dev "$IFACE" | awk '{split($4, a, "/"); print a[1]; exit}'; fi)}"
+PEER="${PEER:-$(if [[ -n "$IFACE" ]]; then ip -4 neigh show dev "$IFACE" | awk '$NF != "FAILED" && $NF != "INCOMPLETE" {print $1; exit}'; fi)}"
 # Both RoCE rails of the cabled QSFP port: the RDMA devices whose port is ACTIVE (the same count on both GB10).
-HCAS="${HCAS:-$(for d in /sys/class/infiniband/*; do grep -q ACTIVE "$d/ports/1/state" 2>/dev/null && printf '%s,' "${d##*/}"; done | sed 's/,$//')}"
+HCAS="${HCAS:-$(for d in /sys/class/infiniband/*; do if grep -q ACTIVE "$d/ports/1/state" 2>/dev/null; then printf '%s,' "${d##*/}"; fi; done | sed 's/,$//')}"
 
 need_link() {
   [[ -n "$IFACE" && -n "$MASTER_ADDR" ]] || die "no ConnectX link with an IPv4 address. Connect the two GB10 and run the cluster setup in NVIDIA Sync."

@@ -104,7 +104,10 @@ function StatusPill({ status }: { status: Status }) {
 function Tile({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-xl border border-white/10 bg-white/[0.06] px-3 py-2.5">
-      <div className="truncate text-lg leading-tight font-bold">{value}</div>
+      {/* Sin truncar: una cuantización larga (UD-Q8_K_XL) parte línea antes que esconderse. */}
+      <div className="text-lg leading-tight font-bold [overflow-wrap:anywhere]" title={value}>
+        {value}
+      </div>
       <div className="mt-0.5 text-[11px] text-white/55">{label}</div>
     </div>
   );

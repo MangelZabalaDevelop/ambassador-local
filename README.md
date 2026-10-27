@@ -1,44 +1,93 @@
-# Ambassador Local
+<p align="center">
+  <img src="docs/img/banner.png" alt="Ambassador Local for Dell Pro Max, with Dell Technologies and NVIDIA" width="100%">
+</p>
 
-A local inference launcher for the **Dell Pro Precision Ambassador** community.
-Pick your operating system, your workstation and a model, press **Run**, and the app starts
-`llama-server` (llama.cpp) on your own machine with a recipe already tested on your hardware.
+<p align="center">
+  <a href="https://github.com/MangelZabalaDevelop/ambassador-local/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/MangelZabalaDevelop/ambassador-local?color=76b900&label=release"></a>
+  <img alt="Windows and Linux" src="https://img.shields.io/badge/Windows%20%7C%20Linux-x64%20%26%20ARM64-0672cb">
+  <img alt="License MIT" src="https://img.shields.io/badge/license-MIT-lightgrey">
+</p>
 
-## Install
+**Ambassador Local** runs AI models on your own Dell Pro Max, built for the **Dell Pro Precision Ambassador** community.
+It recognizes your workstation, shows only the models tested on that exact machine, and starts them with one click.
+You get a private, OpenAI-compatible endpoint protected by an API key. No cloud, no telemetry.
 
-**Linux** (Pro Max Tower T2 and GB10): open a terminal and run
+| Workstation | What you get |
+|---|---|
+| **Dell Pro Max Tower T2** · RTX PRO 6000 Blackwell (Windows, Ubuntu) | llama.cpp recipes, plus **Miguel Tuned** recipes on Ubuntu (Qwen3.8 Flash Next in NVIDIA FP4 at ~190 tokens/s) |
+| **Dell Pro Max with GB10** · DGX OS | Models up to ~120B on one GB10 |
+| **Two Dell Pro Max with GB10**, linked over ConnectX | One model across both, up to DeepSeek-V4.1-Flash-1017 (552B) |
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/MangelZabalaDevelop/ambassador-local/main/install.sh | bash
-```
+## Get started in three steps
 
-It picks the package for your CPU (x64 or ARM64) from the latest release, checks its SHA256 against the one GitHub publishes, and installs it with `apt` (it asks for your password). Then open **Ambassador Local** from the app menu.
+### 1. Install
 
-**Windows:** open PowerShell and run
+<img src="docs/img/install.gif" alt="Installing on Windows with one PowerShell command" width="720">
+
+**Windows:** open PowerShell and paste
 
 ```powershell
 irm https://raw.githubusercontent.com/MangelZabalaDevelop/ambassador-local/main/install.ps1 | iex
 ```
 
-It downloads the installer from the latest release, checks its SHA256 the same way, and installs it for your user (no admin). Then open **Ambassador Local** from the Start menu.
-
-While the repository is private, sign in once with `gh auth login` and run the same scripts through the GitHub CLI:
+**Linux** (Pro Max Tower T2 with Ubuntu, GB10 with DGX OS): open a terminal and paste
 
 ```bash
-gh api repos/MangelZabalaDevelop/ambassador-local/contents/install.sh -H "Accept: application/vnd.github.raw" | bash
+curl -fsSL https://raw.githubusercontent.com/MangelZabalaDevelop/ambassador-local/main/install.sh | bash
 ```
 
-```powershell
-gh api repos/MangelZabalaDevelop/ambassador-local/contents/install.ps1 -H "Accept: application/vnd.github.raw" | Out-String | iex
+The script downloads the latest release for your system, checks its SHA256 against the one GitHub publishes, and installs it
+(Windows: for your user, no admin; Linux: with `apt`, which asks for your password). Then open **Ambassador Local** from the
+Start menu or the app menu.
+
+### 2. Pick a model
+
+<img src="docs/img/pick.gif" alt="System and workstation detected, then a lab and a model" width="720">
+
+**System → Workstation → Lab → Model.** Your system and workstation are detected for you, and every model shows the
+speed measured on that workstation. **Miguel Tuned** marks recipes tuned and tested by hand; the crown marks the
+recommended one.
+
+### 3. Press Run
+
+<img src="docs/img/run-t2.gif" alt="Run on a Pro Max Tower T2: the model loads and goes live" width="720">
+
+The app downloads what it needs (verified by SHA256), loads the model on the GPU and shows **Live**. The same button
+starts the biggest recipes, even across two GB10:
+
+<img src="docs/img/run-gb10x2.gif" alt="Run on two linked GB10: DeepSeek-V4.1-Flash-1017 goes live on both" width="720">
+
+## Use it
+
+When it says **Live**, the card below shows everything you need:
+
+- **Endpoint URL** and **API key**: paste them into any OpenAI-compatible app. The key stays the same every time.
+- **Open chat** (llama.cpp models): a chat page in your browser.
+- **Hermes:** run `hermes setup`, choose *Custom OpenAI-compatible endpoint*, then paste the URL and the key.
+- **OpenCode** and other coding agents: add an OpenAI-compatible provider with the same URL and key. For example, in `opencode.json`:
+
+```json
+{
+  "provider": {
+    "local": {
+      "npm": "@ai-sdk/openai-compatible",
+      "options": { "baseURL": "http://127.0.0.1:8080/v1", "apiKey": "{env:AMBASSADOR_KEY}" },
+      "models": { "qwen38-flash-next-fp4": {} }
+    }
+  },
+  "model": "local/qwen38-flash-next-fp4"
+}
 ```
 
-## How to use it
+Use the port from the endpoint URL and the model id the app shows; put the API key in `AMBASSADOR_KEY`.
 
-1. Install the app (see above).
-2. **System → Hardware → Family → Model → Run.** System and hardware are detected for you.
-3. When it says *Running*:
-   - **Open chat** opens the llama.cpp web chat.
-   - **Copy URL for Hermes**: in `hermes setup` pick *Custom OpenAI-compatible endpoint* and paste the URL (`http://127.0.0.1:PORT/v1` on the same machine, or the network URL the app shows for Hermes on another PC) and the API key.
+### What it can build
+
+Real results, each from a single prompt, recorded on the workstations above:
+
+| Voxel kingdom · Qwen3.8 27B · T2 (Windows) | Ray tracer in 1:59 · Qwen3.8 Flash Next FP4 · T2 (Ubuntu) | Dealership site · DeepSeek-V4.1 · two GB10 |
+|---|---|---|
+| <img src="docs/img/result-kingdom.gif" alt="Voxel kingdom with day and night" width="280"> | <img src="docs/img/result-raytracer.gif" alt="Real-time WebGL ray tracer" width="280"> | <img src="docs/img/result-apex-gb10x2.gif" alt="Car dealership website with a payment calculator" width="280"> |
 
 ## Security
 
@@ -47,7 +96,8 @@ gh api repos/MangelZabalaDevelop/ambassador-local/contents/install.ps1 -H "Accep
 - Every file is checked against the **SHA256** in the catalog. If it doesn't match, it is deleted and never run.
 - Recipes are **data, not commands**: they can only set the fields below. The app always sets `--host` itself (127.0.0.1, or your network when you allow it) and adds `--jinja`.
 - No admin rights, no telemetry.
-- **GB10 ×2:** the app runs on one GB10 and borrows the second one's memory with llama.cpp's `ggml-rpc-server`. It reaches the second GB10 over the passwordless SSH that NVIDIA's cluster setup leaves between the two, copies the same engine there if it is missing, and starts the RPC server bound **only to the direct ConnectX cable's IP** (never your home or office network). It is stopped when you stop the model or close the app, and also if the app crashes.
+- **GB10 ×2 with llama.cpp:** the app runs on one GB10 and borrows the second one's memory with llama.cpp's `ggml-rpc-server`. It reaches the second GB10 over the passwordless SSH that NVIDIA's cluster setup leaves between the two, copies the same engine there if it is missing, and starts the RPC server bound **only to the direct ConnectX cable's IP** (never your home or office network). It is stopped when you stop the model or close the app, and also if the app crashes.
+- **Container recipes (vLLM, TensorFold):** images are pinned by digest or built from pinned sources, and weights by commit. The app checks the machine before it starts anything, runs the recipe's own scripts (which it carries inside), and stops the containers, on both GB10 when there are two, when you stop the model or close the app.
 - **Updates are optional and signed.** At startup the app asks GitHub once whether this repo has a newer release (nothing is downloaded or sent). It installs only when you click **Update** and confirm, and only a package signed with the project's key: the public key is built into the app, so a tampered or third-party package is rejected. New models come with the update, since the catalog is part of the app.
 
 Files live in the app data folder

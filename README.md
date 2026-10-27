@@ -128,7 +128,7 @@ A model only appears in the app on the workstations marked here.
 Have one of these workstations and a recipe that works well on it? Open an
 [issue](https://github.com/MangelZabalaDevelop/ambassador-local/issues/new) with the model, the settings and the speed you
 measured, send a pull request (see [Adding recipes](#adding-recipes)), or email it to
-[contacto@nullsector.co](mailto:contacto@nullsector.co). It gets reviewed and added to the next update,
+[m.zabala@xpectra.ai](mailto:m.zabala@xpectra.ai). It gets reviewed and added to the next update,
 marked with the workstation it was tested on.
 
 ## Security

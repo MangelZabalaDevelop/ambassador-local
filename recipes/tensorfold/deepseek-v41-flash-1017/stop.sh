@@ -1,6 +1,6 @@
 #!/bin/bash
 # stop.sh: stops both ranks, keeps their last 10 logs (compressed) and frees the memory.
-cd "$(dirname "$0")"; source ./config.sh
+cd "$(dirname "$0")" || exit 1; source ./config.sh
 mkdir -p "$LOGS"
 ts=$(date +%Y%m%d-%H%M%S)
 if docker ps -aq -f "name=^${NAME}\$" | grep -q .; then

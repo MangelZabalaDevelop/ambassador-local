@@ -3,7 +3,7 @@
 # of it freezes the machine instead of failing. Kills the rank's container (docker kill -s KILL) if MemAvailable stays
 # under WATCH_FLOOR_GIB for WATCH_HOLD_S seconds in a row, or as soon as it drops under WATCH_HARD_GIB.
 # A dip that recovers by itself is only logged. Samples every 0.25 s; ends when the container is gone.
-cd "$(dirname "$0")"; source ./config.sh
+cd "$(dirname "$0")" || exit 1; source ./config.sh
 c=$1
 floor=$(awk -v g="$WATCH_FLOOR_GIB" 'BEGIN {printf "%d", g * 1048576}')
 hard=$(awk -v g="$WATCH_HARD_GIB" 'BEGIN {printf "%d", g * 1048576}')

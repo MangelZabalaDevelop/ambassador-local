@@ -9,7 +9,8 @@ docker image inspect "$IMAGE" >/dev/null 2>&1 || die "missing the engine image: 
 [[ -f "$SNAPSHOT/config.json" ]] || die "missing the weights: hf download $REPO --revision $REVISION"
 
 docker rm -f "$NAME" >/dev/null 2>&1 || true
-apps=$(nvidia-smi --query-compute-apps=name --format=csv,noheader 2>/dev/null | sed 's/.*\///' | sort -u | paste -sd, -)
+# `|| true`: with pipefail, a failing nvidia-smi would end the script right here without a word.
+apps=$(nvidia-smi --query-compute-apps=name --format=csv,noheader 2>/dev/null | sed 's/.*\///' | sort -u | paste -sd, - || true)
 [[ -z "$apps" ]] || die "the GPU is in use by $apps. Stop it first."
 
 mkdir -p "$LOGS" "$CACHE"/{triton,b12x,flashinfer,vllm}

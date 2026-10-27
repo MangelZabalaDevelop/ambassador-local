@@ -1,6 +1,6 @@
-//! GB10 ×2 con vLLM o TensorFold: verificador de que las dos GB10 pueden correr una receta.
-//! No monta el cluster (eso lo hace NVIDIA Sync) ni cambia nada: solo mira, en esta GB10
-//! y por SSH en la otra, lo mismo que necesitará el arranque.
+//! vLLM o TensorFold: verificador de que el equipo puede correr una receta en contenedor.
+//! En GB10 ×2 no monta el cluster (eso lo hace NVIDIA Sync) ni cambia nada: solo mira, en esta GB10
+//! y por SSH en la otra, lo mismo que necesitará el arranque. En un equipo solo (T2) mira solo aquí.
 
 use crate::catalog::{TensorFold, Vllm};
 use crate::cluster;
@@ -40,6 +40,8 @@ pub struct Target {
     revision: String,
     /// TensorFold: carpeta de `prepare.sh` (relativa a $HOME) y lo que debe decir su `.ready`.
     prepared: Option<(String, String)>,
+    /// Un equipo solo (T2): sin cable directo ni segunda GB10.
+    single: bool,
 }
 
 impl From<&Vllm> for Target {
@@ -52,6 +54,7 @@ impl From<&Vllm> for Target {
             repo: v.repo.clone(),
             revision: v.revision.clone(),
             prepared: None,
+            single: false,
         }
     }
 }
@@ -70,6 +73,7 @@ impl From<&TensorFold> for Target {
             repo: t.repo.clone(),
             revision: t.revision.clone(),
             prepared: Some((format!(".cache/ambassador-local/tensorfold/{}", t.recipe), format!("{} {}", t.engine_commit, t.revision))),
+            single: false,
         }
     }
 }
@@ -143,9 +147,19 @@ fn both(label: &str, a: String, b: String, explain: impl Fn(&str) -> String) -> 
     check(label, false, format!("{} · {}", side("This GB10", &a), side("Second GB10", &b)))
 }
 
+/// Un solo equipo: ✓ con "Ready", o lo que falta.
+fn one(label: &str, a: String, explain: impl Fn(&str) -> String) -> Check {
+    if a == "ok" {
+        check(label, true, "Ready")
+    } else {
+        check(label, false, explain(&a))
+    }
+}
+
 pub fn verify(v: &Target) -> Vec<Check> {
     if !cfg!(target_os = "linux") {
-        return vec![check("GB10 with DGX OS", false, format!("{} models run only on two linked GB10.", v.engine))];
+        let (label, where_) = if v.single { ("Linux", "on Linux") } else { ("GB10 with DGX OS", "only on two linked GB10") };
+        return vec![check(label, false, format!("{} models run {where_}.", v.engine))];
     }
     let pending = |label: &str| Check { label: label.into(), state: State::Wait, detail: "Needs the step above.".into() };
     let image_label = format!("{} engine image", v.engine);
@@ -153,51 +167,63 @@ pub fn verify(v: &Target) -> Vec<Check> {
     if v.prepared.is_some() {
         labels.push("Prepared with prepare.sh");
     }
-    labels.push("GPUs free");
+    labels.push(if v.single { "GPU free" } else { "GPUs free" });
 
-    let Some((peer, ssh_ok)) = cluster::peer() else {
-        let mut out = vec![check(
-            "Second GB10 on the direct cable",
-            false,
-            "Not found. Connect the two GB10 with the ConnectX cable and run the cluster setup in NVIDIA Sync.",
-        )];
-        out.push(pending("Passwordless SSH to the second GB10"));
-        out.extend(labels.iter().map(|l| pending(l)));
-        return out;
-    };
-    let mut out = vec![check("Second GB10 on the direct cable", true, format!("Found at {peer}"))];
-    out.push(check(
-        "Passwordless SSH to the second GB10",
-        ssh_ok,
-        if ssh_ok { "Works over the direct cable".to_string() } else { "Refused. The cluster setup in NVIDIA Sync turns it on.".to_string() },
-    ));
-    if !ssh_ok {
-        out.extend(labels.iter().map(|l| pending(l)));
-        return out;
-    }
-
+    let mut out = Vec::new();
     let script = probe_script(v);
-    let (here, there) = std::thread::scope(|s| {
-        let remote = s.spawn(|| run_remote(peer, &script));
-        (run_local(&script), remote.join().unwrap_or_default())
-    });
-    out.push(both(labels[0], docker_state(&here), docker_state(&there), |s| s.to_string()));
-    out.push(both(labels[1], get(&here, "image"), get(&there, "image"), |_| format!("missing {}", v.image_hint)));
-    out.push(both(labels[2], get(&here, "weights"), get(&there, "weights"), |w| match w {
+    let (here, there) = if v.single {
+        (run_local(&script), None)
+    } else {
+        let Some((peer, ssh_ok)) = cluster::peer() else {
+            out.push(check(
+                "Second GB10 on the direct cable",
+                false,
+                "Not found. Connect the two GB10 with the ConnectX cable and run the cluster setup in NVIDIA Sync.",
+            ));
+            out.push(pending("Passwordless SSH to the second GB10"));
+            out.extend(labels.iter().map(|l| pending(l)));
+            return out;
+        };
+        out.push(check("Second GB10 on the direct cable", true, format!("Found at {peer}")));
+        out.push(check(
+            "Passwordless SSH to the second GB10",
+            ssh_ok,
+            if ssh_ok { "Works over the direct cable".to_string() } else { "Refused. The cluster setup in NVIDIA Sync turns it on.".to_string() },
+        ));
+        if !ssh_ok {
+            out.extend(labels.iter().map(|l| pending(l)));
+            return out;
+        }
+        std::thread::scope(|s| {
+            let remote = s.spawn(|| run_remote(peer, &script));
+            (run_local(&script), Some(remote.join().unwrap_or_default()))
+        })
+    };
+    // Una fila: en GB10 ×2 junta las dos respuestas, en un equipo solo usa la de aquí.
+    let row = |label: &str, value: &dyn Fn(&HashMap<String, String>) -> String, explain: &dyn Fn(&str) -> String| match &there {
+        Some(t) => both(label, value(&here), value(t), explain),
+        None => one(label, value(&here), explain),
+    };
+    out.push(row(labels[0], &docker_state, &|s| s.to_string()));
+    out.push(row(labels[1], &|m| get(m, "image"), &|_| format!("missing {}", v.image_hint)));
+    out.push(row(labels[2], &|m| get(m, "weights"), &|w| match w {
         "none" => format!("not downloaded ({} @ {})", v.repo, &v.revision[..7]),
         w if w.starts_with("missing") => format!("incomplete ({} files missing)", w.trim_start_matches("missing ")),
         w => w.to_string(),
     }));
     if v.prepared.is_some() {
-        out.push(both("Prepared with prepare.sh", get(&here, "prepared"), get(&there, "prepared"), |_| "not yet. Run prepare.sh from the recipe folder.".into()));
+        out.push(row("Prepared with prepare.sh", &|m| get(m, "prepared"), &|_| "not yet. Run prepare.sh from the recipe folder.".into()));
     }
-    out.push(both("GPUs free", get(&here, "gpu_free"), get(&there, "gpu_free"), |apps| format!("in use by {apps}. Stop it first.")));
+    out.push(row(labels[labels.len() - 1], &|m| get(m, "gpu_free"), &|apps| format!("in use by {apps}. Stop it first.")));
     out
 }
 
 /// Qué revisar para la receta de este equipo, si corre en contenedor.
-pub fn target_for(model: &crate::catalog::Model, hardware_id: &str) -> Option<Target> {
-    model.vllm_for(hardware_id).map(Target::from).or_else(|| model.tensorfold_for(hardware_id).map(Target::from))
+pub fn target_for(model: &crate::catalog::Model, hardware: &crate::catalog::Hardware) -> Option<Target> {
+    let id = hardware.id.as_str();
+    let mut t = model.vllm_for(id).map(Target::from).or_else(|| model.tensorfold_for(id).map(Target::from))?;
+    t.single = hardware.units <= 1;
+    Some(t)
 }
 
 /// `repo@sha256:abcdef…` → `repo@abcdef1` para mostrarlo corto.
@@ -225,8 +251,9 @@ mod tests {
     #[test]
     #[ignore]
     fn print_probe() {
-        for m in &crate::catalog::get().unwrap().models {
-            if let Some(t) = target_for(m, "pro-max-gb10-x2") {
+        let cat = crate::catalog::get().unwrap();
+        for m in &cat.models {
+            if let Some(t) = cat.hardware.iter().find_map(|h| target_for(m, h)) {
                 println!("#### {}
 {}", t.repo, probe_script(&t));
             }

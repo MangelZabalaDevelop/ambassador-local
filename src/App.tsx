@@ -80,13 +80,16 @@ export default function App() {
   const family = catalog?.families.find((f) => f.id === familyId) ?? null;
   const model = catalog?.models.find((m) => m.id === modelId) ?? null;
 
-  // Only families/models that have a recipe for the selected hardware.
+  // Only families/models that have a recipe for the selected hardware. Container recipes (vLLM, TensorFold) are Linux only.
   const models = useMemo(
     () =>
       catalog && hardwareId
-        ? catalog.models.filter((m) => m.recipes[hardwareId])
+        ? catalog.models.filter((m) => {
+            const r = m.recipes[hardwareId];
+            return r && (os === "linux" || !(r.vllm || r.tensorfold));
+          })
         : [],
-    [catalog, hardwareId],
+    [catalog, hardwareId, os],
   );
   // Recommended recipes for this hardware go first; the rest keep the catalog's order.
   const labModels = useMemo(

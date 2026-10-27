@@ -303,7 +303,7 @@
     },
     "vllm": {
       "type": "object",
-      "description": "Serve this model with vLLM in a container instead of llama.cpp. Only for linked GB10 (units 2). The app checks both GB10 before it can run.",
+      "description": "Serve this model with vLLM in a container instead of llama.cpp, on Linux. The app checks the workstation (or both linked GB10) before it can run.",
       "required": [
         "image",
         "image_id",
@@ -337,6 +337,11 @@
           "type": "integer",
           "minimum": 1,
           "description": "Bytes of the weights at that revision (each GB10 keeps a copy)"
+        },
+        "recipe": {
+          "type": "string",
+          "pattern": "^[a-z0-9-]{1,64}$",
+          "description": "Folder recipes/vllm/<recipe>/ with run.sh and stop.sh. Required on a single workstation (units 1)."
         }
       }
     },

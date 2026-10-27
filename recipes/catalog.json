@@ -1283,7 +1283,7 @@
       "family": "qwen",
       "name": "Qwen3.8 Flash Next FP4",
       "size": "180B",
-      "tagline": "The largest Qwen, in NVIDIA's FP4 for two GB10.",
+      "tagline": "The largest Qwen, in NVIDIA's FP4.",
       "quant": "NVFP4 (FP4-Local)",
       "size_class": "xlarge",
       "intelligence": 5,
@@ -1294,6 +1294,21 @@
       ],
       "files": [],
       "recipes": {
+        "pro-max-t2": {
+          "speed": 5,
+          "tokens_per_sec": 191.5,
+          "ctx_size": 262144,
+          "tuned": true,
+          "recommended": true,
+          "vllm": {
+            "image": "ghcr.io/local-inference-lab/vllm@sha256:faf0b1f08d688b1aaa7d5161dc3b724c701d17d68278e7d32ebdd3a6b5127ce2",
+            "image_id": "sha256:faf0b1f08d688b1aaa7d5161dc3b724c701d17d68278e7d32ebdd3a6b5127ce2",
+            "repo": "nvidia/Qwen3.8-Flash-Next-FP4-Local",
+            "revision": "b9ce18a6887e18c089fdea8509a33e63429a3300",
+            "size": 102262310289,
+            "recipe": "qwen38-flash-next-fp4-t2"
+          }
+        },
         "pro-max-gb10-x2": {
           "speed": 3,
           "ctx_size": 262144,

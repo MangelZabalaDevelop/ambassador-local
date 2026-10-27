@@ -157,11 +157,13 @@ fn downloaded_models(app: AppHandle) -> Result<Vec<String>, String> {
     Ok(out)
 }
 
-/// GB10 ×2 con vLLM o TensorFold: ¿están las dos listas para esta receta? Solo mira, no cambia nada.
+/// vLLM o TensorFold: ¿está el equipo (o las dos GB10) listo para esta receta? Solo mira, no cambia nada.
 #[tauri::command]
 async fn check_cluster(hardware_id: String, model_id: String) -> Result<Vec<vllm::Check>, String> {
-    let model = catalog::get()?.model(&model_id).ok_or("Unknown model")?;
-    let target = vllm::target_for(model, &hardware_id).ok_or("This recipe does not run in a container.")?;
+    let cat = catalog::get()?;
+    let model = cat.model(&model_id).ok_or("Unknown model")?;
+    let hardware = cat.hardware(&hardware_id).ok_or("Unknown hardware")?;
+    let target = vllm::target_for(model, hardware).ok_or("This recipe does not run in a container.")?;
     tauri::async_runtime::spawn_blocking(move || vllm::verify(&target)).await.map_err(|e| e.to_string())
 }
 
@@ -218,8 +220,11 @@ async fn run_job(app: &AppHandle, inner: &Arc<Mutex<Inner>>, cancel: &AtomicBool
     }
     let model = cat.model(model_id).ok_or("Unknown model")?;
     let recipe = model.recipes.get(hardware_id).ok_or("This model has no recipe for your hardware.")?;
-    if recipe.vllm.is_some() {
-        return Err("vLLM models can't be started from the app yet. Use the cluster check to see if both GB10 are ready.".into());
+    if let Some(v) = &recipe.vllm {
+        return Err(match &v.recipe {
+            Some(r) => format!("vLLM models can't be started from the app yet. Run run.sh from recipes/vllm/{r}."),
+            None => "vLLM models can't be started from the app yet. Use the cluster check to see if both GB10 are ready.".into(),
+        });
     }
     if let Some(t) = &recipe.tensorfold {
         return Err(format!("TensorFold models can't be started from the app yet. Run run.sh from recipes/tensorfold/{}.", t.recipe));

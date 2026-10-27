@@ -253,6 +253,9 @@ pub struct Vllm {
     pub revision: String,
     /// Bytes de los pesos en esa revisión, en cada GB10.
     pub size: u64,
+    /// Carpeta con run.sh y stop.sh: recipes/vllm/<recipe>/. Obligatoria en un equipo solo (T2).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub recipe: Option<String>,
 }
 
 impl Vllm {
@@ -302,7 +305,8 @@ fn repo_ok(repo: &str) -> bool {
 fn valid_vllm(v: &Vllm) -> bool {
     let image_ok = v.image.split_once("@sha256:").is_some_and(|(name, digest)| image_name_ok(name) && hex(digest, 64));
     let id_ok = v.image_id.strip_prefix("sha256:").is_some_and(|id| hex(id, 64));
-    image_ok && id_ok && repo_ok(&v.repo) && hex(&v.revision, 40) && v.size > 0
+    let recipe_ok = v.recipe.as_deref().map_or(true, is_safe_id);
+    image_ok && id_ok && repo_ok(&v.repo) && hex(&v.revision, 40) && v.size > 0 && recipe_ok
 }
 
 fn valid_tensorfold(t: &TensorFold) -> bool {
@@ -433,8 +437,13 @@ impl Catalog {
                     return Err(format!("{}: the recipe for {hw} can't use vllm and tensorfold at once", m.id));
                 }
                 if r.in_container() {
-                    if self.hardware(hw).is_some_and(|h| h.units < 2) {
-                        return Err(format!("{}: vllm and tensorfold recipes are only for linked GB10 ({hw})", m.id));
+                    let single = self.hardware(hw).is_some_and(|h| h.units < 2);
+                    if single && r.tensorfold.is_some() {
+                        return Err(format!("{}: tensorfold recipes are only for linked GB10 ({hw})", m.id));
+                    }
+                    // En un equipo solo la app no tiene cluster que revisar: hace falta el run.sh de la receta.
+                    if single && r.vllm.as_ref().is_some_and(|v| v.recipe.is_none()) {
+                        return Err(format!("{}: a vllm recipe for {hw} needs its recipe folder", m.id));
                     }
                     if r.files.is_some() || r.mtp.is_some() {
                         return Err(format!("{}: a vllm or tensorfold recipe for {hw} can't set GGUF files or mtp", m.id));
@@ -510,6 +519,22 @@ mod tests {
                 }
                 let docker = std::fs::read_to_string(root.join(&t.recipe).join("Dockerfile")).unwrap();
                 assert!(docker.contains(&format!("ARG TF_REF={}", t.engine_commit)), "{}: Dockerfile builds another engine", m.id);
+            }
+        }
+    }
+
+    /// Igual para las recetas de vLLM con carpeta propia (las de un equipo solo).
+    #[test]
+    fn vllm_recipes_match_their_folder() {
+        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../recipes/vllm");
+        for m in &super::get().unwrap().models {
+            for v in m.recipes.values().filter_map(|r| r.vllm.as_ref()) {
+                let Some(recipe) = &v.recipe else { continue };
+                let config = std::fs::read_to_string(root.join(recipe).join("config.sh")).unwrap();
+                for line in [format!("IMAGE=\"${{IMAGE:-{}}}\"", v.image), format!("REPO={}", v.repo), format!("REVISION={}", v.revision)] {
+                    assert!(config.lines().any(|l| l.starts_with(&line)), "{}: config.sh has no {line}", m.id);
+                }
+                assert!(root.join(recipe).join("run.sh").is_file(), "{}: no run.sh", m.id);
             }
         }
     }

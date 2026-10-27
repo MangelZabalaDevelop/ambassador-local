@@ -16,6 +16,9 @@ import { UpdateBox } from "./components/UpdateBox";
 import { useTheme, type ThemePref } from "./theme";
 import logo from "./assets/ai-factory-logo-dark.webp";
 
+/** Sistemas en los que corre la app (y sus recetas). */
+const SUPPORTED_OS = ["windows", "linux"];
+
 const STEPS = [
   { label: "System", title: "Which operating system are you on?" },
   { label: "Hardware", title: "Choose your workstation" },
@@ -52,19 +55,27 @@ export default function App() {
   };
 
   useEffect(() => {
-    Promise.all([
-      api.catalog(),
-      api.detect(),
-      api.downloaded(),
-      api.currentStatus(),
-    ])
-      .then(([c, s, d, [st, l]]) => {
+    // El último aviso del servidor: si llega mientras se pide el estado inicial, manda él (es más nuevo).
+    let latest: Status | null = null;
+    const unStatus = api.onStatus((s) => {
+      latest = s;
+      setStatus(s);
+      setLiveSince((since) => (s.stage === "ready" ? (since ?? Date.now()) : null));
+      // Al terminar (en marcha, error, parado) lo descargado pudo cambiar: la marca "Downloaded" debe seguirlo.
+      if (s.stage === "ready" || s.stage === "error" || s.stage === "idle") api.downloaded().then(setDownloaded, () => {});
+    });
+    const unLog = api.onLog((line) => setLogs((l) => [...l.slice(-399), line]));
+    // Primero escuchar y después preguntar: así ningún cambio cae entre la foto inicial y los avisos.
+    Promise.all([unStatus, unLog])
+      .then(() => Promise.all([api.catalog(), api.detect(), api.downloaded(), api.currentStatus()]))
+      .then(([c, s, d, [snapshot, l]]) => {
+        const st = latest ?? snapshot;
         setCatalog(c);
         setSystem(s);
         setDownloaded(d);
         setStatus(st);
-        setLogs(l);
-        setOs(s.os);
+        if (!latest) setLogs(l);
+        setOs(SUPPORTED_OS.includes(s.os) ? s.os : null);
         setHardwareId(s.suggested_hardware);
         // Si ya hay un modelo descargando, arrancando o en marcha (p. ej. tras recargar), volver a él.
         const job = jobOf(st);
@@ -77,13 +88,6 @@ export default function App() {
         }
       })
       .catch((e) => setLoadError(String(e)));
-    const unStatus = api.onStatus((s) => {
-      setStatus(s);
-      setLiveSince((since) => (s.stage === "ready" ? (since ?? Date.now()) : null));
-      // Al terminar (en marcha, error, parado) lo descargado pudo cambiar: la marca "Downloaded" debe seguirlo.
-      if (s.stage === "ready" || s.stage === "error" || s.stage === "idle") api.downloaded().then(setDownloaded, () => {});
-    });
-    const unLog = api.onLog((line) => setLogs((l) => [...l.slice(-399), line]));
     return () => {
       unStatus.then((f) => f());
       unLog.then((f) => f());
@@ -115,8 +119,11 @@ export default function App() {
   );
 
   // Cada paso empieza arriba: si no, el siguiente hereda el scroll del anterior y se ve a medias.
+  // Y la ficha de un equipo no sigue abierta (ni por abrirse) en otro paso, donde ya no está su "?".
   useEffect(() => {
     mainRef.current?.scrollTo({ top: 0 });
+    window.clearTimeout(specsTimer.current);
+    setSpecsFor(null);
   }, [step]);
 
   if (loadError) return <Centered>Could not start: {loadError}</Centered>;
@@ -163,14 +170,14 @@ export default function App() {
               {STEPS[step].title}
             </h1>
 
-            {step === 0 && !["windows", "linux"].includes(system.os) && (
+            {step === 0 && !SUPPORTED_OS.includes(system.os) && (
               <Notice title="This computer is not supported">
                 Ambassador Local runs models on Windows and Linux workstations. This computer runs {system.os === "macos" ? "macOS" : system.os}, so there is nothing to start here.
               </Notice>
             )}
 
             {step === 0 && (
-              <Grid hint={["windows", "linux"].includes(system.os) ? "We detected it for you." : undefined}>
+              <Grid hint={SUPPORTED_OS.includes(system.os) ? "We detected it for you." : undefined}>
                 {[
                   { id: "windows", name: "Windows", logo: <WindowsLogo /> },
                   { id: "linux", name: "Linux", logo: <LinuxLogo /> },

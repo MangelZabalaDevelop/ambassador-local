@@ -147,6 +147,7 @@ pub fn start_worker(peer: Ipv4Addr, engine_dir: &Path, server: &Path, lib_dirs: 
         std::thread::sleep(Duration::from_millis(500));
     }
     let _ = session.kill();
+    let _ = session.wait();
     Err(format!("The second GB10 ({peer}) did not answer. Check the technical log on it: ~/{remote}/rpc.log"))
 }
 

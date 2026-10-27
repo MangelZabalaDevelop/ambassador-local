@@ -521,15 +521,23 @@ async fn serve(
     tauri::async_runtime::spawn(async move {
         loop {
             tokio::time::sleep(Duration::from_secs(1)).await;
-            let g = inner.lock().unwrap();
-            if g.child.is_none() || g.generation != generation {
-                break;
-            }
-            drop(g);
-            if let Some(code) = exited(&inner) {
-                emit_status(&app, &inner, Status::Error { message: format!("{name} exited ({code})."), job: Some(job) });
-                break;
-            }
+            // Mirar y quitar el hijo bajo el mismo candado: entre medias podría entrar un arranque nuevo.
+            let code = {
+                let mut g = inner.lock().unwrap();
+                if g.generation != generation {
+                    break;
+                }
+                let Some(child) = g.child.as_mut() else { break };
+                match child.try_wait() {
+                    Ok(Some(status)) => {
+                        g.child = None;
+                        status.to_string()
+                    }
+                    _ => continue,
+                }
+            };
+            emit_status(&app, &inner, Status::Error { message: format!("{name} exited ({code})."), job: Some(job) });
+            break;
         }
     });
     Ok(())

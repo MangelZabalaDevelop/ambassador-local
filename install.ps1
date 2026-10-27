@@ -18,7 +18,10 @@
   # While the repository is private, GitHub only answers to a signed-in user: use the GitHub CLI login if there is one.
   $headers = @{ 'Accept' = 'application/vnd.github+json'; 'User-Agent' = 'ambassador-local-installer' }
   $token = $env:GITHUB_TOKEN
-  if (-not $token -and (Get-Command gh -ErrorAction SilentlyContinue)) { $token = (& gh auth token 2>$null) }
+  # try: in Windows PowerShell 5.1 with 'Stop', a gh that is not signed in turns its stderr into a terminating error.
+  if (-not $token -and (Get-Command gh -ErrorAction SilentlyContinue)) {
+    try { $token = (& gh auth token 2>$null) } catch { $token = $null }
+  }
   if ($token) { $headers['Authorization'] = "Bearer $token" }
 
   Say 'Looking for the latest Ambassador Local release'
@@ -52,7 +55,7 @@
   Say 'Installing'
   $p = Start-Process -FilePath $setup -ArgumentList '/S' -Wait -PassThru
   Remove-Item $setup -Force
-  if ($p.ExitCode -ne 0) { Fail "The installer exited with code $($p.ExitCode)."; return }
+  if ($p.ExitCode -ne 0) { Fail "The installer exited with code $($p.ExitCode). If Ambassador Local is open, close it and run this again."; return }
 
   Say 'Done. Open Ambassador Local from the Start menu.'
 }

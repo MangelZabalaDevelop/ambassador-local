@@ -25,6 +25,8 @@ const tauriApi = {
 // Solo para diseñar la interfaz con `npm run dev` en un navegador normal.
 function mockApi(): typeof tauriApi {
   let emit: (s: Status) => void = () => {};
+  // Como el backend: Cancel y Stop cortan la tarea en curso.
+  let cancelled = false;
   // ?hw=pro-max-gb10-x2 simula otro equipo detectado, para ver su pantalla.
   const hw = new URLSearchParams(location.search).get("hw") ?? "pro-max-t2";
   const system: System = { os: "windows", arch: "x86_64", gpus: [{ name: "NVIDIA RTX PRO 6000 Blackwell", memory_mib: 98304 }], suggested_hardware: hw, detected_hardware: [hw] };
@@ -51,17 +53,29 @@ function mockApi(): typeof tauriApi {
     start: async (hardwareId, modelId, lan) => {
       const job = { hardware_id: hardwareId, model_id: modelId };
       const name = bundled.models.find((m) => m.id === modelId)?.name ?? modelId;
+      cancelled = false;
+      const stopped = () => {
+        if (cancelled) emit({ stage: "idle" });
+        return cancelled;
+      };
       for (let i = 0; i <= 10; i++) {
         emit({ stage: "downloading", ...job, label: name, step: 1, steps: 1, downloaded: i * 7.3e8, total: 7.3e9 });
         await new Promise((r) => setTimeout(r, 200));
+        if (stopped()) return;
       }
       emit({ stage: "starting", ...job });
       await new Promise((r) => setTimeout(r, 800));
+      if (stopped()) return;
       emit({ stage: "ready", ...job, url: "http://127.0.0.1:8080", api_url: "http://127.0.0.1:8080/v1", api_key: "sk-local-preview-0000000000000000000000000000", lan_url: lan ? "http://192.168.1.20:8080/v1" : null });
     },
-    stop: async () => emit({ stage: "idle" }),
+    stop: async () => {
+      cancelled = true;
+      emit({ stage: "idle" });
+    },
     // Como el backend: cancelar vuelve a "listo para arrancar".
-    cancel: async () => emit({ stage: "idle" }),
+    cancel: async () => {
+      cancelled = true;
+    },
     version: async () => "0.1.0",
     checkUpdate: async () => ({ version: "0.2.0", current: "0.1.0", notes: "New models for GB10." }),
     installUpdate: async () => {

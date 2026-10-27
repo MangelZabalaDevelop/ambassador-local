@@ -73,9 +73,10 @@ pub async fn fetch(client: &reqwest::Client, file: &RemoteFile, dest: &Path, pro
     let mut hasher = Sha256::new();
     let mut have: u64 = 0;
 
-    // Reanudar: rehashear lo que ya está en disco.
+    // Reanudar: rehashear lo que ya está en disco. Con decenas de GB tarda; la barra avanza mientras tanto.
     if let Ok(mut f) = tokio::fs::File::open(&part).await {
         let mut buf = vec![0u8; 1 << 20];
+        let mut last_emit = Instant::now();
         loop {
             let n = f.read(&mut buf).await.map_err(|e| e.to_string())?;
             if n == 0 {
@@ -85,6 +86,10 @@ pub async fn fetch(client: &reqwest::Client, file: &RemoteFile, dest: &Path, pro
             have += n as u64;
             if progress.cancel.load(Ordering::Relaxed) {
                 return Err("cancelled".into());
+            }
+            if last_emit.elapsed() > Duration::from_millis(250) {
+                (progress.on_bytes)(have.min(file.size));
+                last_emit = Instant::now();
             }
         }
         if have > file.size {
@@ -146,18 +151,22 @@ pub async fn fetch(client: &reqwest::Client, file: &RemoteFile, dest: &Path, pro
             return Err(format!("{}: larger than expected", file.file_name()));
         }
         hasher.update(&chunk);
-        out.write_all(&chunk).await.map_err(|e| e.to_string())?;
+        out.write_all(&chunk).await.map_err(|e| format!("Could not save {}: {e}", file.file_name()))?;
         if last_emit.elapsed() > Duration::from_millis(250) {
             (progress.on_bytes)(have);
             last_emit = Instant::now();
         }
     }
-    out.flush().await.map_err(|e| e.to_string())?;
+    out.flush().await.map_err(|e| format!("Could not save {}: {e}", file.file_name()))?;
     drop(out);
     (progress.on_bytes)(have);
 
+    // La conexión se cerró antes de tiempo sin error: lo recibido sirve, se reanuda en el próximo intento.
+    if have < file.size {
+        return Err(format!("Download of {} interrupted. Press Try again to resume it.", file.file_name()));
+    }
     let digest = hex::encode(hasher.finalize());
-    if have != file.size || digest != file.sha256 {
+    if digest != file.sha256 {
         tokio::fs::remove_file(&part).await.ok();
         return Err(format!("{}: SHA256 fingerprint does not match; the file was discarded", file.file_name()));
     }
@@ -187,6 +196,8 @@ mod tests {
         Full,
         /// Manda la cabecera y unos bytes, y se queda callado.
         Stall,
+        /// Anuncia y manda solo la primera mitad, y cierra sin error (un proxy que corta).
+        Half,
     }
 
     /// Servidor HTTP mínimo en 127.0.0.1; cuenta las peticiones que recibe.
@@ -210,6 +221,7 @@ mod tests {
                         .and_then(|r| r.trim_end_matches('-').trim().parse::<usize>().ok());
                     let (status, part) = match (mode, from) {
                         (Mode::Ranges, Some(f)) => ("206 Partial Content", &body[f..]),
+                        (Mode::Half, _) => ("200 OK", &body[..body.len() / 2]),
                         _ => ("200 OK", &body[..]),
                     };
                     let head = format!("HTTP/1.1 {status}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n", part.len());
@@ -307,6 +319,21 @@ mod tests {
         let err = get(&file, &dest, &AtomicBool::new(false)).await.unwrap_err();
         assert!(err.contains("SHA256"), "{err}");
         assert!(!dest.exists() && !part_path(&dest).exists());
+    }
+
+    /// Antes, un corte limpio a medias se tomaba por archivo dañado y se borraba todo lo descargado.
+    #[tokio::test]
+    async fn a_clean_early_close_keeps_the_part_to_resume() {
+        let b = body();
+        let (half_url, _) = serve(b.clone(), Mode::Half).await;
+        let dest = scratch("early-close");
+        let err = get(&remote(&half_url, &b), &dest, &AtomicBool::new(false)).await.unwrap_err();
+        assert!(err.contains("interrupted"), "{err}");
+        assert_eq!(std::fs::metadata(part_path(&dest)).unwrap().len(), b.len() as u64 / 2);
+        // El siguiente intento reanuda desde la mitad y termina.
+        let (url, _) = serve(b.clone(), Mode::Ranges).await;
+        get(&remote(&url, &b), &dest, &AtomicBool::new(false)).await.unwrap();
+        assert_eq!(std::fs::read(&dest).unwrap(), b);
     }
 
     #[tokio::test]

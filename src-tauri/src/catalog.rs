@@ -502,6 +502,16 @@ mod tests {
         super::get().unwrap();
     }
 
+    /// Cada equipo tiene su foto: la tarjeta, el hero y la ficha la muestran (public/hardware/<image o id>.webp).
+    #[test]
+    fn every_workstation_has_its_photo() {
+        let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../public/hardware");
+        for h in &super::get().unwrap().hardware {
+            let name = h.image.as_deref().unwrap_or(&h.id);
+            assert!(dir.join(format!("{name}.webp")).is_file(), "{}: no public/hardware/{name}.webp", h.id);
+        }
+    }
+
     /// La carpeta de cada receta de TensorFold existe y su config.sh fija lo mismo que el catálogo.
     #[test]
     fn tensorfold_recipes_match_their_folder() {

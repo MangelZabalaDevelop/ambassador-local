@@ -5,12 +5,15 @@
 <p align="center">
   <a href="https://github.com/MangelZabalaDevelop/ambassador-local/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/MangelZabalaDevelop/ambassador-local?color=76b900&label=release"></a>
   <img alt="Windows and Linux" src="https://img.shields.io/badge/Windows%20%7C%20Linux-x64%20%26%20ARM64-0672cb">
-  <img alt="License MIT" src="https://img.shields.io/badge/license-MIT-lightgrey">
+  <a href="LICENSE"><img alt="License MIT" src="https://img.shields.io/badge/license-MIT-lightgrey"></a>
 </p>
 
 **Ambassador Local** runs AI models on your own Dell Pro Max, built for the **Dell Pro Precision Ambassador** community.
 It recognizes your workstation, shows only the models tested on that exact machine, and starts them with one click.
 You get a private, OpenAI-compatible endpoint protected by an API key. No cloud, no telemetry.
+
+> **Community project** by a Dell Pro Precision Ambassador. It is not a Dell or NVIDIA product, is not endorsed by them,
+> and is not covered by Dell support. Free and open source under the [MIT License](LICENSE).
 
 | Workstation | What you get |
 |---|---|
@@ -225,4 +228,4 @@ The repository must be public for ambassadors' apps to reach the releases.
 
 ## Credits
 
-Lab logos from [Lobe Icons](https://github.com/lobehub/lobe-icons) (MIT). Logos and names are trademarks of their respective owners.
+Lab logos from [Lobe Icons](https://github.com/lobehub/lobe-icons) (MIT). Dell, NVIDIA and other logos and names are trademarks of their respective owners.

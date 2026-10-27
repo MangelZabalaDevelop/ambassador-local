@@ -46,14 +46,14 @@ export function UpdateBox({ busy, running }: { busy: boolean; running: boolean }
   if (state.kind === "available" || state.kind === "installing") {
     const { info } = state;
     return (
-      <div ref={box} className="mt-5 w-full rounded-xl border border-[#76b900]/40 bg-[#76b900]/10 p-3 text-left [@media(max-height:760px)]:mt-3">
+      <div ref={box} className="mt-5 w-full rounded-xl border border-[#76b900]/40 bg-[#76b900]/10 p-3 text-left [@media(max-height:860px)]:mt-3">
         <div className="flex items-center gap-2 text-sm font-bold">
           <span className="pulse-dot h-2 w-2 rounded-full bg-[#76b900]" />
           Version {info.version} is available
         </div>
         {/* Dos líneas, una en ventanas bajas (el texto entero queda en el title): así el botón Update se ve. */}
         {info.notes && (
-          <p className="mt-1 line-clamp-2 text-xs text-sidebar-muted [@media(max-height:760px)]:line-clamp-1" title={info.notes}>
+          <p className="mt-1 line-clamp-2 text-xs text-sidebar-muted [@media(max-height:860px)]:line-clamp-1" title={info.notes}>
             {info.notes}
           </p>
         )}
@@ -92,7 +92,7 @@ export function UpdateBox({ busy, running }: { busy: boolean; running: boolean }
   }
 
   return (
-    <div ref={box} className="mt-4 flex w-full items-center justify-between gap-2 text-[11px] text-sidebar-muted [@media(max-height:760px)]:mt-2">
+    <div ref={box} className="mt-4 flex w-full items-center justify-between gap-2 text-[11px] text-sidebar-muted [@media(max-height:860px)]:mt-2">
       <span className="truncate" title={state.kind === "error" ? state.message : undefined}>
         {state.kind === "latest" ? "✓ Up to date" : state.kind === "error" ? state.label : version ? `Version ${version}` : ""}
       </span>

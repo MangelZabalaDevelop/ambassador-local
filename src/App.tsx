@@ -12,6 +12,7 @@ import {
 import { ModelTable } from "./components/ModelTable";
 import { RunScreen } from "./components/RunScreen";
 import { SpecsModal } from "./components/SpecsModal";
+import { UninstallDialog } from "./components/UninstallDialog";
 import { UpdateBox } from "./components/UpdateBox";
 import { useTheme, type ThemePref } from "./theme";
 import logo from "./assets/ai-factory-logo-dark.webp";
@@ -45,6 +46,7 @@ export default function App() {
   // Desde cuándo está en marcha el servidor (null = no se sabe, p. ej. tras recargar la ventana).
   const [liveSince, setLiveSince] = useState<number | null>(null);
   const [specsFor, setSpecsFor] = useState<Hardware | null>(null);
+  const [uninstalling, setUninstalling] = useState(false);
   const mainRef = useRef<HTMLElement>(null);
   const specsTimer = useRef<number | undefined>(undefined);
   // La ficha sale tras dejar el ratón quieto un momento sobre el "?", no al instante.
@@ -157,6 +159,7 @@ export default function App() {
         themePref={themePref}
         onTheme={setThemePref}
         engine={catalog.engine.version}
+        onUninstall={() => setUninstalling(true)}
       />
 
       <div className="relative flex min-w-0 flex-1 flex-col">
@@ -426,6 +429,15 @@ export default function App() {
       </div>
 
       {specsFor && <SpecsModal hardware={specsFor} />}
+      {uninstalling && (
+        <UninstallDialog
+          onClose={() => setUninstalling(false)}
+          busy={busy}
+          running={status.stage === "ready"}
+          linux={system.os === "linux"}
+          linkedGb10={catalog.hardware.some((h) => h.units > 1 && system.detected_hardware.includes(h.id))}
+        />
+      )}
     </div>
   );
 }
@@ -495,9 +507,10 @@ function Sidebar(props: {
   themePref: ThemePref;
   onTheme: (t: ThemePref) => void;
   engine: string;
+  onUninstall: () => void;
 }) {
   return (
-    <aside className="flex w-60 shrink-0 flex-col overflow-y-auto bg-sidebar px-4 py-6 text-sidebar-text [scrollbar-color:rgb(255_255_255/0.25)_transparent] [scrollbar-width:thin] xl:w-72 xl:px-6 xl:py-7 [@media(max-height:760px)]:py-4">
+    <aside className="flex w-60 shrink-0 flex-col overflow-y-auto bg-sidebar px-4 py-6 text-sidebar-text [scrollbar-color:rgb(255_255_255/0.25)_transparent] [scrollbar-width:thin] xl:w-72 xl:px-6 xl:py-7 [@media(max-height:860px)]:py-4">
       <div className="flex items-center gap-3">
         <AppMark />
         <div>
@@ -510,7 +523,7 @@ function Sidebar(props: {
         </div>
       </div>
 
-      <nav className="mt-8 flex flex-col gap-1 xl:mt-10 [@media(max-height:760px)]:mt-5">
+      <nav className="mt-8 flex flex-col gap-1 xl:mt-10 [@media(max-height:860px)]:mt-5">
         {STEPS.map((s, i) => {
           const done = i < props.step;
           const current = i === props.step;
@@ -519,7 +532,7 @@ function Sidebar(props: {
               key={s.label}
               disabled={props.busy || i > props.step}
               onClick={() => props.onStep(i)}
-              className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-left transition [@media(max-height:760px)]:py-1.5 ${current ? "bg-white/10" : "hover:bg-white/5"} disabled:hover:bg-transparent`}
+              className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-left transition [@media(max-height:860px)]:py-1.5 ${current ? "bg-white/10" : "hover:bg-white/5"} disabled:hover:bg-transparent`}
             >
               <span
                 className={`grid h-7 w-7 shrink-0 place-items-center rounded-full text-xs font-bold ${
@@ -557,17 +570,17 @@ function Sidebar(props: {
         })}
       </nav>
 
-      <div className="mt-auto flex flex-col items-center border-t border-white/10 pt-6 [@media(max-height:760px)]:pt-3">
+      <div className="mt-auto flex flex-col items-center border-t border-white/10 pt-6 [@media(max-height:860px)]:pt-3">
         <div className="text-[10px] font-bold tracking-[0.25em] text-sidebar-muted uppercase">
           Powered by
         </div>
         <img
           src={logo}
           alt="Dell Technologies AI Factory with NVIDIA"
-          className="mt-3 w-40 xl:w-48 [@media(max-height:760px)]:mt-2 [@media(max-height:760px)]:w-32"
+          className="mt-3 w-40 xl:w-48 [@media(max-height:860px)]:mt-2 [@media(max-height:860px)]:w-32"
           draggable={false}
         />
-        <div className="mt-6 flex w-full rounded-lg bg-black/25 p-1 [@media(max-height:760px)]:mt-3">
+        <div className="mt-6 flex w-full rounded-lg bg-black/25 p-1 [@media(max-height:860px)]:mt-3">
           {(["light", "dark", "system"] as const).map((t) => (
             <button
               key={t}
@@ -582,10 +595,17 @@ function Sidebar(props: {
             </button>
           ))}
         </div>
-        <div className="mt-4 text-center text-[11px] text-sidebar-muted [@media(max-height:760px)]:mt-2">
+        {/* En ventanas bajas se omite, para dejar sitio a la actualización y a Uninstall. */}
+        <div className="mt-4 text-center text-[11px] text-sidebar-muted [@media(max-height:700px)]:hidden [@media(max-height:860px)]:mt-2">
           llama.cpp {props.engine} · runs on your machine
         </div>
         <UpdateBox busy={props.busy} running={props.running} />
+        <button
+          onClick={props.onUninstall}
+          className="mt-3 rounded text-[11px] text-sidebar-muted underline-offset-2 transition hover:text-sidebar-text hover:underline focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none [@media(max-height:860px)]:mt-1.5"
+        >
+          Uninstall Ambassador Local…
+        </button>
       </div>
     </aside>
   );

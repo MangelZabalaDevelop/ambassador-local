@@ -96,6 +96,15 @@ Real results, each from a single prompt, recorded on the workstations above:
 |---|---|---|
 | <img src="docs/img/result-kingdom.gif" alt="Voxel kingdom with day and night" width="280"> | <img src="docs/img/result-raytracer.gif" alt="Real-time WebGL ray tracer" width="280"> | <img src="docs/img/result-apex-gb10x2.gif" alt="Car dealership website with a payment calculator" width="280"> |
 
+## Uninstall
+
+Click **Uninstall Ambassador Local…** at the bottom of the sidebar. The app stops the running model, closes and removes
+itself: on Windows with its own uninstaller (Start menu shortcut included), on Ubuntu and DGX OS with `apt` (Ubuntu asks
+for your password), and as an AppImage by deleting the file. Leave **Also delete downloaded models and settings** checked
+to free their space too. Weights in the Hugging Face cache and Docker images stay, since other tools may use them.
+
+Without the app: on Windows, *Settings → Apps → Ambassador Local → Uninstall*; on Linux, `sudo apt remove ambassador-local`.
+
 ## Tested on
 
 Each recipe is tuned and measured on the workstation in its column; the number is the average speed measured there.

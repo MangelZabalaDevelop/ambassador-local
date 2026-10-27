@@ -1,7 +1,7 @@
 import { getVersion } from "@tauri-apps/api/app";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import type { Catalog, ClusterCheck, Status, System, UpdateInfo } from "./types";
+import type { Catalog, ClusterCheck, Status, System, UninstallDone, UninstallFailure, UninstallInfo, UpdateInfo } from "./types";
 import bundled from "../recipes/catalog.json";
 
 const inTauri = "__TAURI_INTERNALS__" in window;
@@ -18,6 +18,10 @@ const tauriApi = {
   version: () => getVersion(),
   checkUpdate: () => invoke<UpdateInfo | null>("check_update"),
   installUpdate: () => invoke<void>("install_update"),
+  uninstallInfo: () => invoke<UninstallInfo>("uninstall_info"),
+  // El backend responde los fallos como { message, command }; cualquier otro error, como texto.
+  uninstall: (deleteData: boolean) => invoke<UninstallDone>("uninstall", { deleteData }).catch((e) => Promise.reject(asFailure(e))),
+  quit: () => invoke<void>("quit"),
   onStatus: (cb: (s: Status) => void) => listen<Status>("status", (e) => cb(e.payload)),
   onLog: (cb: (line: string) => void) => listen<string>("log", (e) => cb(e.payload)),
 };
@@ -82,6 +86,12 @@ function mockApi(): typeof tauriApi {
       await new Promise((r) => setTimeout(r, 1500));
       throw new Error("Preview only.");
     },
+    uninstallInfo: async () => ({ method: "deb", reason: null, package: "ambassador-local", asks_password: true, data_bytes: 8.24e10 }),
+    uninstall: async () => {
+      await new Promise((r) => setTimeout(r, 1500));
+      return Promise.reject<UninstallDone>({ message: "Preview only: nothing was uninstalled.", command: null });
+    },
+    quit: async () => {},
     onStatus: async (cb) => {
       emit = cb;
       return () => {};
@@ -91,6 +101,11 @@ function mockApi(): typeof tauriApi {
 }
 
 export const api = inTauri ? tauriApi : mockApi();
+
+function asFailure(e: unknown): UninstallFailure {
+  if (e && typeof e === "object" && "message" in e) return { message: String(e.message), command: "command" in e && e.command ? String(e.command) : null };
+  return { message: String(e), command: null };
+}
 
 export function formatBytes(n: number): string {
   if (n >= 1e9) return `${(n / 1e9).toFixed(1)} GB`;

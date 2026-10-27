@@ -129,3 +129,17 @@ export const jobOf = (s: Status): Job | null =>
 /** Contexto en tokens, corto: 131072 → "128K", 1048576 → "1M". */
 export const formatContext = (tokens: number) =>
   tokens >= 1048576 ? `${+(tokens / 1048576).toFixed(1)}M` : `${(tokens / 1024).toFixed(0)}K`;
+
+/** Cómo se quita esta copia: "windows" (su instalador), "deb" (apt) o "appimage"; null = no se instaló (`reason` dice por qué). */
+export type UninstallInfo = {
+  method: "windows" | "deb" | "appimage" | null;
+  reason: string | null;
+  package: string | null;
+  /** Quitar el .deb pide la contraseña de administrador (no si la app ya corre como root). */
+  asks_password: boolean;
+  data_bytes: number;
+};
+/** Por qué no se pudo, y el comando para terminarlo a mano si hace falta (p. ej. sin ventana de contraseña). */
+export type UninstallFailure = { message: string; command: string | null };
+/** `closing`: todo bien, la app se cierra sola. Si no, `leftovers` no se pudieron borrar (`command` los borra). */
+export type UninstallDone = { closing: boolean; leftovers: string[]; command: string | null };

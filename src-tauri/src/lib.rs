@@ -5,6 +5,7 @@ mod download;
 mod engine;
 mod lifetime;
 mod recipe;
+mod uninstall;
 mod update;
 mod vllm;
 
@@ -574,7 +575,10 @@ pub fn run() {
             stop_model,
             cancel,
             update::check_update,
-            update::install_update
+            update::install_update,
+            uninstall::uninstall_info,
+            uninstall::uninstall,
+            uninstall::quit
         ])
         .build(tauri::generate_context!())
         .expect("error while starting the app")

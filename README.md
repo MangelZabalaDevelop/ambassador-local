@@ -20,8 +20,8 @@ You get a private, OpenAI-compatible endpoint protected by an API key. No cloud,
 | **Dell Pro Max Tower T2** · RTX PRO 6000 Blackwell (Windows, Ubuntu) | llama.cpp recipes, plus **Miguel Tuned** recipes on Ubuntu (Qwen3.8 Flash Next in NVIDIA FP4 at ~190 tokens/s) |
 | **Dell Pro Max with GB10** · DGX OS | Models up to ~120B on one GB10 |
 | **Two Dell Pro Max with GB10**, linked over ConnectX | One model across both, up to DeepSeek-V4.1-Flash-1017 (552B) |
-| **Dell Pro Max 16 Plus** · RTX PRO 5000 Blackwell 24 GB | Not tested yet: shown as *Coming soon* |
-| **Dell Pro Precision 7 16** · RTX PRO 3000 Blackwell 12 GB | Not tested yet: shown as *Coming soon* |
+| **Dell Pro Max 18 Plus** · up to RTX PRO 5000 Blackwell 24 GB | Not tested yet: shown as *Coming soon* |
+| **Dell Pro Max 16 Premium** · up to RTX PRO 3000 Blackwell 12 GB | Not tested yet: shown as *Coming soon* |
 
 Every recipe is tested on the workstation it is listed for: see [Tested on](#tested-on).
 
@@ -102,7 +102,7 @@ Each recipe is tuned and measured on the workstation in its column; the number i
 A model only appears in the app on the workstations marked here.
 
 <!-- models:start -->
-| Model | Pro Max Tower T2 | Pro Max 16 Plus (not tested yet) | Pro Precision 7 16 (not tested yet) | GB10 | GB10 ×2 |
+| Model | Pro Max Tower T2 | Pro Max 18 Plus (not tested yet) | Pro Max 16 Premium (not tested yet) | GB10 | GB10 ×2 |
 | --- | --- | --- | --- | --- | --- |
 | NVIDIA · **Nemotron 3.5 Super VL** 120B-A12B | — | — | — | ✓ 27.9 tok/s | — |
 | NVIDIA · **Nemotron 3.5 Bolt** 74B-A9B | ✓ 111.1 tok/s | — | — | ✓ 21.9 tok/s | — |

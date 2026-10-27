@@ -81,42 +81,42 @@
             "value": "96 GB"
           },
           {
-            "label": "System memory",
-            "value": "96–128 GB"
+            "label": "System memory (max)",
+            "value": "128 GB"
           },
           {
-            "label": "Storage",
-            "value": "4 TB"
+            "label": "SSD storage (max)",
+            "value": "12 TB"
           }
         ],
         "details": [
           {
             "label": "Graphics",
-            "value": "NVIDIA RTX PRO 6000 Blackwell Workstation Edition · 96 GB GDDR7 ECC · 24,064 CUDA cores · 125 TFLOPS FP32 · 1,792 GB/s"
+            "value": "NVIDIA RTX PRO 6000 Blackwell Workstation Edition · 96 GB GDDR7 ECC · 24,064 CUDA cores · 125 TFLOPS FP32 · 1,792 GB/s · 600 W"
           },
           {
             "label": "Processor",
-            "value": "Intel Core Ultra 9 285K · 24 cores · up to 5.7 GHz · 125 W"
+            "value": "Up to Intel Core Ultra 9 285K · 24 cores · up to 5.7 GHz · 125 W"
           },
           {
             "label": "Memory",
-            "value": "96 GB or 128 GB DDR5 5600 MT/s"
+            "value": "Up to 128 GB DDR5, ECC option · 5600 MT/s, 4400 MT/s with 4 modules"
           },
           {
             "label": "Storage",
-            "value": "4 TB NVMe M.2 PCIe Gen5 SSD"
+            "value": "Up to 12 TB of SSD (3 × M.2 NVMe: 1 Gen5, 2 Gen4) · up to 24 TB of HDD"
           },
           {
             "label": "Power supply",
-            "value": "Up to 1500 W"
+            "value": "360, 500 or 1500 W, 80 PLUS Platinum · 1500 W with the RTX PRO 6000"
           },
           {
             "label": "Expansion",
-            "value": "Four PCIe slots · up to 2 Ethernet · Wi-Fi 7"
+            "value": "1 × PCIe Gen5 x16 (the GPU) + 3 × PCIe x4 · up to 2 Ethernet · Wi-Fi 7"
           },
           {
             "label": "Operating system",
-            "value": "Windows 11 Pro · Ubuntu 24.04 LTS · RHEL 9.6"
+            "value": "Windows 11 Pro · Ubuntu 24.04 LTS"
           }
         ],
         "best_for": [
@@ -129,8 +129,8 @@
       }
     },
     {
-      "id": "pro-max-16-plus",
-      "name": "Dell Pro Max 16 Plus",
+      "id": "pro-max-18-plus",
+      "name": "Dell Pro Max 18 Plus",
       "kind": "laptop",
       "gpu": "NVIDIA RTX PRO 5000 Blackwell",
       "memory_gb": 24,
@@ -146,46 +146,50 @@
       ],
       "available": false,
       "specs": {
-        "model": "MB16250",
-        "summary": "The flagship mobile workstation. Desktop performance in a bag for local AI and real-time rendering.",
+        "model": "MB18250",
+        "summary": "The 18-inch mobile workstation. Desktop-like performance with a 55 W Intel Core Ultra and up to an RTX PRO 5000 Blackwell, for AI development on the go.",
         "highlights": [
           {
             "label": "GPU memory",
             "value": "24 GB"
           },
           {
-            "label": "System memory",
-            "value": "96–128 GB"
+            "label": "System memory (max)",
+            "value": "256 GB"
           },
           {
-            "label": "Storage",
-            "value": "4 TB"
+            "label": "SSD storage (max)",
+            "value": "16 TB"
           }
         ],
         "details": [
           {
             "label": "Graphics",
-            "value": "NVIDIA RTX PRO 5000 Blackwell · 24 GB GDDR7 ECC · 10,496 CUDA cores · 1,824 AI TOPS"
+            "value": "Up to NVIDIA RTX PRO 5000 Blackwell · 24 GB GDDR7"
           },
           {
             "label": "Processor",
-            "value": "Intel Core Ultra 9 285HX · 55 W · vPro"
+            "value": "Up to Intel Core Ultra 9 285HX · 24 cores · up to 5.5 GHz · 55 W"
           },
           {
             "label": "Memory",
-            "value": "96 GB or 128 GB DDR5 6400 MT/s (CAMM2)"
+            "value": "Up to 256 GB DDR5 CAMM2 (128 GB at 7200 MT/s) · or up to 96 GB CSoDIMM at 6400 MT/s"
           },
           {
             "label": "Storage",
-            "value": "4 TB NVMe M.2 PCIe Gen5 SSD"
+            "value": "Up to 16 TB of SSD with RAID · up to 4 TB per drive (Gen4), 2 TB in Gen5"
           },
           {
             "label": "Display",
-            "value": "16\" FHD+ 400-nit · UHD+ OLED option"
+            "value": "18\" QHD+ · 120 Hz · 100% DCI-P3 · 500 nits"
+          },
+          {
+            "label": "Connectivity",
+            "value": "2 × Thunderbolt 5 · 1 × Thunderbolt 4 · HDMI 2.1 · 2.5 GbE · Wi-Fi 7 · 5G option"
           },
           {
             "label": "Battery",
-            "value": "6-cell 96 Wh · ExpressCharge"
+            "value": "6-cell 96 Wh · ExpressCharge Boost · 165 W or 280 W USB-C adapter"
           },
           {
             "label": "Operating system",
@@ -201,8 +205,8 @@
       }
     },
     {
-      "id": "pro-precision-7-16",
-      "name": "Dell Pro Precision 7 16",
+      "id": "pro-max-16-premium",
+      "name": "Dell Pro Max 16 Premium",
       "kind": "laptop",
       "gpu": "NVIDIA RTX PRO 3000 Blackwell",
       "memory_gb": 12,
@@ -218,46 +222,50 @@
       ],
       "available": false,
       "specs": {
-        "model": "PW716260",
-        "summary": "The thin-and-light mobile workstation. Portability first, with real GPU compute away from the desk.",
+        "model": "MA16250",
+        "summary": "The premium 16-inch mobile workstation. Up to an RTX PRO 3000 Blackwell and a 4K tandem OLED option in an aluminum and magnesium body.",
         "highlights": [
           {
             "label": "GPU memory",
             "value": "12 GB"
           },
           {
-            "label": "System memory",
+            "label": "System memory (max)",
             "value": "64 GB"
           },
           {
-            "label": "Storage",
-            "value": "2 TB"
+            "label": "SSD storage (max)",
+            "value": "8 TB"
           }
         ],
         "details": [
           {
             "label": "Graphics",
-            "value": "NVIDIA RTX PRO 3000 Blackwell · 12 GB GDDR7 ECC · 5,888 CUDA cores · 992 AI TOPS"
+            "value": "Up to NVIDIA RTX PRO 3000 Blackwell · 12 GB GDDR7"
           },
           {
             "label": "Processor",
-            "value": "Intel Core Ultra 9 386H · vPro"
+            "value": "Up to Intel Core Ultra 9 285H vPro · 16 cores · up to 5.4 GHz · 45 W"
           },
           {
             "label": "Memory",
-            "value": "64 GB LPDDR5x 8533 MT/s"
+            "value": "Up to 64 GB LPDDR5x 8400 MT/s (onboard)"
           },
           {
             "label": "Storage",
-            "value": "2 TB NVMe M.2 PCIe Gen5 SSD"
+            "value": "Up to 8 TB of SSD (2 drives, RAID 0 or 1) · up to 4 TB per drive, Gen4"
           },
           {
             "label": "Display",
-            "value": "16\" FHD+ · 120 Hz VRR · 500-nit · 100% DCI-P3"
+            "value": "16\" FHD+ 120 Hz VRR, 500 nits, 100% DCI-P3 · or 4K UHD+ tandem OLED touch, DisplayHDR True Black 1000"
+          },
+          {
+            "label": "Connectivity",
+            "value": "2 × Thunderbolt 5 · 1 × Thunderbolt 4 · HDMI 2.1 · Wi-Fi 7"
           },
           {
             "label": "Battery",
-            "value": "6-cell 96 Wh · ExpressCharge"
+            "value": "6-cell 96 Wh · ExpressCharge · 165 W USB-C adapter"
           },
           {
             "label": "Operating system",

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { api, formatBytes } from "../api";
-import { downloadsFor, quantFor, type ClusterCheck, type Family, type Hardware, type Model, type Status } from "../types";
+import { formatBytes } from "../api";
+import { downloadsFor, quantFor, type Family, type Hardware, type Model, type Status } from "../types";
 import { HardwarePhoto, labLogoSrc, RecipeBadges } from "./Illustrations";
 
 type Props = {
@@ -43,9 +43,8 @@ export function RunScreen(props: Props) {
   const recipe = model.recipes[hardware.id];
   const live = status.stage === "ready";
   const active = status.stage !== "idle" && status.stage !== "error";
-  // vLLM o TensorFold: corre en contenedores (en las dos GB10, o en la T2) y por ahora solo se revisa.
+  // Recetas en contenedor (las afinadas de la T2 y de las dos GB10): la app las arranca igual que las demás.
   const container = recipe.vllm ?? recipe.tensorfold;
-  const engine = recipe.vllm ? "vLLM" : "TensorFold";
   const single = hardware.units <= 1;
   const size = container ? container.size : downloadsFor(model, hardware.id).reduce((a, f) => a + f.size, 0);
 
@@ -72,11 +71,7 @@ export function RunScreen(props: Props) {
               <span className="text-xs font-bold tracking-[0.2em] text-white/60 uppercase">
                 {lab ? `${lab.name} · ${lab.series}` : "Model"}
               </span>
-              {container ? (
-                <span className="ml-auto rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-white/70">{engine} · {single ? "readiness check" : "cluster check"}</span>
-              ) : (
-                <StatusPill status={status} />
-              )}
+              <StatusPill status={status} />
             </div>
             <h2 className="mt-3 text-3xl font-bold tracking-tight @2xl:text-4xl">{model.name}</h2>
             {(recipe.tuned || recipe.recommended) && (
@@ -97,24 +92,13 @@ export function RunScreen(props: Props) {
         </div>
 
         <div className="relative border-t border-white/10 bg-black/25 px-6 py-5 backdrop-blur @2xl:px-8">
-          {container ? (
-            <ClusterCheckBar
-              hardwareId={hardware.id}
-              modelId={model.id}
-              engine={engine}
-              single={single}
-              recipePath={recipe.tensorfold ? `recipes/tensorfold/${recipe.tensorfold.recipe}` : recipe.vllm?.recipe && `recipes/vllm/${recipe.vllm.recipe}`}
-              prepare={!!recipe.tensorfold}
-            />
-          ) : (
-            <ActionBar {...props} />
-          )}
+          <ActionBar {...props} />
         </div>
       </section>
 
       {active && <Stepper status={status} />}
 
-      {status.stage === "ready" && <ReadyCards status={status} modelName={model.name} />}
+      {status.stage === "ready" && <ReadyCards status={status} modelName={model.name} chat={!container} />}
 
       <ServerLog logs={props.logs} />
     </div>
@@ -205,78 +189,6 @@ function ActionBar(props: Props) {
   }
 
   return <LiveBar status={status} onStop={props.onStop} />;
-}
-
-/** vLLM o TensorFold: revisa que el equipo (o las dos GB10) esté listo. Arrancar desde la app viene después. */
-function ClusterCheckBar(props: { hardwareId: string; modelId: string; engine: string; single: boolean; recipePath?: string; prepare: boolean }) {
-  const { hardwareId, modelId, engine, single, recipePath, prepare } = props;
-  const code = "rounded bg-white/10 px-1.5 py-0.5 text-white/85";
-  const [checks, setChecks] = useState<ClusterCheck[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [checking, setChecking] = useState(false);
-
-  const run = () => {
-    setChecking(true);
-    setError(null);
-    api
-      .checkCluster(hardwareId, modelId)
-      .then(setChecks)
-      .catch((e) => setError(String(e)))
-      .finally(() => setChecking(false));
-  };
-  useEffect(run, [hardwareId, modelId]);
-
-  const ready = checks?.every((c) => c.state === "ok") ?? false;
-  return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-        <div className="min-w-[16rem] flex-1">
-          <div className="font-bold">
-            {single
-              ? checking ? "Checking this workstation…" : ready ? "This workstation is ready for this model" : "Readiness check"
-              : checking ? "Checking both GB10…" : ready ? "Both GB10 are ready for this model" : "Cluster check"}
-          </div>
-          <div className="mt-0.5 text-sm text-white/60">
-            {ready
-              ? `Starting ${engine} models from the app arrives in a coming update.`
-              : `${engine} runs this model ${single ? "on this GPU" : "across both GB10"}. This only looks, it changes nothing.`}
-          </div>
-          {recipePath && (
-            <div className="mt-1.5 text-sm text-white/60">
-              {prepare ? (
-                <>
-                  Set it up once with <code className={code}>prepare.sh</code>, then start it with{" "}
-                </>
-              ) : (
-                "Start it with "
-              )}
-              <code className={code}>run.sh</code> from <code className={code}>{recipePath}</code>.
-            </div>
-          )}
-        </div>
-        <GhostButton onClick={run}>{checking ? "Checking…" : "Check again"}</GhostButton>
-      </div>
-      {error && <div className="text-sm text-red-200">{error}</div>}
-      {checks && (
-        <ul className="grid grid-cols-1 gap-2 @2xl:grid-cols-2">
-          {checks.map((c) => (
-            <li key={c.label} className={`flex gap-3 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 ${checking ? "opacity-60" : ""}`}>
-              <CheckMark state={c.state} />
-              <div className="min-w-0">
-                <div className="text-sm font-bold">{c.label}</div>
-                <div className={`text-xs ${c.state === "fail" ? "text-red-200" : "text-white/55"}`}>{c.detail}</div>
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
-}
-
-function CheckMark({ state }: { state: ClusterCheck["state"] }) {
-  const [text, cls] = { ok: ["✓", "bg-[#76b900] text-white"], fail: ["✕", "bg-red-500/80 text-white"], wait: ["·", "bg-white/10 text-white/50"] }[state];
-  return <span className={`mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full text-[11px] font-bold ${cls}`}>{text}</span>;
 }
 
 function Assurances({ lan }: { lan: boolean }) {
@@ -394,7 +306,8 @@ function Stepper({ status }: { status: Status }) {
   );
 }
 
-function ReadyCards({ status, modelName }: { status: Extract<Status, { stage: "ready" }>; modelName: string }) {
+/** `chat`: llama-server trae su propia página de chat; los servidores en contenedor solo la API. */
+function ReadyCards({ status, modelName, chat }: { status: Extract<Status, { stage: "ready" }>; modelName: string; chat: boolean }) {
   const [copied, setCopied] = useState<string | null>(null);
   const [reveal, setReveal] = useState(false);
   const copy = (label: string, value: string) => {
@@ -405,23 +318,25 @@ function ReadyCards({ status, modelName }: { status: Extract<Status, { stage: "r
   const masked = `${status.api_key.slice(0, 9)}${"•".repeat(16)}${status.api_key.slice(-4)}`;
 
   return (
-    <div className="grid grid-cols-1 gap-5 @3xl:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
-      <div className="flex flex-col rounded-2xl border border-border bg-surface p-6">
-        <IconTile className="from-[#0672cb] to-[#2f8fff]">
-          <Icon d="M4 5h16v11H8l-4 4z" />
-        </IconTile>
-        <h3 className="mt-4 text-lg font-bold">Chat</h3>
-        <p className="mt-1 flex-1 text-sm text-muted">
-          Talk to {modelName} in your browser. The first time it asks for the API key: paste it once and it is remembered.
-        </p>
-        <button
-          onClick={() => openUrl(status.url)}
-          className="mt-5 flex items-center justify-center gap-2 rounded-xl bg-accent px-5 py-3 font-bold text-on-accent shadow-lg shadow-accent/25 transition hover:-translate-y-0.5 hover:bg-accent-hover"
-        >
-          Open chat
-          <Icon d="M7 17 17 7M9 7h8v8" />
-        </button>
-      </div>
+    <div className={`grid grid-cols-1 gap-5 ${chat ? "@3xl:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]" : ""}`}>
+      {chat && (
+        <div className="flex flex-col rounded-2xl border border-border bg-surface p-6">
+          <IconTile className="from-[#0672cb] to-[#2f8fff]">
+            <Icon d="M4 5h16v11H8l-4 4z" />
+          </IconTile>
+          <h3 className="mt-4 text-lg font-bold">Chat</h3>
+          <p className="mt-1 flex-1 text-sm text-muted">
+            Talk to {modelName} in your browser. The first time it asks for the API key: paste it once and it is remembered.
+          </p>
+          <button
+            onClick={() => openUrl(status.url)}
+            className="mt-5 flex items-center justify-center gap-2 rounded-xl bg-accent px-5 py-3 font-bold text-on-accent shadow-lg shadow-accent/25 transition hover:-translate-y-0.5 hover:bg-accent-hover"
+          >
+            Open chat
+            <Icon d="M7 17 17 7M9 7h8v8" />
+          </button>
+        </div>
+      )}
 
       <div className="rounded-2xl border border-border bg-surface p-6">
         <div className="flex items-start gap-4">

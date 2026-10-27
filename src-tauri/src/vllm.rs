@@ -162,7 +162,7 @@ pub fn verify(v: &Target) -> Vec<Check> {
         return vec![check(label, false, format!("{} models run {where_}.", v.engine))];
     }
     let pending = |label: &str| Check { label: label.into(), state: State::Wait, detail: "Needs the step above.".into() };
-    let image_label = format!("{} engine image", v.engine);
+    let image_label = "Engine image".to_string();
     let mut labels = vec!["Docker with GPU access", image_label.as_str(), "Model weights"];
     if v.prepared.is_some() {
         labels.push("Prepared with prepare.sh");

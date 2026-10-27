@@ -53,6 +53,26 @@ pub fn die_with_parent(cmd: &mut tokio::process::Command) {
 #[cfg(not(target_os = "linux"))]
 pub fn die_with_parent(_cmd: &mut tokio::process::Command) {}
 
+/// run.sh de una receta en contenedor deja hijos (docker logs, el vigilante del rank 1): un grupo propio
+/// permite pararlos todos de una vez con `kill_group`.
+#[cfg(unix)]
+pub fn own_group(cmd: &mut tokio::process::Command) {
+    cmd.process_group(0);
+}
+
+#[cfg(not(unix))]
+pub fn own_group(_cmd: &mut tokio::process::Command) {}
+
+#[cfg(target_os = "linux")]
+pub fn kill_group(pid: u32) {
+    unsafe {
+        libc::kill(-(pid as i32), libc::SIGKILL);
+    }
+}
+
+#[cfg(not(target_os = "linux"))]
+pub fn kill_group(_pid: u32) {}
+
 #[cfg(test)]
 mod tests {
     /// Prueba manual: imprime el PID de un hijo atado a este proceso y espera.

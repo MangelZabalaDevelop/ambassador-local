@@ -4,6 +4,7 @@ mod detect;
 mod download;
 mod engine;
 mod lifetime;
+mod recipe;
 mod update;
 mod vllm;
 
@@ -50,6 +51,8 @@ struct Inner {
     /// GB10 ×2: el otro equipo con el servidor RPC encendido y la sesión SSH que lo mantiene vivo.
     peer: Option<std::net::Ipv4Addr>,
     worker: Option<std::process::Child>,
+    /// Receta en contenedor: los contenedores no son hijos de la app, los para este stop.sh.
+    stop_script: Option<PathBuf>,
     status: Option<Status>,
     logs: VecDeque<String>,
 }
@@ -62,21 +65,37 @@ struct AppState {
 
 impl AppState {
     fn kill_now(&self) {
-        let peer = {
-            let mut g = self.inner.lock().unwrap();
-            if let Some(mut child) = g.child.take() {
-                let _ = child.start_kill();
-            }
-            if let Some(mut w) = g.worker.take() {
-                let _ = w.kill();
-                let _ = w.wait();
-            }
-            g.peer.take()
-        };
-        if let Some(peer) = peer {
-            cluster::stop_worker(peer);
-        }
+        kill_now(&self.inner);
     }
+}
+
+/// Para el servidor y todo lo suyo. Con contenedores tarda unos segundos (stop.sh): fuera del hilo de la interfaz.
+fn kill_now(inner: &Mutex<Inner>) {
+    let (peer, stop) = {
+        let mut g = inner.lock().unwrap();
+        let container = g.stop_script.is_some();
+        if let Some(mut child) = g.child.take() {
+            if let (true, Some(pid)) = (container, child.id()) {
+                lifetime::kill_group(pid);
+            }
+            let _ = child.start_kill();
+        }
+        if let Some(mut w) = g.worker.take() {
+            let _ = w.kill();
+            let _ = w.wait();
+        }
+        (g.peer.take(), g.stop_script.take())
+    };
+    if let Some(peer) = peer {
+        cluster::stop_worker(peer);
+    }
+    if let Some(stop) = stop {
+        let _ = std::process::Command::new("bash").arg(&stop).stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null()).status();
+    }
+}
+
+async fn kill_in_background(inner: Arc<Mutex<Inner>>) {
+    let _ = tauri::async_runtime::spawn_blocking(move || kill_now(&inner)).await;
 }
 
 fn emit_status(app: &AppHandle, inner: &Mutex<Inner>, status: Status) {
@@ -179,9 +198,10 @@ fn cancel(state: State<'_, AppState>) {
 }
 
 #[tauri::command]
-fn stop_model(app: AppHandle, state: State<'_, AppState>) {
-    state.kill_now();
+async fn stop_model(app: AppHandle, state: State<'_, AppState>) -> Result<(), String> {
+    kill_in_background(state.inner.clone()).await;
     emit_status(&app, &state.inner, Status::Idle);
+    Ok(())
 }
 
 #[tauri::command]
@@ -194,14 +214,14 @@ async fn start_model(app: AppHandle, state: State<'_, AppState>, hardware_id: St
         g.busy = true;
         g.logs.clear();
     }
-    state.kill_now();
+    kill_in_background(state.inner.clone()).await;
     state.cancel.store(false, Ordering::Relaxed);
 
     let inner = state.inner.clone();
     let result = run_job(&app, &inner, &state.cancel, &hardware_id, &model_id, lan).await;
     inner.lock().unwrap().busy = false;
     if let Err(message) = &result {
-        state.kill_now();
+        kill_in_background(inner.clone()).await;
         let message = if message == "cancelled" { "Cancelled.".to_string() } else { message.clone() };
         emit_status(&app, &inner, Status::Error { message });
     }
@@ -220,14 +240,8 @@ async fn run_job(app: &AppHandle, inner: &Arc<Mutex<Inner>>, cancel: &AtomicBool
     }
     let model = cat.model(model_id).ok_or("Unknown model")?;
     let recipe = model.recipes.get(hardware_id).ok_or("This model has no recipe for your hardware.")?;
-    if let Some(v) = &recipe.vllm {
-        return Err(match &v.recipe {
-            Some(r) => format!("vLLM models can't be started from the app yet. Run run.sh from recipes/vllm/{r}."),
-            None => "vLLM models can't be started from the app yet. Use the cluster check to see if both GB10 are ready.".into(),
-        });
-    }
-    if let Some(t) = &recipe.tensorfold {
-        return Err(format!("TensorFold models can't be started from the app yet. Run run.sh from recipes/tensorfold/{}.", t.recipe));
+    if recipe.in_container() {
+        return run_container(app, inner, cancel, model, hw, lan).await;
     }
     let build = cat
         .engine
@@ -345,7 +359,73 @@ async fn run_job(app: &AppHandle, inner: &Arc<Mutex<Inner>>, cancel: &AtomicBool
     lifetime::die_with_parent(&mut cmd);
 
     push_log(app, inner, format!("> {} {:?}", eng.server.display(), cmd.as_std().get_args().collect::<Vec<_>>()));
-    let mut child = cmd.spawn().map_err(|e| format!("Could not start llama-server: {e}"))?;
+    let child = cmd.spawn().map_err(|e| format!("Could not start llama-server: {e}"))?;
+    serve(app, inner, cancel, child, port, &model.id, api_key, lan, "llama-server").await
+}
+
+/// Recetas en contenedor (vLLM en la T2, TensorFold en las dos GB10): la app revisa el equipo, deja los scripts de
+/// la receta en su carpeta de trabajo y lanza run.sh, que levanta los contenedores y se queda mostrando su log.
+async fn run_container(app: &AppHandle, inner: &Arc<Mutex<Inner>>, cancel: &AtomicBool, model: &Model, hw: &catalog::Hardware, lan: bool) -> Result<(), String> {
+    let recipe = &model.recipes[&hw.id];
+    let (engine, folder) = match (&recipe.vllm, &recipe.tensorfold) {
+        (Some(v), _) => ("vllm", v.recipe.clone().ok_or("This model has no recipe for your hardware.")?),
+        (_, Some(t)) => ("tensorfold", t.recipe.clone()),
+        _ => return Err("This model has no recipe for your hardware.".into()),
+    };
+    emit_status(app, inner, Status::Starting { model_id: model.id.clone() });
+
+    // Lo mismo que antes se veía como lista: imagen, pesos y memoria. El primer fallo es el mensaje.
+    let target = vllm::target_for(model, hw).ok_or("This model has no recipe for your hardware.")?;
+    let checks = tauri::async_runtime::spawn_blocking(move || vllm::verify(&target)).await.map_err(|e| e.to_string())?;
+    for c in &checks {
+        push_log(app, inner, format!("{} {}: {}", if c.state == vllm::State::Ok { "✓" } else { "✕" }, c.label, c.detail));
+    }
+    if let Some(c) = checks.iter().find(|c| c.state != vllm::State::Ok) {
+        return Err(format!("{}: {}", c.label, c.detail));
+    }
+    if cancel.load(Ordering::Relaxed) {
+        return Err("cancelled".into());
+    }
+
+    let dir = recipe::install(engine, &folder)?;
+    inner.lock().unwrap().stop_script = Some(dir.join("stop.sh"));
+    let host = if lan { "0.0.0.0" } else { "127.0.0.1" };
+    let port = (8080..8200)
+        .find(|p| std::net::TcpListener::bind((host, *p)).is_ok())
+        .ok_or("No free ports.")?;
+    let (api_key, key_path) = api_key_file(&data_dir(app)?)?;
+    let mut cmd = tokio::process::Command::new("bash");
+    cmd.arg(dir.join("run.sh"))
+        .current_dir(&dir)
+        .env("HOST", host)
+        .env("PORT", port.to_string())
+        .env("API_KEY_FILE", &key_path)
+        .env("SERVED_NAME", &model.id)
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .kill_on_drop(true);
+    lifetime::die_with_parent(&mut cmd);
+    lifetime::own_group(&mut cmd);
+
+    push_log(app, inner, format!("> {} (port {port})", dir.join("run.sh").display()));
+    let child = cmd.spawn().map_err(|e| format!("Could not start the model: {e}"))?;
+    serve(app, inner, cancel, child, port, &model.id, api_key, lan, "The model server").await
+}
+
+/// Lleva el log del servidor a la interfaz, espera a que /health responda y vigila que siga vivo.
+#[allow(clippy::too_many_arguments)]
+async fn serve(
+    app: &AppHandle,
+    inner: &Arc<Mutex<Inner>>,
+    cancel: &AtomicBool,
+    mut child: tokio::process::Child,
+    port: u16,
+    model_id: &str,
+    api_key: String,
+    lan: bool,
+    name: &'static str,
+) -> Result<(), String> {
     lifetime::bind_to_app(&child);
     for pipe in [child.stdout.take().map(|s| Box::new(s) as Box<dyn tokio::io::AsyncRead + Unpin + Send>), child.stderr.take().map(|s| Box::new(s) as _)]
         .into_iter()
@@ -361,27 +441,24 @@ async fn run_job(app: &AppHandle, inner: &Arc<Mutex<Inner>>, cancel: &AtomicBool
     }
     inner.lock().unwrap().child = Some(child);
 
-    // Esperar a que /health responda o a que el proceso muera.
+    // Esperar a que /health responda o a que el proceso muera. Si se cancela, lo para kill_now.
     let health = format!("http://127.0.0.1:{port}/health");
     let local = reqwest::Client::builder().timeout(Duration::from_secs(2)).build().map_err(|e| e.to_string())?;
     loop {
         tokio::time::sleep(Duration::from_millis(500)).await;
         if cancel.load(Ordering::Relaxed) {
-            if let Some(mut c) = inner.lock().unwrap().child.take() {
-                let _ = c.start_kill();
-            }
             return Err("cancelled".into());
         }
         if let Some(code) = exited(inner) {
-            return Err(format!("llama-server exited ({code}). Check the technical log."));
+            return Err(format!("{name} exited ({code}). Check the server log."));
         }
-        if local.get(&health).send().await.is_ok_and(|r| r.status().is_success()) {
+        if local.get(&health).bearer_auth(&api_key).send().await.is_ok_and(|r| r.status().is_success()) {
             break;
         }
     }
     let url = format!("http://127.0.0.1:{port}");
     let lan_url = if lan { lan_ip().map(|ip| format!("http://{ip}:{port}/v1")) } else { None };
-    emit_status(app, inner, Status::Ready { model_id: model.id.clone(), api_url: format!("{url}/v1"), url, api_key, lan_url });
+    emit_status(app, inner, Status::Ready { model_id: model_id.to_string(), api_url: format!("{url}/v1"), url, api_key, lan_url });
 
     // Vigilar el proceso: si muere, avisar a la interfaz.
     let (app, inner) = (app.clone(), inner.clone());
@@ -392,7 +469,7 @@ async fn run_job(app: &AppHandle, inner: &Arc<Mutex<Inner>>, cancel: &AtomicBool
                 break;
             }
             if let Some(code) = exited(&inner) {
-                emit_status(&app, &inner, Status::Error { message: format!("llama-server exited ({code}).") });
+                emit_status(&app, &inner, Status::Error { message: format!("{name} exited ({code}).") });
                 break;
             }
         }

@@ -83,7 +83,7 @@ Allowed recipe fields:
 | `quant` + `files` | `-m` (other GGUF for this workstation) | the model's `quant` and `files` |
 | `mtp.draft_n_max` (1–16) | `--spec-type draft-mtp --spec-draft-n-max` (MTP speculative decoding) | off |
 | `mtp.draft` | `-md` (separate `mtp-*.gguf`; leave out when the MTP head is inside the model) | — |
-| `vllm` | GB10 ×2 only: serve with vLLM instead of llama.cpp (see below) | off |
+| `vllm` | Linux only: serve with vLLM instead of llama.cpp (see below) | off |
 | `tensorfold` | GB10 ×2 only: serve with TensorFold instead of llama.cpp (see below) | off |
 | `tuned` | — (the **Miguel Tuned** label: a recipe tuned by hand) | `false` |
 | `recommended` | — (listed first in its lab, with a crown) | `false` |
@@ -94,9 +94,9 @@ Allowed recipe fields:
 
 The app always runs one slot (`-np 1`): one user gets the whole context and the full speed.
 
-### vLLM on two GB10 (NVFP4)
+### vLLM (NVFP4)
 
-The best recipes for two linked GB10 are NVFP4 models served by vLLM with tensor parallelism. A recipe for `pro-max-gb10-x2` can carry a `vllm` block instead of GGUF files:
+Some tuned recipes are NVFP4 models served by vLLM. A Linux recipe can carry a `vllm` block instead of GGUF files:
 
 | Field | Meaning |
 |---|---|
@@ -104,10 +104,13 @@ The best recipes for two linked GB10 are NVFP4 models served by vLLM with tensor
 | `image_id` | `docker image inspect --format '{{.Id}}'` of the same image; accepted when the digest is missing (an image copied with `docker save/load` keeps only its id) |
 | `repo`, `revision` | Hugging Face weights pinned to a commit; each GB10 needs them in its Hugging Face cache |
 | `size` | Bytes of those weights, per GB10 |
+| `recipe` | Folder name under [`recipes/vllm/`](recipes/vllm) with `run.sh` and `stop.sh`; required on a single workstation |
 
 `ctx_size` is `--max-model-len` here and can go up to 1M. Those models have `"files": []`.
 
-The app doesn't set up the cluster: the cluster setup in NVIDIA Sync does. Today the app **checks** that both GB10 are ready (it only looks, it changes nothing): the second GB10 on the ConnectX cable, passwordless SSH to it, Docker with the NVIDIA runtime on both, the pinned image on both, complete weights on both, and both GPUs free. Starting vLLM models from the app comes next.
+Run starts these models like any other. First the app checks the machine (on two GB10: the second GB10 on the ConnectX cable, passwordless SSH to it, and everything below on both): Docker with the NVIDIA runtime, the pinned image, complete weights, and a free GPU. Then it writes the recipe folder's scripts, which it carries inside, to `~/.cache/ambassador-local/<engine>/<recipe>/recipe/` and runs `run.sh` with the port, the API key file and the model id. Stop, or closing the app, runs `stop.sh`. A new recipe folder must also be listed in [`src-tauri/src/recipe.rs`](src-tauri/src/recipe.rs); `cargo test` checks it.
+
+The app doesn't set up the cluster: the cluster setup in NVIDIA Sync does.
 
 ### TensorFold on two GB10
 

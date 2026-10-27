@@ -21,7 +21,9 @@ MOUNTS=(-v "$hf:/root/.cache/huggingface:ro"
 KEY_ENV=()
 if [[ -n "$API_KEY_FILE" ]]; then
   [[ -s "$API_KEY_FILE" ]] || die "API_KEY_FILE $API_KEY_FILE is empty or missing"
-  KEY_ENV=(--env-file <(printf 'VLLM_API_KEY=%s\n' "$(tr -d '\r\n' < "$API_KEY_FILE")"))
+  # docker reads the value from its own environment: the key never shows in the process list.
+  VLLM_API_KEY=$(tr -d '\r\n' < "$API_KEY_FILE"); export VLLM_API_KEY
+  KEY_ENV=(-e VLLM_API_KEY)
 fi
 [[ "$HOST" == 127.0.0.1 || -n "$API_KEY_FILE" ]] || log "WARNING: serving on $HOST without an API key"
 

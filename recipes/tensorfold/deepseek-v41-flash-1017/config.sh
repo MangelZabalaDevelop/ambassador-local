@@ -6,6 +6,10 @@
 # setup in NVIDIA Sync leaves ready. Same paths on both GB10.
 
 RECIPE=deepseek-v41-flash-1017
+# Files prepared somewhere else by hand: put their paths (HF_HUB_CACHE, CKPT, ENGRAM, KIT, TOKEN_MAP, RANK_CACHE) in
+# this file, as plain NAME=value lines. Ports, host and key stay with whoever starts the model (the app or you).
+LOCAL_ENV="$HOME/.cache/ambassador-local/tensorfold/$RECIPE/local.env"
+if [[ -f "$LOCAL_ENV" ]]; then set -a; source "$LOCAL_ENV"; set +a; fi
 IMAGE="${IMAGE:-ambassador-local/tensorfold-dsv41:6366d2c}"   # must match "image" in recipes/catalog.json
 ENGINE_COMMIT=6366d2c585b4f05fe33bfe5cbdb33ea15264841a        # must match "engine_commit" in recipes/catalog.json
 

@@ -48,17 +48,20 @@ function mockApi(): typeof tauriApi {
         { label: "GPUs free", state: "fail", detail: "This GB10: in use by ggml-rpc-server. Stop it first. · Second GB10: in use by llama-server. Stop it first." },
       ];
     },
-    start: async (_h, modelId, lan) => {
+    start: async (hardwareId, modelId, lan) => {
+      const job = { hardware_id: hardwareId, model_id: modelId };
+      const name = bundled.models.find((m) => m.id === modelId)?.name ?? modelId;
       for (let i = 0; i <= 10; i++) {
-        emit({ stage: "downloading", label: "Gemma 3 12B", step: 1, steps: 1, downloaded: i * 7.3e8, total: 7.3e9 });
+        emit({ stage: "downloading", ...job, label: name, step: 1, steps: 1, downloaded: i * 7.3e8, total: 7.3e9 });
         await new Promise((r) => setTimeout(r, 200));
       }
-      emit({ stage: "starting", model_id: modelId });
+      emit({ stage: "starting", ...job });
       await new Promise((r) => setTimeout(r, 800));
-      emit({ stage: "ready", model_id: modelId, url: "http://127.0.0.1:8080", api_url: "http://127.0.0.1:8080/v1", api_key: "sk-local-preview-0000000000000000000000000000", lan_url: lan ? "http://192.168.1.20:8080/v1" : null });
+      emit({ stage: "ready", ...job, url: "http://127.0.0.1:8080", api_url: "http://127.0.0.1:8080/v1", api_key: "sk-local-preview-0000000000000000000000000000", lan_url: lan ? "http://192.168.1.20:8080/v1" : null });
     },
     stop: async () => emit({ stage: "idle" }),
-    cancel: async () => emit({ stage: "error", message: "Cancelled." }),
+    // Como el backend: cancelar vuelve a "listo para arrancar".
+    cancel: async () => emit({ stage: "idle" }),
     version: async () => "0.1.0",
     checkUpdate: async () => ({ version: "0.2.0", current: "0.1.0", notes: "New models for GB10." }),
     installUpdate: async () => {

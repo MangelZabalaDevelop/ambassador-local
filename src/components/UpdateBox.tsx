@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api } from "../api";
 import type { UpdateInfo } from "../types";
 
@@ -27,9 +27,16 @@ export function UpdateBox({ busy, running }: { busy: boolean; running: boolean }
   };
 
   useEffect(() => {
-    api.version().then(setVersion);
+    api.version().then(setVersion, () => {});
     check(true);
   }, []);
+
+  // Al pedir confirmación (o al instalar / fallar) la caja crece: que su botón quede a la vista aunque la ventana sea baja.
+  const box = useRef<HTMLDivElement>(null);
+  const confirming = state.kind === "available" && state.confirm;
+  useEffect(() => {
+    if (confirming || state.kind === "installing" || state.kind === "error") box.current?.scrollIntoView({ block: "nearest" });
+  }, [confirming, state.kind]);
 
   const install = (info: UpdateInfo) => {
     setState({ kind: "installing", info });
@@ -39,12 +46,17 @@ export function UpdateBox({ busy, running }: { busy: boolean; running: boolean }
   if (state.kind === "available" || state.kind === "installing") {
     const { info } = state;
     return (
-      <div className="mt-5 w-full rounded-xl border border-[#76b900]/40 bg-[#76b900]/10 p-3 text-left [@media(max-height:760px)]:mt-3">
+      <div ref={box} className="mt-5 w-full rounded-xl border border-[#76b900]/40 bg-[#76b900]/10 p-3 text-left [@media(max-height:760px)]:mt-3">
         <div className="flex items-center gap-2 text-sm font-bold">
           <span className="pulse-dot h-2 w-2 rounded-full bg-[#76b900]" />
           Version {info.version} is available
         </div>
-        {info.notes && <p className="mt-1 line-clamp-3 text-xs text-sidebar-muted">{info.notes}</p>}
+        {/* Dos líneas, una en ventanas bajas (el texto entero queda en el title): así el botón Update se ve. */}
+        {info.notes && (
+          <p className="mt-1 line-clamp-2 text-xs text-sidebar-muted [@media(max-height:760px)]:line-clamp-1" title={info.notes}>
+            {info.notes}
+          </p>
+        )}
 
         {state.kind === "installing" ? (
           <div className="mt-3 flex items-center gap-2 text-xs font-bold">
@@ -54,7 +66,7 @@ export function UpdateBox({ busy, running }: { busy: boolean; running: boolean }
         ) : state.confirm ? (
           <>
             <p className="mt-2 text-xs text-sidebar-text">
-              {running ? "The running model will stop and " : "The "}app will restart. Your downloaded models stay.
+              {running ? "The running model will stop and the " : "The "}app will restart. Your downloaded models stay.
             </p>
             <div className="mt-2 flex gap-2">
               <button onClick={() => install(info)} className="flex-1 rounded-lg bg-[#76b900] py-1.5 text-xs font-bold text-[#0e1111] transition hover:bg-[#8fd400]">
@@ -80,7 +92,7 @@ export function UpdateBox({ busy, running }: { busy: boolean; running: boolean }
   }
 
   return (
-    <div className="mt-4 flex w-full items-center justify-between gap-2 text-[11px] text-sidebar-muted [@media(max-height:760px)]:mt-2">
+    <div ref={box} className="mt-4 flex w-full items-center justify-between gap-2 text-[11px] text-sidebar-muted [@media(max-height:760px)]:mt-2">
       <span className="truncate" title={state.kind === "error" ? state.message : undefined}>
         {state.kind === "latest" ? "✓ Up to date" : state.kind === "error" ? state.label : version ? `Version ${version}` : ""}
       </span>

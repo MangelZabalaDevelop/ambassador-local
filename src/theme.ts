@@ -4,6 +4,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 export type ThemePref = "light" | "dark" | "system";
 
 const KEY = "ambassador-local.theme";
+const DARK = "(prefers-color-scheme: dark)";
 const inTauri = "__TAURI_INTERNALS__" in window;
 
 function readPref(): ThemePref {
@@ -19,14 +20,15 @@ function readPref(): ThemePref {
 /** Tema elegido por el usuario + tema efectivo; aplica la clase `.dark` y el tema de la ventana. */
 export function useTheme(): [ThemePref, (p: ThemePref) => void, "light" | "dark"] {
   const [pref, setPref] = useState<ThemePref>(readPref);
-  const media = window.matchMedia("(prefers-color-scheme: dark)");
-  const [systemDark, setSystemDark] = useState(media.matches);
+  const [systemDark, setSystemDark] = useState(() => window.matchMedia(DARK).matches);
 
+  // Una sola suscripción: un MediaQueryList nuevo en cada render la rehacía cada vez.
   useEffect(() => {
+    const media = window.matchMedia(DARK);
     const onChange = (e: MediaQueryListEvent) => setSystemDark(e.matches);
     media.addEventListener("change", onChange);
     return () => media.removeEventListener("change", onChange);
-  }, [media]);
+  }, []);
 
   const resolved = pref === "system" ? (systemDark ? "dark" : "light") : pref;
 

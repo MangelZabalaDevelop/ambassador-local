@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { formatBytes } from "../api";
-import { downloadsFor, quantFor, type Family, type Hardware, type Model, type Status } from "../types";
+import { downloadsFor, formatContext, quantFor, type Family, type Hardware, type Job, type Model, type Status } from "../types";
 import { HardwarePhoto, labLogoSrc, RecipeBadges } from "./Illustrations";
 
 type Props = {
@@ -11,12 +11,22 @@ type Props = {
   downloaded: boolean;
   status: Status;
   logs: string[];
-  onRun: (lan: boolean) => void;
+  /** Desde cuándo está en marcha; null si no se sabe. */
+  liveSince: number | null;
+  /** El modelo que el servidor tiene entre manos, si hay uno: puede ser otro que el de esta pantalla. */
+  running: (Job & { name: string }) | null;
+  onRun: (lan: boolean) => Promise<void>;
+  /** Parar el modelo que corre y arrancar este. */
+  onSwitch: (lan: boolean) => Promise<void>;
+  /** Ir a la pantalla del modelo que corre. */
+  onShowRunning: () => void;
   onCancel: () => void;
   onStop: () => void;
 };
 
 const STAGES = ["Download", "Install engine", "Load on GPU", "Live"];
+/** Fijo, no un objeto nuevo en cada render: así los efectos que miran el estado no se disparan de más. */
+const IDLE: Status = { stage: "idle" };
 const LAN_KEY = "al.lan";
 
 /** Whether other devices on the network may connect. On by default, so Hermes on another PC can use the model. */
@@ -39,8 +49,13 @@ function useLan(): [boolean, (v: boolean) => void] {
 
 /** Pantalla final: tarjeta "hero" con el estado del servidor y, cuando está en marcha, cómo usarlo. */
 export function RunScreen(props: Props) {
-  const { status, hardware, model, lab } = props;
+  const { hardware, model, lab } = props;
   const recipe = model.recipes[hardware.id];
+  const isThis = (j: Partial<Job>) => j.model_id === model.id && j.hardware_id === hardware.id;
+  // Otro modelo descargando, arrancando o en marcha: esta pantalla no debe mostrarse como si fuera este.
+  const other = props.running && !isThis(props.running) ? props.running : null;
+  const foreignError = props.status.stage === "error" && props.status.model_id !== undefined && !isThis(props.status);
+  const status: Status = other || foreignError ? IDLE : props.status;
   const live = status.stage === "ready";
   const active = status.stage !== "idle" && status.stage !== "error";
   // Recetas en contenedor (las afinadas de la T2 y de las dos GB10): la app las arranca igual que las demás.
@@ -53,27 +68,27 @@ export function RunScreen(props: Props) {
       <section className={`hero relative overflow-hidden rounded-2xl text-white shadow-2xl ${live ? "hero-live" : ""}`}>
         <div className="hero-grid pointer-events-none absolute inset-0" />
 
-        <div className="relative grid grid-cols-1 items-center gap-6 px-6 pt-7 pb-6 @2xl:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] @2xl:gap-8 @2xl:px-8 @2xl:pt-8 @2xl:pb-7">
+        <div className="relative grid grid-cols-1 items-center gap-6 px-6 pt-7 pb-6 @3xl:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] @3xl:gap-8 @3xl:px-8 @3xl:pt-8 @3xl:pb-7">
           <div className="relative grid place-items-center">
             <div className={`absolute h-44 w-44 rounded-full blur-3xl transition-colors duration-700 ${live ? "bg-[#76b900]/40" : "bg-[#0672cb]/40"}`} />
             <div className="relative">
-              <HardwarePhoto hardware={hardware} className="max-h-32 drop-shadow-2xl @2xl:max-h-44" />
+              <HardwarePhoto hardware={hardware} className="max-h-32 drop-shadow-2xl @3xl:max-h-44" />
             </div>
           </div>
 
           <div className="min-w-0">
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
               {lab && labLogoSrc(lab.id) && (
                 <span className="grid h-8 w-8 place-items-center rounded-lg bg-white shadow">
                   <img src={labLogoSrc(lab.id)} alt="" className="h-5 w-5" draggable={false} />
                 </span>
               )}
               <span className="text-xs font-bold tracking-[0.2em] text-white/60 uppercase">
-                {lab ? `${lab.name} · ${lab.series}` : "Model"}
+                {lab ? (lab.series === lab.name ? lab.name : `${lab.name} · ${lab.series}`) : "Model"}
               </span>
               <StatusPill status={status} />
             </div>
-            <h2 className="mt-3 text-3xl font-bold tracking-tight @2xl:text-4xl">{model.name}</h2>
+            <h2 className="mt-3 text-3xl font-bold tracking-tight @3xl:text-4xl">{model.name}</h2>
             {(recipe.tuned || recipe.recommended) && (
               <div className="mt-2 flex flex-wrap items-center gap-2">
                 <RecipeBadges tuned={recipe.tuned} recommended={recipe.recommended} dark />
@@ -82,17 +97,18 @@ export function RunScreen(props: Props) {
             <div className="mt-1 text-white/60">
               on {hardware.name} · {hardware.gpu}
             </div>
-            <div className="mt-6 grid grid-cols-2 gap-2 @lg:grid-cols-4">
+            {/* Cuatro en fila solo con sitio de sobra; si no, 2×2 para que nada se parta letra a letra. */}
+            <div className="mt-6 grid grid-cols-2 gap-2 @xl:grid-cols-4 @3xl:grid-cols-2 @5xl:grid-cols-4">
               <Tile label="Parameters" value={model.size} />
               <Tile label={recipe.mtp ? "Quantization · MTP boost" : "Quantization"} value={quantFor(model, hardware.id)} />
-              <Tile label="Context" value={recipe.ctx_size >= 1048576 ? `${recipe.ctx_size / 1048576}M` : `${(recipe.ctx_size / 1024).toFixed(0)}K`} />
+              <Tile label="Context" value={formatContext(recipe.ctx_size)} />
               <Tile label={container ? (single ? "Weights" : "Weights per GB10") : props.downloaded ? "On disk" : "Download"} value={formatBytes(size)} />
             </div>
           </div>
         </div>
 
-        <div className="relative border-t border-white/10 bg-black/25 px-6 py-5 backdrop-blur @2xl:px-8">
-          <ActionBar {...props} />
+        <div className="relative border-t border-white/10 bg-black/25 px-6 py-5 backdrop-blur @3xl:px-8">
+          {other ? <OtherRunning {...props} other={other} /> : <ActionBar {...props} status={status} />}
         </div>
       </section>
 
@@ -100,7 +116,8 @@ export function RunScreen(props: Props) {
 
       {status.stage === "ready" && <ReadyCards status={status} modelName={model.name} chat={!container} />}
 
-      <ServerLog logs={props.logs} />
+      {/* El log es del servidor: si corre otro modelo, no es el de esta pantalla. */}
+      {!other && <ServerLog logs={props.logs} />}
     </div>
   );
 }
@@ -125,9 +142,9 @@ function StatusPill({ status }: { status: Status }) {
 
 function Tile({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-white/10 bg-white/[0.06] px-3 py-2.5">
-      {/* Sin truncar: una cuantización larga (UD-Q8_K_XL) parte línea antes que esconderse. */}
-      <div className="text-lg leading-tight font-bold [overflow-wrap:anywhere]" title={value}>
+    <div className="min-w-0 rounded-xl border border-white/10 bg-white/[0.06] px-3 py-2.5">
+      {/* Sin truncar: una cuantización larga (UD-Q8_K_XL) parte línea antes que esconderse; más pequeña si es larga. */}
+      <div className={`${value.length > 9 ? "text-base" : "text-lg"} leading-tight font-bold [overflow-wrap:anywhere]`} title={value}>
         {value}
       </div>
       <div className="mt-0.5 text-[11px] text-white/55">{label}</div>
@@ -138,32 +155,56 @@ function Tile({ label, value }: { label: string; value: string }) {
 function ActionBar(props: Props) {
   const { status } = props;
   const [lan, setLan] = useLan();
+  // Entre el clic y el primer aviso del servidor pasan unos segundos (parar el anterior, mirar la GPU):
+  // el botón lo dice y no deja arrancar dos veces.
+  const [pending, setPending] = useState(false);
+  const [refused, setRefused] = useState<string | null>(null);
+  const shown = useRef(status);
+  shown.current = status;
+  useEffect(() => {
+    setPending(false);
+    setRefused(null);
+  }, [status]);
+
+  const start = (run: (lan: boolean) => Promise<void>) => {
+    const before = status;
+    setPending(true);
+    setRefused(null);
+    run(lan).catch((e) => {
+      // Los fallos del arranque llegan como estado "error"; si el estado no cambió, el servidor ni lo intentó.
+      if (shown.current === before) {
+        setPending(false);
+        setRefused(String(e));
+      }
+    });
+  };
 
   if (status.stage === "idle" || status.stage === "error") {
     return (
       <div className="flex flex-wrap items-center gap-x-6 gap-y-4">
         <div className="min-w-[16rem] flex-1">
-          {status.stage === "error" ? (
+          {refused ? (
             <div className="text-sm text-red-200">
+              <span className="font-bold">Could not start: </span>
+              {refused}
+            </div>
+          ) : status.stage === "error" ? (
+            <div className="text-sm text-red-200 select-text">
               <span className="font-bold">Stopped: </span>
               {status.message}
             </div>
           ) : (
             <Assurances lan={lan} />
           )}
-          <label className="mt-3 flex w-fit cursor-pointer items-center gap-2.5 text-sm text-white/80 select-none">
-            <input type="checkbox" checked={lan} onChange={(e) => setLan(e.target.checked)} className="peer sr-only" />
-            <span className="relative h-5 w-9 rounded-full bg-white/20 transition peer-checked:bg-[#76b900] after:absolute after:top-0.5 after:left-0.5 after:h-4 after:w-4 after:rounded-full after:bg-white after:transition peer-checked:after:translate-x-4" />
-            Allow other devices on my network
-            <span className="text-white/45">· for Hermes or apps on another PC</span>
-          </label>
+          <LanSwitch lan={lan} onChange={setLan} />
         </div>
         <button
-          onClick={() => props.onRun(lan)}
-          className="run-button flex items-center gap-3 rounded-xl px-9 py-3.5 text-lg font-bold text-white transition hover:-translate-y-0.5"
+          onClick={() => start(props.onRun)}
+          disabled={pending}
+          className="run-button flex items-center gap-3 rounded-xl px-9 py-3.5 text-lg font-bold text-white transition hover:-translate-y-0.5 disabled:cursor-wait disabled:opacity-70 disabled:hover:translate-y-0"
         >
-          <Icon d="M7 4.5v15l13-7.5z" fill />
-          {status.stage === "error" ? "Try again" : "Run"}
+          {pending ? <Spinner /> : <Icon d="M7 4.5v15l13-7.5z" fill />}
+          {pending ? "Starting…" : status.stage === "error" ? "Try again" : "Run"}
         </button>
       </div>
     );
@@ -176,7 +217,7 @@ function ActionBar(props: Props) {
       <div className="flex flex-wrap items-center gap-x-6 gap-y-4">
         <div className="min-w-[16rem] flex-1">
           <div className="flex items-center gap-3 font-bold">
-            <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+            <Spinner />
             {status.stage === "extracting" ? "Installing the llama.cpp engine…" : "Loading the model onto the GPU…"}
           </div>
           <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/10">
@@ -188,7 +229,61 @@ function ActionBar(props: Props) {
     );
   }
 
-  return <LiveBar status={status} onStop={props.onStop} />;
+  return <LiveBar status={status} since={props.liveSince} onStop={props.onStop} />;
+}
+
+/** Otro modelo ocupa el servidor: decirlo, y ofrecer cambiar a este o ir a aquel. */
+function OtherRunning(props: Props & { other: Job & { name: string } }) {
+  const { other, status } = props;
+  const [lan, setLan] = useLan();
+  const [pending, setPending] = useState(false);
+  const live = status.stage === "ready";
+  return (
+    <div className="flex flex-wrap items-center gap-x-6 gap-y-4">
+      <div className="min-w-[16rem] flex-1">
+        <div className="flex items-center gap-2 text-sm text-white/80">
+          <span className={`h-2 w-2 shrink-0 rounded-full ${live ? "pulse-dot bg-[#76b900]" : "animate-pulse bg-amber-300"}`} />
+          <span>
+            <span className="font-bold text-white">{other.name}</span>{" "}
+            {live ? "is running. Only one model runs at a time." : "is getting ready. Wait for it, or cancel it, before starting another model."}
+          </span>
+        </div>
+        {live && <LanSwitch lan={lan} onChange={setLan} />}
+      </div>
+      <div className="flex flex-wrap items-center gap-3">
+        <GhostButton onClick={props.onShowRunning}>Show {other.name}</GhostButton>
+        {live && (
+          <button
+            disabled={pending}
+            onClick={() => {
+              setPending(true);
+              props.onSwitch(lan).catch(() => setPending(false));
+            }}
+            className="run-button flex items-center gap-3 rounded-xl px-6 py-3 font-bold text-white transition hover:-translate-y-0.5 disabled:cursor-wait disabled:opacity-70 disabled:hover:translate-y-0"
+          >
+            {pending ? <Spinner /> : <Icon d="M7 4.5v15l13-7.5z" fill />}
+            {pending ? "Switching…" : "Stop it and run this one"}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function LanSwitch({ lan, onChange }: { lan: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <label className="mt-3 flex w-fit cursor-pointer items-start gap-2.5 text-sm text-white/80 select-none">
+      <input type="checkbox" checked={lan} onChange={(e) => onChange(e.target.checked)} className="peer sr-only" />
+      <span className="relative mt-px h-5 w-9 shrink-0 rounded-full bg-white/20 transition peer-checked:bg-[#76b900] peer-focus-visible:ring-2 peer-focus-visible:ring-white after:absolute after:top-0.5 after:left-0.5 after:h-4 after:w-4 after:rounded-full after:bg-white after:transition peer-checked:after:translate-x-4" />
+      <span>
+        Allow other devices on my network <span className="text-white/45">· for Hermes or apps on another PC</span>
+      </span>
+    </label>
+  );
+}
+
+function Spinner() {
+  return <span className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-white/30 border-t-white" />;
 }
 
 function Assurances({ lan }: { lan: boolean }) {
@@ -250,8 +345,7 @@ function DownloadBar({ status, onCancel }: { status: Extract<Status, { stage: "d
   );
 }
 
-function LiveBar({ status, onStop }: { status: Extract<Status, { stage: "ready" }>; onStop: () => void }) {
-  const since = useRef(Date.now());
+function LiveBar({ status, since, onStop }: { status: Extract<Status, { stage: "ready" }>; since: number | null; onStop: () => void }) {
   const [, tick] = useState(0);
   useEffect(() => {
     const id = window.setInterval(() => tick((n) => n + 1), 1000);
@@ -265,9 +359,9 @@ function LiveBar({ status, onStop }: { status: Extract<Status, { stage: "ready" 
           <Icon d="M7 11V8a5 5 0 0 1 10 0v3M6 11h12v9H6z" />
           {status.lan_url ? "Private server · devices on your network need the API key" : "Private server · only this machine can reach it"}
         </div>
-        <div className="mt-1 flex items-baseline gap-3">
-          <code className="font-mono text-xl font-bold text-[#b6f04a] select-text">{status.url}</code>
-          <span className="text-sm text-white/50 tabular-nums">up {formatDuration((Date.now() - since.current) / 1000)}</span>
+        <div className="mt-1 flex flex-wrap items-baseline gap-x-3">
+          <code className="font-mono text-xl font-bold break-all text-[#b6f04a] select-text">{status.url}</code>
+          {since !== null && <span className="text-sm text-white/50 tabular-nums">up {formatDuration((Date.now() - since) / 1000)}</span>}
         </div>
       </div>
       <button
@@ -308,12 +402,23 @@ function Stepper({ status }: { status: Status }) {
 
 /** `chat`: llama-server trae su propia página de chat; los servidores en contenedor solo la API. */
 function ReadyCards({ status, modelName, chat }: { status: Extract<Status, { stage: "ready" }>; modelName: string; chat: boolean }) {
+  // "url" / "lan" / "key" recién copiado, o con "!" delante si el portapapeles lo rechazó.
   const [copied, setCopied] = useState<string | null>(null);
   const [reveal, setReveal] = useState(false);
+  const [openError, setOpenError] = useState(false);
   const copy = (label: string, value: string) => {
-    navigator.clipboard.writeText(value);
-    setCopied(label);
-    window.setTimeout(() => setCopied((c) => (c === label ? null : c)), 1500);
+    const done = (mark: string) => {
+      setCopied(mark);
+      window.setTimeout(() => setCopied((c) => (c === mark ? null : c)), mark.startsWith("!") ? 3000 : 1500);
+    };
+    // Sin permiso del portapapeles no se dice "Copied": el valor sigue a la vista para copiarlo a mano.
+    Promise.resolve()
+      .then(() => navigator.clipboard.writeText(value))
+      .then(() => done(label), () => done("!" + label));
+  };
+  const openChat = () => {
+    setOpenError(false);
+    openUrl(status.url).catch(() => setOpenError(true));
   };
   const masked = `${status.api_key.slice(0, 9)}${"•".repeat(16)}${status.api_key.slice(-4)}`;
 
@@ -329,12 +434,17 @@ function ReadyCards({ status, modelName, chat }: { status: Extract<Status, { sta
             Talk to {modelName} in your browser. The first time it asks for the API key: paste it once and it is remembered.
           </p>
           <button
-            onClick={() => openUrl(status.url)}
+            onClick={openChat}
             className="mt-5 flex items-center justify-center gap-2 rounded-xl bg-accent px-5 py-3 font-bold text-on-accent shadow-lg shadow-accent/25 transition hover:-translate-y-0.5 hover:bg-accent-hover"
           >
             Open chat
             <Icon d="M7 17 17 7M9 7h8v8" />
           </button>
+          {openError && (
+            <p role="alert" className="mt-3 text-sm text-red-600 dark:text-red-300">
+              Could not open your browser. Open <span className="font-mono font-bold select-text">{status.url}</span> in it yourself.
+            </p>
+          )}
         </div>
       )}
 
@@ -351,12 +461,12 @@ function ReadyCards({ status, modelName, chat }: { status: Extract<Status, { sta
 
         <Field label={status.lan_url ? "Endpoint URL · this machine" : "Endpoint URL"}>
           <code className="flex-1 truncate font-mono text-sm select-text">{status.api_url}</code>
-          <CopyButton label="Copy endpoint URL" done={copied === "url"} onClick={() => copy("url", status.api_url)} />
+          <CopyButton label="Copy endpoint URL" state={copyState(copied, "url")} onClick={() => copy("url", status.api_url)} />
         </Field>
         {status.lan_url && (
           <Field label="Endpoint URL · other devices on your network">
             <code className="flex-1 truncate font-mono text-sm select-text">{status.lan_url}</code>
-            <CopyButton label="Copy network URL" done={copied === "lan"} onClick={() => copy("lan", status.lan_url!)} />
+            <CopyButton label="Copy network URL" state={copyState(copied, "lan")} onClick={() => copy("lan", status.lan_url!)} />
           </Field>
         )}
         <Field label="API key">
@@ -368,7 +478,7 @@ function ReadyCards({ status, modelName, chat }: { status: Extract<Status, { sta
           >
             <Icon d={reveal ? "M3 3l18 18M10.6 10.6a2 2 0 0 0 2.8 2.8M9.9 5.1A10 10 0 0 1 12 5c5 0 9 5 9 7a11 11 0 0 1-2.2 3.2M6.1 6.1C3.9 7.6 3 10 3 12c0 2 4 7 9 7a9.6 9.6 0 0 0 4.2-1" : "M3 12c0-2 4-7 9-7s9 5 9 7-4 7-9 7-9-5-9-7zM12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"} />
           </button>
-          <CopyButton label="Copy API key" done={copied === "key"} onClick={() => copy("key", status.api_key)} />
+          <CopyButton label="Copy API key" state={copyState(copied, "key")} onClick={() => copy("key", status.api_key)} />
         </Field>
 
         <details className="group mt-4 text-sm">
@@ -404,16 +514,21 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
-function CopyButton({ label, done, onClick }: { label: string; done: boolean; onClick: () => void }) {
+type CopyState = "idle" | "done" | "failed";
+const copyState = (copied: string | null, label: string): CopyState =>
+  copied === label ? "done" : copied === "!" + label ? "failed" : "idle";
+
+function CopyButton({ label, state, onClick }: { label: string; state: CopyState; onClick: () => void }) {
   return (
     <button
       onClick={onClick}
+      title={state === "failed" ? "The clipboard is not available. Select the text and copy it yourself." : undefined}
       className={`flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-bold transition ${
-        done ? "bg-go text-white" : "bg-surface text-text shadow-sm hover:text-accent"
+        state === "done" ? "bg-go text-white" : state === "failed" ? "bg-red-600 text-white" : "bg-surface text-text shadow-sm hover:text-accent"
       }`}
     >
-      <Icon d={done ? "M5 12l5 5L20 7" : "M9 9h11v11H9zM5 15H4V4h11v1"} />
-      {done ? "Copied" : label}
+      <Icon d={state === "done" ? "M5 12l5 5L20 7" : state === "failed" ? "M6 6l12 12M18 6 6 18" : "M9 9h11v11H9zM5 15H4V4h11v1"} />
+      <span aria-live="polite">{state === "done" ? "Copied" : state === "failed" ? "Copy failed" : label}</span>
     </button>
   );
 }
@@ -444,9 +559,21 @@ function ServerLog({ logs }: { logs: string[] }) {
   );
 }
 
+/**
+ * Botón secundario del hero. Aparece donde estaba "Run": durante un instante ignora clics, para que el
+ * segundo clic de un doble clic en Run no cancele lo que se acaba de arrancar.
+ */
 function GhostButton({ onClick, children }: { onClick: () => void; children: ReactNode }) {
+  const [armed, setArmed] = useState(false);
+  useEffect(() => {
+    const id = window.setTimeout(() => setArmed(true), 600);
+    return () => window.clearTimeout(id);
+  }, []);
   return (
-    <button onClick={onClick} className="rounded-xl border border-white/20 px-5 py-2.5 font-bold text-white/80 transition hover:border-white/50 hover:text-white">
+    <button
+      onClick={() => armed && onClick()}
+      className="rounded-xl border border-white/20 px-5 py-2.5 font-bold text-white/80 transition hover:border-white/50 hover:text-white"
+    >
       {children}
     </button>
   );

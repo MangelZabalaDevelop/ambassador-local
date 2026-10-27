@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { api } from "./api";
-import { downloadKey, type Catalog, type Hardware, type Status, type System } from "./types";
+import { downloadKey, jobOf, type Catalog, type Hardware, type Status, type System } from "./types";
 import {
   HardwareImage,
   LabLogo,
@@ -39,7 +39,10 @@ export default function App() {
 
   const [status, setStatus] = useState<Status>({ stage: "idle" });
   const [logs, setLogs] = useState<string[]>([]);
+  // Desde cuándo está en marcha el servidor (null = no se sabe, p. ej. tras recargar la ventana).
+  const [liveSince, setLiveSince] = useState<number | null>(null);
   const [specsFor, setSpecsFor] = useState<Hardware | null>(null);
+  const mainRef = useRef<HTMLElement>(null);
   const specsTimer = useRef<number | undefined>(undefined);
   // La ficha sale tras dejar el ratón quieto un momento sobre el "?", no al instante.
   const peekSpecs = (h: Hardware | null) => {
@@ -63,11 +66,22 @@ export default function App() {
         setLogs(l);
         setOs(s.os);
         setHardwareId(s.suggested_hardware);
+        // Si ya hay un modelo descargando, arrancando o en marcha (p. ej. tras recargar), volver a él.
+        const job = jobOf(st);
+        const running = job && c.models.find((m) => m.id === job.model_id);
+        if (job && running && running.recipes[job.hardware_id] && c.hardware.some((h) => h.id === job.hardware_id)) {
+          setHardwareId(job.hardware_id);
+          setFamilyId(running.family);
+          setModelId(running.id);
+          setStep(4);
+        }
       })
       .catch((e) => setLoadError(String(e)));
     const unStatus = api.onStatus((s) => {
       setStatus(s);
-      if (s.stage === "ready") api.downloaded().then(setDownloaded);
+      setLiveSince((since) => (s.stage === "ready" ? (since ?? Date.now()) : null));
+      // Al terminar (en marcha, error, parado) lo descargado pudo cambiar: la marca "Downloaded" debe seguirlo.
+      if (s.stage === "ready" || s.stage === "error" || s.stage === "idle") api.downloaded().then(setDownloaded, () => {});
     });
     const unLog = api.onLog((line) => setLogs((l) => [...l.slice(-399), line]));
     return () => {
@@ -100,11 +114,19 @@ export default function App() {
     [models, familyId, hardwareId],
   );
 
+  // Cada paso empieza arriba: si no, el siguiente hereda el scroll del anterior y se ve a medias.
+  useEffect(() => {
+    mainRef.current?.scrollTo({ top: 0 });
+  }, [step]);
+
   if (loadError) return <Centered>Could not start: {loadError}</Centered>;
   if (!catalog || !system)
     return <Centered>Detecting your workstation…</Centered>;
 
   const canGo = [!!os, !!hardware, !!family, !!model, true];
+  // El modelo que el servidor está descargando, arrancando o sirviendo (puede no ser el que se mira).
+  const runningJob = jobOf(status);
+  const runningModel = runningJob ? (catalog.models.find((m) => m.id === runningJob.model_id) ?? null) : null;
   const busy =
     status.stage === "downloading" ||
     status.stage === "extracting" ||
@@ -132,7 +154,7 @@ export default function App() {
 
       <div className="relative flex min-w-0 flex-1 flex-col">
         <Watermark />
-        <main className="relative flex-1 overflow-x-hidden overflow-y-auto px-6 py-8 lg:px-12 lg:py-10">
+        <main ref={mainRef} className="relative flex-1 overflow-x-hidden overflow-y-auto px-6 py-8 lg:px-12 lg:py-10">
           <div className="mx-auto w-full max-w-5xl min-[1900px]:max-w-6xl">
             <div className="text-xs font-bold tracking-[0.18em] text-accent uppercase">
               Step {step + 1} of {STEPS.length}
@@ -141,8 +163,14 @@ export default function App() {
               {STEPS[step].title}
             </h1>
 
+            {step === 0 && !["windows", "linux"].includes(system.os) && (
+              <Notice title="This computer is not supported">
+                Ambassador Local runs models on Windows and Linux workstations. This computer runs {system.os === "macos" ? "macOS" : system.os}, so there is nothing to start here.
+              </Notice>
+            )}
+
             {step === 0 && (
-              <Grid hint="We detected it for you.">
+              <Grid hint={["windows", "linux"].includes(system.os) ? "We detected it for you." : undefined}>
                 {[
                   { id: "windows", name: "Windows", logo: <WindowsLogo /> },
                   { id: "linux", name: "Linux", logo: <LinuxLogo /> },
@@ -163,19 +191,32 @@ export default function App() {
               </Grid>
             )}
 
+            {step === 1 && system.detected_hardware.length === 0 && (
+              <Notice title="We could not find a supported workstation">
+                Ambassador Local only runs models on the workstations below, where each recipe was tested.{" "}
+                {system.gpus.length
+                  ? `This computer has ${system.gpus.map((g) => g.name).join(", ")}, which is not one of them.`
+                  : "No NVIDIA GPU was found: check that the NVIDIA driver is installed (the nvidia-smi command must work), then restart the app."}
+              </Notice>
+            )}
+
             {step === 1 && (
               <Grid
                 // Tres por fila: así la GB10 y la GB10 ×2 quedan juntas.
                 cols="grid-cols-2 lg:grid-cols-3"
                 hint={
-                  system.gpus.length
-                    ? `GPU detected: ${system.gpus.map((g) => g.name).join(", ")}`
-                    : "No NVIDIA GPU detected."
+                  // Sin equipo detectado, el aviso de arriba ya lo explica.
+                  system.detected_hardware.length === 0
+                    ? undefined
+                    : `GPU detected: ${system.gpus.map((g) => g.name).join(", ")}`
                 }
               >
                 {catalog.hardware.map((h) => {
                   // Solo se usa el equipo que se detecta en esta máquina.
                   const detected = system.detected_hardware.includes(h.id);
+                  // Una GB10 sola detectada: la versión ×2 solo necesita el cable ConnectX hasta la otra.
+                  const needsLink =
+                    !detected && h.units > 1 && catalog.hardware.some((o) => o.units <= 1 && o.gpu_match.join() === h.gpu_match.join() && system.detected_hardware.includes(o.id));
                   return (
                     <Card
                       key={h.id}
@@ -186,9 +227,13 @@ export default function App() {
                           ? "Coming soon"
                           : detected
                             ? "Detected"
-                            : "Not detected"
+                            : needsLink
+                              ? "Connect the second GB10"
+                              : "Not detected"
                       }
                       onClick={() => {
+                        // Volver a elegir el mismo equipo no borra el laboratorio ni el modelo.
+                        if (h.id === hardwareId) return;
                         setHardwareId(h.id);
                         setFamilyId(null);
                         setModelId(null);
@@ -243,6 +288,7 @@ export default function App() {
                       disabled={count === 0}
                       badge={count === 0 ? "Coming soon" : undefined}
                       onClick={() => {
+                        if (f.id === familyId) return;
                         setFamilyId(f.id);
                         setModelId(null);
                       }}
@@ -299,7 +345,23 @@ export default function App() {
                 status={status}
                 lab={catalog.families.find((f) => f.id === model.family)}
                 logs={logs}
-                onRun={(lan) => api.start(hardware.id, model.id, lan).catch(() => {})}
+                liveSince={liveSince}
+                running={runningJob && runningModel ? { ...runningJob, name: runningModel.name } : null}
+                onRun={(lan) => {
+                  setLogs([]);
+                  return api.start(hardware.id, model.id, lan);
+                }}
+                onSwitch={async (lan) => {
+                  setLogs([]);
+                  await api.stop();
+                  return api.start(hardware.id, model.id, lan);
+                }}
+                onShowRunning={() => {
+                  if (!runningJob || !runningModel) return;
+                  setHardwareId(runningJob.hardware_id);
+                  setFamilyId(runningModel.family);
+                  setModelId(runningModel.id);
+                }}
                 onCancel={() => api.cancel()}
                 onStop={() => api.stop()}
               />
@@ -428,7 +490,7 @@ function Sidebar(props: {
   engine: string;
 }) {
   return (
-    <aside className="flex w-60 shrink-0 flex-col overflow-y-auto bg-sidebar px-4 py-6 text-sidebar-text [scrollbar-width:none] xl:w-72 xl:px-6 xl:py-7 [@media(max-height:760px)]:py-4">
+    <aside className="flex w-60 shrink-0 flex-col overflow-y-auto bg-sidebar px-4 py-6 text-sidebar-text [scrollbar-color:rgb(255_255_255/0.25)_transparent] [scrollbar-width:thin] xl:w-72 xl:px-6 xl:py-7 [@media(max-height:760px)]:py-4">
       <div className="flex items-center gap-3">
         <AppMark />
         <div>
@@ -476,7 +538,8 @@ function Sidebar(props: {
                 ) : (
                   props.choices[i] &&
                   i < props.step && (
-                    <span className="block truncate text-xs text-sidebar-muted">
+                    // En ventanas bajas se omite: la elección también se ve en la pantalla y en el pie.
+                    <span className="block truncate text-xs text-sidebar-muted [@media(max-height:700px)]:hidden">
                       {props.choices[i]}
                     </span>
                   )
@@ -574,6 +637,19 @@ function Card(props: {
           ✓
         </span>
       )}
+    </div>
+  );
+}
+
+/** Aviso destacado arriba de un paso: por qué no se puede seguir y qué hacer. */
+function Notice({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <div role="status" className="mt-6 flex gap-4 rounded-xl border border-amber-500/40 bg-amber-400/10 p-5">
+      <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-amber-400 text-sm font-bold text-amber-950">!</span>
+      <div>
+        <div className="font-bold">{title}</div>
+        <p className="mt-1 text-sm text-muted">{children}</p>
+      </div>
     </div>
   );
 }

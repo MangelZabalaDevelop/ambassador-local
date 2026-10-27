@@ -76,6 +76,8 @@ body {
   color: var(--text);
   user-select: none;
   -webkit-font-smoothing: antialiased;
+  /* Algunas fuentes (Inter, que Linux puede usar en lugar de Helvetica Neue) cambian la x entre cifras por ×: LPDDR5x, Gen5 x16. */
+  font-variant-ligatures: no-contextual;
 }
 
 .stage {

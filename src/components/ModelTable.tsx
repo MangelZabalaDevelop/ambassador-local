@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import { downloadKey, type Model, type SizeClass } from "../types";
+import { downloadKey, formatContext, type Model, type SizeClass } from "../types";
 import { RecipeBadges } from "./Illustrations";
 
 type Props = {
@@ -11,12 +11,17 @@ type Props = {
   onSelect: (id: string) => void;
 };
 
+// Rangos según los modelos del catálogo (recipes/catalog.json). Sin requisitos de equipo: la tabla ya solo
+// muestra lo que corre en el equipo elegido (un X-Large en FP4 corre en una sola T2).
 const SIZES: Record<SizeClass, { label: string; level: number; range: string }> = {
-  small: { label: "Small", level: 1, range: "4–14B parameters" },
-  medium: { label: "Medium", level: 2, range: "24–32B parameters" },
-  large: { label: "Large", level: 3, range: "~70B, up to 96 GB of GPU memory" },
-  xlarge: { label: "X-Large", level: 4, range: "Needs two linked GB10 / DGX Spark" },
+  small: { label: "Small", level: 1, range: "Up to ~14B parameters" },
+  medium: { label: "Medium", level: 2, range: "~24–35B parameters" },
+  large: { label: "Large", level: 3, range: "~70–300B parameters" },
+  xlarge: { label: "X-Large", level: 4, range: "The biggest models, up to 552B" },
 };
+
+/** Ancho de la ficha de cada título, en px. */
+const TIP_WIDTH = 352;
 
 const BOLT = "M13 2 4 14h7l-1 8 9-12h-7z";
 const BULB = "M9 18h6M10 21h4M12 3a6 6 0 0 0-3.8 10.6c.6.5.8 1.2.8 2V16h6v-.4c0-.8.2-1.5.8-2A6 6 0 0 0 12 3z";
@@ -77,7 +82,8 @@ export function ModelTable(props: Props) {
   return (
     <>
       <p className="mt-2 text-muted">{props.family} models tuned and tested for your workstation. Hover a title to learn what it means.</p>
-      <div className="@container mt-8">
+      {/* clip en x: las fichas ocultas de los títulos no ensanchan la página; la tabla las abre hacia dentro. */}
+      <div className="@container mt-8 [overflow-x:clip]" data-tip-bounds>
         <div className="rounded-2xl border border-border bg-surface shadow-sm">
           <div
             className={`hidden items-center gap-x-3 rounded-t-2xl border-b border-border bg-surface-2 px-4 py-3 text-xs font-bold text-muted @min-[54rem]:grid ${WIDE_COLS}`}
@@ -169,7 +175,7 @@ function Row(props: { model: Model; hardwareId: string; selected: boolean; downl
           <>
             <Rating value={memoryLevel(recipe.ctx_size)} d={BOOK} on="text-accent" label="Memory" />
             <div className="mt-1 text-xs text-muted tabular-nums">
-              {(recipe.ctx_size / 1024).toFixed(0)}K · ~{formatWords(recipe.ctx_size * 0.75)} words
+              {formatContext(recipe.ctx_size)} · ~{formatWords(recipe.ctx_size * 0.75)} words
             </div>
           </>,
         )}
@@ -191,11 +197,13 @@ function Row(props: { model: Model; hardwareId: string; selected: boolean; downl
 
 /** Título con una fichita explicativa al pasar el ratón (o al enfocarlo con el teclado). */
 function Tip(props: { title: string; tip: ReactNode; legend?: ReactNode; align?: "left" | "right" }) {
-  // Abrir la ficha hacia donde haya espacio, para que nunca se salga de la ventana.
-  const [align, setAlign] = useState(props.align ?? "left");
+  // Dónde abrir la ficha (px desde el título) para que quede entera dentro de la tabla, sea cual sea la columna.
+  const [left, setLeft] = useState<number | undefined>(undefined);
   const place = (el: HTMLElement) => {
     const r = el.getBoundingClientRect();
-    setAlign(r.left + 368 > window.innerWidth ? "right" : "left");
+    const box = el.closest("[data-tip-bounds]")?.getBoundingClientRect() ?? { left: 0, right: window.innerWidth };
+    const width = Math.min(TIP_WIDTH, box.right - box.left);
+    setLeft(Math.max(box.left, Math.min(r.left, box.right - width)) - r.left);
   };
   return (
     <span className="group relative inline-flex" onMouseEnter={(e) => place(e.currentTarget)} onFocus={(e) => place(e.currentTarget)}>
@@ -208,8 +216,9 @@ function Tip(props: { title: string; tip: ReactNode; legend?: ReactNode; align?:
       </span>
       <span
         role="tooltip"
-        className={`pointer-events-none invisible absolute top-full z-30 mt-2 w-[min(22rem,80vw)] translate-y-1 rounded-xl border border-border bg-surface p-4 text-sm font-normal tracking-normal text-muted normal-case opacity-0 shadow-2xl transition delay-150 duration-200 group-focus-within:visible group-focus-within:translate-y-0 group-focus-within:opacity-100 group-hover:visible group-hover:translate-y-0 group-hover:opacity-100 ${
-          align === "right" ? "right-0" : "left-0"
+        style={{ left: left ?? (props.align === "right" ? undefined : 0), width: `min(${TIP_WIDTH}px, 80vw)` }}
+        className={`pointer-events-none invisible absolute top-full z-30 mt-2 translate-y-1 rounded-xl border border-border bg-surface p-4 text-sm font-normal tracking-normal text-muted normal-case opacity-0 shadow-2xl transition delay-150 duration-200 group-focus-within:visible group-focus-within:translate-y-0 group-focus-within:opacity-100 group-hover:visible group-hover:translate-y-0 group-hover:opacity-100 ${
+          left === undefined && props.align === "right" ? "right-0" : ""
         }`}
       >
         <span className="mb-1 flex items-center justify-between">

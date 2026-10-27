@@ -86,7 +86,7 @@ export const downloadsFor = (m: Model, hardwareId: string) => {
   const draft = m.recipes[hardwareId]?.mtp?.draft;
   return draft ? [...filesFor(m, hardwareId), draft] : filesFor(m, hardwareId);
 };
-export const quantFor =(m: Model, hardwareId: string) => m.recipes[hardwareId]?.quant ?? m.quant;
+export const quantFor = (m: Model, hardwareId: string) => m.recipes[hardwareId]?.quant ?? m.quant;
 /** Clave de `downloaded_models`: el mismo modelo puede estar bajado para un equipo y no para otro. */
 export const downloadKey = (m: Model, hardwareId: string) => `${m.id}@${hardwareId}`;
 
@@ -110,10 +110,22 @@ export type System = {
 /** Versión nueva publicada en las releases del repo, firmada con nuestra clave. */
 export type UpdateInfo = { version: string; current: string; notes: string | null };
 
+/** Qué modelo y en qué equipo: viene en cada estado activo (descarga, arranque, en marcha). */
+export type Job = { hardware_id: string; model_id: string };
+
 export type Status =
   | { stage: "idle" }
-  | { stage: "downloading"; label: string; step: number; steps: number; downloaded: number; total: number }
-  | { stage: "extracting" }
-  | { stage: "starting"; model_id: string }
-  | { stage: "ready"; model_id: string; url: string; api_url: string; api_key: string; lan_url: string | null }
-  | { stage: "error"; message: string };
+  | ({ stage: "downloading"; label: string; step: number; steps: number; downloaded: number; total: number } & Job)
+  | ({ stage: "extracting" } & Job)
+  | ({ stage: "starting" } & Job)
+  | ({ stage: "ready"; url: string; api_url: string; api_key: string; lan_url: string | null } & Job)
+  /** Con el modelo cuando el error es de uno concreto (no arrancó, o se cayó estando en marcha). */
+  | ({ stage: "error"; message: string } & Partial<Job>);
+
+/** El modelo que el servidor descarga, arranca o sirve; null si no hay ninguno (parado o con error). */
+export const jobOf = (s: Status): Job | null =>
+  s.stage === "idle" || s.stage === "error" ? null : { hardware_id: s.hardware_id, model_id: s.model_id };
+
+/** Contexto en tokens, corto: 131072 → "128K", 1048576 → "1M". */
+export const formatContext = (tokens: number) =>
+  tokens >= 1048576 ? `${+(tokens / 1048576).toFixed(1)}M` : `${(tokens / 1024).toFixed(0)}K`;

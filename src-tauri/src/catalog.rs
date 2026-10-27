@@ -305,7 +305,7 @@ fn repo_ok(repo: &str) -> bool {
 fn valid_vllm(v: &Vllm) -> bool {
     let image_ok = v.image.split_once("@sha256:").is_some_and(|(name, digest)| image_name_ok(name) && hex(digest, 64));
     let id_ok = v.image_id.strip_prefix("sha256:").is_some_and(|id| hex(id, 64));
-    let recipe_ok = v.recipe.as_deref().map_or(true, is_safe_id);
+    let recipe_ok = v.recipe.as_deref().is_none_or(is_safe_id);
     image_ok && id_ok && repo_ok(&v.repo) && hex(&v.revision, 40) && v.size > 0 && recipe_ok
 }
 

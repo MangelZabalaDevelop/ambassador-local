@@ -143,7 +143,8 @@ function BrandMark({ src, label, className }: { src?: string; label: string; cla
 
 export function Watermark() {
   return (
-    <div aria-hidden className="pointer-events-none absolute right-8 bottom-[92px] flex flex-col items-end gap-2.5 opacity-[0.22] dark:opacity-[0.2]">
+    // Solo donde queda margen libre a la derecha del contenido (≥1600 px): más estrecho, se dibujaba sobre las tarjetas.
+    <div aria-hidden className="pointer-events-none absolute right-8 bottom-[92px] hidden flex-col items-end gap-2.5 opacity-[0.22] min-[1600px]:flex dark:opacity-[0.2]">
       <BrandMark src={BRANDS["../assets/nvidia.png"]} label="NVIDIA" className="aspect-[800/148] w-[84px]" />
       <BrandMark src={BRANDS["../assets/dell-technologies.png"]} label="Dell Technologies" className="aspect-[1016/131] w-[104px]" />
     </div>

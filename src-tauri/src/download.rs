@@ -31,6 +31,8 @@ pub fn client() -> reqwest::Client {
         .redirect(policy)
         .user_agent(concat!("AmbassadorLocal/", env!("CARGO_PKG_VERSION")))
         .connect_timeout(Duration::from_secs(20))
+        // Una conexión que deja de mandar datos (wifi caída, proxy) termina en error en vez de colgar la descarga.
+        .read_timeout(Duration::from_secs(60))
         .build()
         .expect("cliente HTTP")
 }
@@ -90,6 +92,15 @@ pub async fn fetch(client: &reqwest::Client, file: &RemoteFile, dest: &Path, pro
             hasher = Sha256::new();
         }
     }
+    // Ya está entero (se cortó justo antes de renombrarlo): pedir "bytes=<tamaño>-" daría 416 para siempre.
+    if have == file.size {
+        if hex::encode(hasher.clone().finalize()) == file.sha256 {
+            (progress.on_bytes)(have);
+            return finish(file, &part, dest).await;
+        }
+        have = 0;
+        hasher = Sha256::new();
+    }
 
     let mut req = client.get(&file.url);
     if have > 0 {
@@ -118,12 +129,16 @@ pub async fn fetch(client: &reqwest::Client, file: &RemoteFile, dest: &Path, pro
     (progress.on_bytes)(have);
     let mut last_emit = Instant::now();
     let mut stream = resp.bytes_stream();
-    while let Some(chunk) = stream.next().await {
+    loop {
+        // Esperar el siguiente trozo sin dejar de mirar Cancel: con la red lenta o parada, Cancel responde igual.
+        let next = tokio::time::timeout(Duration::from_millis(250), stream.next()).await;
         if progress.cancel.load(Ordering::Relaxed) {
             out.flush().await.ok();
             return Err("cancelled".into());
         }
-        let chunk = chunk.map_err(|e| format!("Download interrupted: {e}"))?;
+        let Ok(next) = next else { continue };
+        let Some(chunk) = next else { break };
+        let chunk = chunk.map_err(|e| format!("Download of {} interrupted ({e}). Press Try again to resume it.", file.file_name()))?;
         have += chunk.len() as u64;
         if have > file.size {
             drop(out);
@@ -146,7 +161,170 @@ pub async fn fetch(client: &reqwest::Client, file: &RemoteFile, dest: &Path, pro
         tokio::fs::remove_file(&part).await.ok();
         return Err(format!("{}: SHA256 fingerprint does not match; the file was discarded", file.file_name()));
     }
-    tokio::fs::rename(&part, dest).await.map_err(|e| e.to_string())?;
+    finish(file, &part, dest).await
+}
+
+/// El .part ya verificado pasa a ser el archivo final, con su marca de verificado.
+async fn finish(file: &RemoteFile, part: &Path, dest: &Path) -> Result<(), String> {
+    tokio::fs::rename(part, dest).await.map_err(|e| e.to_string())?;
     tokio::fs::write(marker_path(dest), &file.sha256).await.map_err(|e| e.to_string())?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::atomic::AtomicUsize;
+    use std::sync::Arc;
+    use tokio::io::AsyncWriteExt;
+    use tokio::net::TcpListener;
+
+    #[derive(Clone, Copy)]
+    enum Mode {
+        /// Responde Range con 206, como GitHub y Hugging Face.
+        Ranges,
+        /// Ignora Range y manda todo con 200.
+        Full,
+        /// Manda la cabecera y unos bytes, y se queda callado.
+        Stall,
+    }
+
+    /// Servidor HTTP mínimo en 127.0.0.1; cuenta las peticiones que recibe.
+    async fn serve(body: Vec<u8>, mode: Mode) -> (String, Arc<AtomicUsize>) {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let url = format!("http://{}/model.gguf", listener.local_addr().unwrap());
+        let hits = Arc::new(AtomicUsize::new(0));
+        let counter = hits.clone();
+        tokio::spawn(async move {
+            loop {
+                let Ok((mut sock, _)) = listener.accept().await else { return };
+                counter.fetch_add(1, Ordering::SeqCst);
+                let body = body.clone();
+                tokio::spawn(async move {
+                    let mut buf = vec![0u8; 4096];
+                    let n = sock.read(&mut buf).await.unwrap_or(0);
+                    let req = String::from_utf8_lossy(&buf[..n]).to_lowercase();
+                    let from = req
+                        .lines()
+                        .find_map(|l| l.strip_prefix("range: bytes="))
+                        .and_then(|r| r.trim_end_matches('-').trim().parse::<usize>().ok());
+                    let (status, part) = match (mode, from) {
+                        (Mode::Ranges, Some(f)) => ("206 Partial Content", &body[f..]),
+                        _ => ("200 OK", &body[..]),
+                    };
+                    let head = format!("HTTP/1.1 {status}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n", part.len());
+                    let _ = sock.write_all(head.as_bytes()).await;
+                    if let Mode::Stall = mode {
+                        let _ = sock.write_all(&part[..16]).await;
+                        tokio::time::sleep(Duration::from_secs(3600)).await;
+                    }
+                    let _ = sock.write_all(part).await;
+                });
+            }
+        });
+        (url, hits)
+    }
+
+    fn remote(url: &str, body: &[u8]) -> RemoteFile {
+        RemoteFile { url: url.into(), sha256: hex::encode(Sha256::digest(body)), size: body.len() as u64 }
+    }
+
+    fn body() -> Vec<u8> {
+        (0..300_000u32).map(|i| (i % 251) as u8).collect()
+    }
+
+    async fn get(file: &RemoteFile, dest: &Path, cancel: &AtomicBool) -> Result<(), String> {
+        let quiet = |_: u64| {};
+        fetch(&client(), file, dest, Progress { cancel, on_bytes: &quiet }).await
+    }
+
+    fn scratch(name: &str) -> PathBuf {
+        let dir = std::env::temp_dir().join(format!("al-dl-{name}-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        dir.join("model.gguf")
+    }
+
+    #[tokio::test]
+    async fn downloads_verifies_and_marks() {
+        let b = body();
+        let (url, _) = serve(b.clone(), Mode::Ranges).await;
+        let (file, dest) = (remote(&url, &b), scratch("fresh"));
+        get(&file, &dest, &AtomicBool::new(false)).await.unwrap();
+        assert_eq!(std::fs::read(&dest).unwrap(), b);
+        assert!(is_verified(&file, &dest));
+        assert!(!part_path(&dest).exists());
+    }
+
+    #[tokio::test]
+    async fn resumes_a_partial_download() {
+        let b = body();
+        let (url, _) = serve(b.clone(), Mode::Ranges).await;
+        let (file, dest) = (remote(&url, &b), scratch("resume"));
+        std::fs::write(part_path(&dest), &b[..123_456]).unwrap();
+        get(&file, &dest, &AtomicBool::new(false)).await.unwrap();
+        assert_eq!(std::fs::read(&dest).unwrap(), b);
+    }
+
+    #[tokio::test]
+    async fn starts_over_when_the_server_ignores_range() {
+        let b = body();
+        let (url, _) = serve(b.clone(), Mode::Full).await;
+        let (file, dest) = (remote(&url, &b), scratch("norange"));
+        std::fs::write(part_path(&dest), &b[..1000]).unwrap();
+        get(&file, &dest, &AtomicBool::new(false)).await.unwrap();
+        assert_eq!(std::fs::read(&dest).unwrap(), b);
+    }
+
+    #[tokio::test]
+    async fn a_complete_part_is_finished_without_asking_the_server() {
+        let b = body();
+        let (url, hits) = serve(b.clone(), Mode::Ranges).await;
+        let (file, dest) = (remote(&url, &b), scratch("complete"));
+        std::fs::write(part_path(&dest), &b).unwrap();
+        get(&file, &dest, &AtomicBool::new(false)).await.unwrap();
+        assert!(is_verified(&file, &dest));
+        assert_eq!(hits.load(Ordering::SeqCst), 0);
+    }
+
+    #[tokio::test]
+    async fn a_complete_but_corrupt_part_is_downloaded_again() {
+        let b = body();
+        let (url, _) = serve(b.clone(), Mode::Ranges).await;
+        let (file, dest) = (remote(&url, &b), scratch("corrupt-part"));
+        std::fs::write(part_path(&dest), vec![0u8; b.len()]).unwrap();
+        get(&file, &dest, &AtomicBool::new(false)).await.unwrap();
+        assert_eq!(std::fs::read(&dest).unwrap(), b);
+    }
+
+    #[tokio::test]
+    async fn wrong_fingerprint_is_rejected_and_discarded() {
+        let b = body();
+        let (url, _) = serve(b.clone(), Mode::Ranges).await;
+        let mut file = remote(&url, &b);
+        file.sha256 = "0".repeat(64);
+        let dest = scratch("badsha");
+        let err = get(&file, &dest, &AtomicBool::new(false)).await.unwrap_err();
+        assert!(err.contains("SHA256"), "{err}");
+        assert!(!dest.exists() && !part_path(&dest).exists());
+    }
+
+    #[tokio::test]
+    async fn cancel_works_while_the_connection_is_stalled() {
+        let b = body();
+        let (url, _) = serve(b.clone(), Mode::Stall).await;
+        let (file, dest) = (remote(&url, &b), scratch("stall"));
+        let cancel = Arc::new(AtomicBool::new(false));
+        let flag = cancel.clone();
+        tokio::spawn(async move {
+            tokio::time::sleep(Duration::from_millis(500)).await;
+            flag.store(true, Ordering::Relaxed);
+        });
+        let started = Instant::now();
+        let err = tokio::time::timeout(Duration::from_secs(5), get(&file, &dest, &cancel)).await.expect("Cancel did not stop a stalled download");
+        assert_eq!(err.unwrap_err(), "cancelled");
+        assert!(started.elapsed() < Duration::from_secs(2));
+        // Lo recibido queda para reanudar.
+        assert_eq!(std::fs::metadata(part_path(&dest)).unwrap().len(), 16);
+    }
 }

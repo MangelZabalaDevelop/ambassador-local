@@ -32,21 +32,57 @@ pub(crate) fn no_console_window(cmd: &mut std::process::Command) {
     let _ = cmd;
 }
 
+/// Qué modelo y en qué equipo: va en cada estado activo para que la interfaz sepa de cuál se trata
+/// (por ejemplo tras recargar la ventana, o si el embajador mira otro modelo mientras este corre).
+#[derive(Debug, Clone, Serialize)]
+struct Job {
+    hardware_id: String,
+    model_id: String,
+}
+
 #[derive(Debug, Clone, Serialize)]
 #[serde(tag = "stage", rename_all = "snake_case")]
 enum Status {
     Idle,
-    Downloading { label: String, step: usize, steps: usize, downloaded: u64, total: u64 },
-    Extracting,
-    Starting { model_id: String },
+    Downloading {
+        #[serde(flatten)]
+        job: Job,
+        label: String,
+        step: usize,
+        steps: usize,
+        downloaded: u64,
+        total: u64,
+    },
+    Extracting {
+        #[serde(flatten)]
+        job: Job,
+    },
+    Starting {
+        #[serde(flatten)]
+        job: Job,
+    },
     /// `lan_url`: the endpoint for other devices, when the server listens on the network.
-    Ready { model_id: String, url: String, api_url: String, api_key: String, lan_url: Option<String> },
-    Error { message: String },
+    Ready {
+        #[serde(flatten)]
+        job: Job,
+        url: String,
+        api_url: String,
+        api_key: String,
+        lan_url: Option<String>,
+    },
+    /// `job`: el modelo que falló, si el error es de uno concreto.
+    Error {
+        message: String,
+        #[serde(flatten)]
+        job: Option<Job>,
+    },
 }
 
 #[derive(Default)]
 struct Inner {
     busy: bool,
+    /// Sube con cada arranque: el vigilante de un servidor anterior no debe hablar por el nuevo.
+    generation: u64,
     child: Option<tokio::process::Child>,
     /// GB10 ×2: el otro equipo con el servidor RPC encendido y la sesión SSH que lo mantiene vivo.
     peer: Option<std::net::Ipv4Addr>,
@@ -199,6 +235,8 @@ fn cancel(state: State<'_, AppState>) {
 
 #[tauri::command]
 async fn stop_model(app: AppHandle, state: State<'_, AppState>) -> Result<(), String> {
+    // Si todavía hay una tarea en marcha (descarga, arranque), que también se detenga.
+    state.cancel.store(true, Ordering::Relaxed);
     kill_in_background(state.inner.clone()).await;
     emit_status(&app, &state.inner, Status::Idle);
     Ok(())
@@ -212,23 +250,27 @@ async fn start_model(app: AppHandle, state: State<'_, AppState>, hardware_id: St
             return Err("A task is already running.".into());
         }
         g.busy = true;
+        g.generation += 1;
         g.logs.clear();
     }
     kill_in_background(state.inner.clone()).await;
     state.cancel.store(false, Ordering::Relaxed);
 
     let inner = state.inner.clone();
-    let result = run_job(&app, &inner, &state.cancel, &hardware_id, &model_id, lan).await;
+    let job = Job { hardware_id, model_id };
+    let result = run_job(&app, &inner, &state.cancel, &job, lan).await;
     inner.lock().unwrap().busy = false;
     if let Err(message) = &result {
         kill_in_background(inner.clone()).await;
-        let message = if message == "cancelled" { "Cancelled.".to_string() } else { message.clone() };
-        emit_status(&app, &inner, Status::Error { message });
+        // Cancelar no es un error: se vuelve a "listo para arrancar". Lo descargado se queda y se reanuda.
+        let status = if message == "cancelled" { Status::Idle } else { Status::Error { message: message.clone(), job: Some(job) } };
+        emit_status(&app, &inner, status);
     }
     result
 }
 
-async fn run_job(app: &AppHandle, inner: &Arc<Mutex<Inner>>, cancel: &AtomicBool, hardware_id: &str, model_id: &str, lan: bool) -> Result<(), String> {
+async fn run_job(app: &AppHandle, inner: &Arc<Mutex<Inner>>, cancel: &AtomicBool, job: &Job, lan: bool) -> Result<(), String> {
+    let (hardware_id, model_id) = (job.hardware_id.as_str(), job.model_id.as_str());
     let cat = catalog::get()?;
     let (os, arch) = (detect::current_os(), detect::current_arch());
     let hw = cat.hardware(hardware_id).ok_or("Unknown hardware")?;
@@ -241,7 +283,7 @@ async fn run_job(app: &AppHandle, inner: &Arc<Mutex<Inner>>, cancel: &AtomicBool
     let model = cat.model(model_id).ok_or("Unknown model")?;
     let recipe = model.recipes.get(hardware_id).ok_or("This model has no recipe for your hardware.")?;
     if recipe.in_container() {
-        return run_container(app, inner, cancel, model, hw, lan).await;
+        return run_container(app, inner, cancel, job, model, hw, lan).await;
     }
     let build = cat
         .engine
@@ -274,15 +316,16 @@ async fn run_job(app: &AppHandle, inner: &Arc<Mutex<Inner>>, cancel: &AtomicBool
 
     let steps = queue.len();
     for (step, (label, file, dest)) in queue.iter().enumerate() {
-        let (app2, inner2, label2, total) = (app.clone(), inner.clone(), label.clone(), file.size);
+        let (app2, inner2, job2, label2, total) = (app.clone(), inner.clone(), job.clone(), label.clone(), file.size);
         let on_bytes = move |downloaded: u64| {
-            emit_status(&app2, &inner2, Status::Downloading { label: label2.clone(), step: step + 1, steps, downloaded, total });
+            let status = Status::Downloading { job: job2.clone(), label: label2.clone(), step: step + 1, steps, downloaded, total };
+            emit_status(&app2, &inner2, status);
         };
         download::fetch(&client, file, dest, download::Progress { cancel, on_bytes: &on_bytes }).await?;
     }
 
     if need_engine {
-        emit_status(app, inner, Status::Extracting);
+        emit_status(app, inner, Status::Extracting { job: job.clone() });
         let archives: Vec<PathBuf> = build.files.iter().map(|f| root.join("downloads").join(f.file_name())).collect();
         let dir = engine_dir.clone();
         tauri::async_runtime::spawn_blocking(move || -> Result<(), String> {
@@ -301,7 +344,7 @@ async fn run_job(app: &AppHandle, inner: &Arc<Mutex<Inner>>, cancel: &AtomicBool
     }
     let eng = engine::locate(&engine_dir).ok_or("llama-server was not found after installing the engine.")?;
 
-    emit_status(app, inner, Status::Starting { model_id: model.id.clone() });
+    emit_status(app, inner, Status::Starting { job: job.clone() });
 
     // GB10 ×2: la otra GB10 presta su memoria por el cable directo.
     let mut rpc = Vec::new();
@@ -360,19 +403,27 @@ async fn run_job(app: &AppHandle, inner: &Arc<Mutex<Inner>>, cancel: &AtomicBool
 
     push_log(app, inner, format!("> {} {:?}", eng.server.display(), cmd.as_std().get_args().collect::<Vec<_>>()));
     let child = cmd.spawn().map_err(|e| format!("Could not start llama-server: {e}"))?;
-    serve(app, inner, cancel, child, port, &model.id, api_key, lan, "llama-server").await
+    serve(app, inner, cancel, child, port, job, api_key, lan, "llama-server").await
 }
 
 /// Recetas en contenedor (vLLM en la T2, TensorFold en las dos GB10): la app revisa el equipo, deja los scripts de
 /// la receta en su carpeta de trabajo y lanza run.sh, que levanta los contenedores y se queda mostrando su log.
-async fn run_container(app: &AppHandle, inner: &Arc<Mutex<Inner>>, cancel: &AtomicBool, model: &Model, hw: &catalog::Hardware, lan: bool) -> Result<(), String> {
+async fn run_container(
+    app: &AppHandle,
+    inner: &Arc<Mutex<Inner>>,
+    cancel: &AtomicBool,
+    job: &Job,
+    model: &Model,
+    hw: &catalog::Hardware,
+    lan: bool,
+) -> Result<(), String> {
     let recipe = &model.recipes[&hw.id];
     let (engine, folder) = match (&recipe.vllm, &recipe.tensorfold) {
         (Some(v), _) => ("vllm", v.recipe.clone().ok_or("This model has no recipe for your hardware.")?),
         (_, Some(t)) => ("tensorfold", t.recipe.clone()),
         _ => return Err("This model has no recipe for your hardware.".into()),
     };
-    emit_status(app, inner, Status::Starting { model_id: model.id.clone() });
+    emit_status(app, inner, Status::Starting { job: job.clone() });
 
     // Lo mismo que antes se veía como lista: imagen, pesos y memoria. El primer fallo es el mensaje.
     let target = vllm::target_for(model, hw).ok_or("This model has no recipe for your hardware.")?;
@@ -410,7 +461,7 @@ async fn run_container(app: &AppHandle, inner: &Arc<Mutex<Inner>>, cancel: &Atom
 
     push_log(app, inner, format!("> {} (port {port})", dir.join("run.sh").display()));
     let child = cmd.spawn().map_err(|e| format!("Could not start the model: {e}"))?;
-    serve(app, inner, cancel, child, port, &model.id, api_key, lan, "The model server").await
+    serve(app, inner, cancel, child, port, job, api_key, lan, "The model server").await
 }
 
 /// Lleva el log del servidor a la interfaz, espera a que /health responda y vigila que siga vivo.
@@ -421,7 +472,7 @@ async fn serve(
     cancel: &AtomicBool,
     mut child: tokio::process::Child,
     port: u16,
-    model_id: &str,
+    job: &Job,
     api_key: String,
     lan: bool,
     name: &'static str,
@@ -439,14 +490,19 @@ async fn serve(
             }
         });
     }
-    inner.lock().unwrap().child = Some(child);
+    let generation = {
+        let mut g = inner.lock().unwrap();
+        g.child = Some(child);
+        g.generation
+    };
 
     // Esperar a que /health responda o a que el proceso muera. Si se cancela, lo para kill_now.
     let health = format!("http://127.0.0.1:{port}/health");
     let local = reqwest::Client::builder().timeout(Duration::from_secs(2)).build().map_err(|e| e.to_string())?;
     loop {
         tokio::time::sleep(Duration::from_millis(500)).await;
-        if cancel.load(Ordering::Relaxed) {
+        // Sin hijo es que otro (Stop, cerrar la app) ya lo paró: no seguir esperando un /health que no llegará.
+        if cancel.load(Ordering::Relaxed) || inner.lock().unwrap().child.is_none() {
             return Err("cancelled".into());
         }
         if let Some(code) = exited(inner) {
@@ -458,18 +514,20 @@ async fn serve(
     }
     let url = format!("http://127.0.0.1:{port}");
     let lan_url = if lan { lan_ip().map(|ip| format!("http://{ip}:{port}/v1")) } else { None };
-    emit_status(app, inner, Status::Ready { model_id: model_id.to_string(), api_url: format!("{url}/v1"), url, api_key, lan_url });
+    emit_status(app, inner, Status::Ready { job: job.clone(), api_url: format!("{url}/v1"), url, api_key, lan_url });
 
     // Vigilar el proceso: si muere, avisar a la interfaz.
-    let (app, inner) = (app.clone(), inner.clone());
+    let (app, inner, job) = (app.clone(), inner.clone(), job.clone());
     tauri::async_runtime::spawn(async move {
         loop {
             tokio::time::sleep(Duration::from_secs(1)).await;
-            if inner.lock().unwrap().child.is_none() {
+            let g = inner.lock().unwrap();
+            if g.child.is_none() || g.generation != generation {
                 break;
             }
+            drop(g);
             if let Some(code) = exited(&inner) {
-                emit_status(&app, &inner, Status::Error { message: format!("{name} exited ({code}).") });
+                emit_status(&app, &inner, Status::Error { message: format!("{name} exited ({code})."), job: Some(job) });
                 break;
             }
         }
@@ -491,6 +549,33 @@ fn exited(inner: &Mutex<Inner>) -> Option<String> {
     let status = g.child.as_mut()?.try_wait().ok()??;
     g.child = None;
     Some(status.to_string())
+}
+
+pub fn run() {
+    tauri::Builder::default()
+        .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .manage(AppState::default())
+        .invoke_handler(tauri::generate_handler![
+            get_catalog,
+            detect_system,
+            downloaded_models,
+            current_status,
+            check_cluster,
+            start_model,
+            stop_model,
+            cancel,
+            update::check_update,
+            update::install_update
+        ])
+        .build(tauri::generate_context!())
+        .expect("error while starting the app")
+        .run(|app, event| {
+            // Cerrar la app = ya no se quiere inferencia: apagar el servidor.
+            if matches!(event, RunEvent::ExitRequested { .. } | RunEvent::Exit) {
+                app.state::<AppState>().kill_now();
+            }
+        });
 }
 
 #[cfg(test)]
@@ -563,34 +648,52 @@ mod smoke {
             .await
             .unwrap();
         child.kill().ok();
+        child.wait().ok();
         assert!(ok, "health never responded");
         println!("respuesta: {reply}");
     }
 }
 
-pub fn run() {
-    tauri::Builder::default()
-        .plugin(tauri_plugin_opener::init())
-        .plugin(tauri_plugin_updater::Builder::new().build())
-        .manage(AppState::default())
-        .invoke_handler(tauri::generate_handler![
-            get_catalog,
-            detect_system,
-            downloaded_models,
-            current_status,
-            check_cluster,
-            start_model,
-            stop_model,
-            cancel,
-            update::check_update,
-            update::install_update
-        ])
-        .build(tauri::generate_context!())
-        .expect("error while starting the app")
-        .run(|app, event| {
-            // Cerrar la app = ya no se quiere inferencia: apagar el servidor.
-            if matches!(event, RunEvent::ExitRequested { .. } | RunEvent::Exit) {
-                app.state::<AppState>().kill_now();
-            }
-        });
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    fn job() -> Job {
+        Job { hardware_id: "pro-max-t2".into(), model_id: "gemma4-12b".into() }
+    }
+
+    /// Lo que recibe la interfaz (src/types.ts, `Status`): el modelo va plano junto a cada estado activo.
+    #[test]
+    fn status_json_matches_the_interface() {
+        let ready = Status::Ready { job: job(), url: "u".into(), api_url: "a".into(), api_key: "k".into(), lan_url: None };
+        assert_eq!(
+            serde_json::to_value(ready).unwrap(),
+            json!({"stage": "ready", "hardware_id": "pro-max-t2", "model_id": "gemma4-12b", "url": "u", "api_url": "a", "api_key": "k", "lan_url": null})
+        );
+        let down = Status::Downloading { job: job(), label: "x".into(), step: 1, steps: 2, downloaded: 3, total: 4 };
+        assert_eq!(serde_json::to_value(down).unwrap()["model_id"], "gemma4-12b");
+        assert_eq!(serde_json::to_value(Status::Starting { job: job() }).unwrap(), json!({"stage": "starting", "hardware_id": "pro-max-t2", "model_id": "gemma4-12b"}));
+        assert_eq!(serde_json::to_value(Status::Error { message: "m".into(), job: None }).unwrap(), json!({"stage": "error", "message": "m"}));
+        assert_eq!(serde_json::to_value(Status::Error { message: "m".into(), job: Some(job()) }).unwrap()["hardware_id"], "pro-max-t2");
+        assert_eq!(serde_json::to_value(Status::Idle).unwrap(), json!({"stage": "idle"}));
+    }
+
+    #[test]
+    fn api_key_is_created_once_and_reused() {
+        let root = std::env::temp_dir().join(format!("al-key-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        let (first, path) = api_key_file(&root).unwrap();
+        assert!(first.starts_with("sk-local-") && first.len() == 57);
+        assert_eq!(api_key_file(&root).unwrap().0, first);
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            assert_eq!(std::fs::metadata(&path).unwrap().permissions().mode() & 0o777, 0o600);
+        }
+        // Un archivo dañado se reemplaza por una clave nueva válida.
+        std::fs::write(&path, "garbage").unwrap();
+        let (fresh, _) = api_key_file(&root).unwrap();
+        assert!(fresh.starts_with("sk-local-") && fresh != first);
+    }
 }

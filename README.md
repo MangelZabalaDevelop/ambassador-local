@@ -20,6 +20,10 @@ You get a private, OpenAI-compatible endpoint protected by an API key. No cloud,
 | **Dell Pro Max Tower T2** · RTX PRO 6000 Blackwell (Windows, Ubuntu) | llama.cpp recipes, plus **Miguel Tuned** recipes on Ubuntu (Qwen3.8 Flash Next in NVIDIA FP4 at ~190 tokens/s) |
 | **Dell Pro Max with GB10** · DGX OS | Models up to ~120B on one GB10 |
 | **Two Dell Pro Max with GB10**, linked over ConnectX | One model across both, up to DeepSeek-V4.1-Flash-1017 (552B) |
+| **Dell Pro Max 16 Plus** · RTX PRO 5000 Blackwell 24 GB | Not tested yet: shown as *Coming soon* |
+| **Dell Pro Precision 7 16** · RTX PRO 3000 Blackwell 12 GB | Not tested yet: shown as *Coming soon* |
+
+Every recipe is tested on the workstation it is listed for: see [Tested on](#tested-on).
 
 ## Get started in three steps
 
@@ -91,6 +95,41 @@ Real results, each from a single prompt, recorded on the workstations above:
 | Voxel kingdom · Qwen3.8 27B · T2 (Windows) | Ray tracer in 1:59 · Qwen3.8 Flash Next FP4 · T2 (Ubuntu) | Dealership site · DeepSeek-V4.1 · two GB10 |
 |---|---|---|
 | <img src="docs/img/result-kingdom.gif" alt="Voxel kingdom with day and night" width="280"> | <img src="docs/img/result-raytracer.gif" alt="Real-time WebGL ray tracer" width="280"> | <img src="docs/img/result-apex-gb10x2.gif" alt="Car dealership website with a payment calculator" width="280"> |
+
+## Tested on
+
+Each recipe is tuned and measured on the workstation in its column; the number is the average speed measured there.
+A model only appears in the app on the workstations marked here.
+
+<!-- models:start -->
+| Model | Pro Max Tower T2 | Pro Max 16 Plus (not tested yet) | Pro Precision 7 16 (not tested yet) | GB10 | GB10 ×2 |
+| --- | --- | --- | --- | --- | --- |
+| NVIDIA · **Nemotron 3.5 Super VL** 120B-A12B | — | — | — | ✓ 27.9 tok/s | — |
+| NVIDIA · **Nemotron 3.5 Bolt** 74B-A9B | ✓ 111.1 tok/s | — | — | ✓ 21.9 tok/s | — |
+| NVIDIA · **Nemotron 3.5 Lightning** 30B-A3B | ✓ 341.7 tok/s | — | — | ✓ 81 tok/s | — |
+| Qwen · **Qwen3.8 Flash Next** 180B | ✓ 116.9 tok/s | — | — | ✓ 29.2 tok/s | ✓ 30.3 tok/s |
+| Qwen · **Qwen3.6 35B-A3B** | ✓ 327.7 tok/s | — | — | ✓ 84.8 tok/s | — |
+| Qwen · **Qwen3.8 27B** | ✓ 85.6 tok/s | — | — | ✓ 22.4 tok/s | — |
+| Qwen · **Qwen3-Coder-Next** 80B-A3B | ✓ 203.7 tok/s | — | — | ✓ 54.3 tok/s | — |
+| Google · **Gemma 4 31B** | ✓ 106.5 tok/s | — | — | ✓ 34 tok/s | — |
+| Google · **Gemma 4 26B-A4B** | ✓ 315.4 tok/s | — | — | ✓ 120.5 tok/s | — |
+| Google · **Gemma 4 12B** | ✓ 209.5 tok/s | — | — | ✓ 76.3 tok/s | — |
+| GLM · **GLM-4.7-Flash** 30B-A3B | ✓ 168.1 tok/s | — | — | ✓ 69.1 tok/s | — |
+| GLM · **GLM-5.3-Flash** 320B-A18B | — | — | — | — | ✓ 17.3 tok/s |
+| DeepSeek · **DeepSeek V4 Flash** 284B-A13B | — | — | — | ✓ 17 tok/s | ✓ 15.7 tok/s |
+| OpenAI · **gpt-oss-120b** 117B-A5B | ✓ 203.3 tok/s | — | — | ✓ 43 tok/s | — |
+| Google · **Gemma 3 12B** | ✓ 91 tok/s | — | — | ✓ | — |
+| Qwen · **Qwen3.8 Flash Next FP4** 180B | ✓ 191.5 tok/s · Miguel Tuned | — | — | — | — |
+| DeepSeek · **DeepSeek-V4.1-Flash-1017** 552B-A16B | — | — | — | — | ✓ 53.9 tok/s · Miguel Tuned |
+<!-- models:end -->
+
+### Share a recipe
+
+Have one of these workstations and a recipe that works well on it? Open an
+[issue](https://github.com/MangelZabalaDevelop/ambassador-local/issues/new) with the model, the settings and the speed you
+measured, send a pull request (see [Adding recipes](#adding-recipes)), or email it to
+[contacto@nullsector.co](mailto:contacto@nullsector.co). It gets reviewed and added to the next update,
+marked with the workstation it was tested on.
 
 ## Security
 
@@ -183,6 +222,12 @@ The cluster check also confirms that `prepare.sh` finished on both GB10. `cargo 
 
 Each file needs a URL pinned to a commit (`/resolve/<commit-sha>/file.gguf`), its `sha256` and its `size`.
 Hugging Face lists them at `https://huggingface.co/api/models/<repo>/tree/main` (`lfs.oid` is the sha256).
+
+Update the [Tested on](#tested-on) table:
+
+```bash
+npm run models-table
+```
 
 Validate the catalog:
 

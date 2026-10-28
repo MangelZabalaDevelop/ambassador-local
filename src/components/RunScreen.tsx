@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { openUrl } from "@tauri-apps/plugin-opener";
-import { formatBytes } from "../api";
+import { api, formatBytes } from "../api";
 import { downloadsFor, formatContext, quantFor, type Family, type Hardware, type Job, type Model, type Status } from "../types";
 import { HardwarePhoto, labLogoSrc, RecipeBadges } from "./Illustrations";
 
@@ -114,7 +113,7 @@ export function RunScreen(props: Props) {
 
       {active && <Stepper status={status} />}
 
-      {status.stage === "ready" && <ReadyCards status={status} modelName={model.name} chat={!container} />}
+      {status.stage === "ready" && <ReadyCards status={status} />}
 
       {/* El log es del servidor: si corre otro modelo, no es el de esta pantalla. */}
       {!other && <ServerLog logs={props.logs} />}
@@ -229,7 +228,9 @@ function ActionBar(props: Props) {
     );
   }
 
-  return <LiveBar status={status} since={props.liveSince} onStop={props.onStop} />;
+  // llama-server trae su propia página de chat; los servidores en contenedor solo la API.
+  const recipe = props.model.recipes[props.hardware.id];
+  return <LiveBar status={status} since={props.liveSince} chat={!(recipe.vllm ?? recipe.tensorfold)} onStop={props.onStop} />;
 }
 
 /** Otro modelo ocupa el servidor: decirlo, y ofrecer cambiar a este o ir a aquel. */
@@ -345,12 +346,23 @@ function DownloadBar({ status, onCancel }: { status: Extract<Status, { stage: "d
   );
 }
 
-function LiveBar({ status, since, onStop }: { status: Extract<Status, { stage: "ready" }>; since: number | null; onStop: () => void }) {
+function LiveBar({ status, since, chat, onStop }: { status: Extract<Status, { stage: "ready" }>; since: number | null; chat: boolean; onStop: () => void }) {
   const [, tick] = useState(0);
   useEffect(() => {
     const id = window.setInterval(() => tick((n) => n + 1), 1000);
     return () => window.clearInterval(id);
   }, []);
+  const [opening, setOpening] = useState(false);
+  const [openError, setOpenError] = useState<string | null>(null);
+  // Mientras se abre no se puede pulsar otra vez: un doble clic abriría dos ventanas.
+  const openChat = () => {
+    setOpenError(null);
+    setOpening(true);
+    api
+      .openChat()
+      .catch((e) => setOpenError(String(e)))
+      .finally(() => setOpening(false));
+  };
 
   return (
     <div className="flex flex-wrap items-center gap-x-6 gap-y-4">
@@ -360,17 +372,39 @@ function LiveBar({ status, since, onStop }: { status: Extract<Status, { stage: "
           {status.lan_url ? "Private server · devices on your network need the API key" : "Private server · only this machine can reach it"}
         </div>
         <div className="mt-1 flex flex-wrap items-baseline gap-x-3">
-          <code className="font-mono text-xl font-bold break-all text-[#b6f04a] select-text">{status.url}</code>
+          {/* Con chat, el botón ocupa el sitio de la dirección: la de las apps está abajo, en "Connect apps". */}
+          {chat ? (
+            <span className="text-xl font-bold">Ready to chat</span>
+          ) : (
+            <code className="font-mono text-xl font-bold break-all text-[#b6f04a] select-text">{status.url}</code>
+          )}
           {since !== null && <span className="text-sm text-white/50 tabular-nums">up {formatDuration((Date.now() - since) / 1000)}</span>}
         </div>
       </div>
-      <button
-        onClick={onStop}
-        className="flex items-center gap-2 rounded-xl border border-red-400/40 px-5 py-2.5 font-bold text-red-200 transition hover:border-red-400 hover:bg-red-500/20"
-      >
-        <span className="h-3 w-3 rounded-sm bg-current" />
-        Stop server
-      </button>
+      <div className="flex flex-wrap items-center gap-3">
+        {chat && (
+          <button
+            onClick={openChat}
+            disabled={opening}
+            className="run-button flex items-center gap-2 rounded-xl px-5 py-2.5 font-bold text-white transition hover:-translate-y-0.5 disabled:cursor-wait disabled:opacity-70 disabled:hover:translate-y-0"
+          >
+            {opening ? <Spinner /> : <Icon d="M4 5h16v11H8l-4 4z" />}
+            {opening ? "Opening chat…" : "Open chat"}
+          </button>
+        )}
+        <button
+          onClick={onStop}
+          className="flex items-center gap-2 rounded-xl border border-red-400/40 px-5 py-2.5 font-bold text-red-200 transition hover:border-red-400 hover:bg-red-500/20"
+        >
+          <span className="h-3 w-3 rounded-sm bg-current" />
+          Stop server
+        </button>
+      </div>
+      {openError && (
+        <p role="alert" className="basis-full text-sm text-red-200">
+          {openError}
+        </p>
+      )}
     </div>
   );
 }
@@ -400,12 +434,10 @@ function Stepper({ status }: { status: Status }) {
   );
 }
 
-/** `chat`: llama-server trae su propia página de chat; los servidores en contenedor solo la API. */
-function ReadyCards({ status, modelName, chat }: { status: Extract<Status, { stage: "ready" }>; modelName: string; chat: boolean }) {
+function ReadyCards({ status }: { status: Extract<Status, { stage: "ready" }> }) {
   // "url" / "lan" / "key" recién copiado, o con "!" delante si el portapapeles lo rechazó.
   const [copied, setCopied] = useState<string | null>(null);
   const [reveal, setReveal] = useState(false);
-  const [openError, setOpenError] = useState(false);
   const copy = (label: string, value: string) => {
     const done = (mark: string) => {
       setCopied(mark);
@@ -416,38 +448,10 @@ function ReadyCards({ status, modelName, chat }: { status: Extract<Status, { sta
       .then(() => navigator.clipboard.writeText(value))
       .then(() => done(label), () => done("!" + label));
   };
-  const openChat = () => {
-    setOpenError(false);
-    openUrl(status.url).catch(() => setOpenError(true));
-  };
   const masked = `${status.api_key.slice(0, 9)}${"•".repeat(16)}${status.api_key.slice(-4)}`;
 
   return (
-    <div className={`grid grid-cols-1 gap-5 ${chat ? "@3xl:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]" : ""}`}>
-      {chat && (
-        <div className="flex flex-col rounded-2xl border border-border bg-surface p-6">
-          <IconTile className="from-[#0672cb] to-[#2f8fff]">
-            <Icon d="M4 5h16v11H8l-4 4z" />
-          </IconTile>
-          <h3 className="mt-4 text-lg font-bold">Chat</h3>
-          <p className="mt-1 flex-1 text-sm text-muted">
-            Talk to {modelName} in your browser. The first time it asks for the API key: paste it once and it is remembered.
-          </p>
-          <button
-            onClick={openChat}
-            className="mt-5 flex items-center justify-center gap-2 rounded-xl bg-accent px-5 py-3 font-bold text-on-accent shadow-lg shadow-accent/25 transition hover:-translate-y-0.5 hover:bg-accent-hover"
-          >
-            Open chat
-            <Icon d="M7 17 17 7M9 7h8v8" />
-          </button>
-          {openError && (
-            <p role="alert" className="mt-3 text-sm text-red-600 dark:text-red-300">
-              Could not open your browser. Open <span className="font-mono font-bold select-text">{status.url}</span> in it yourself.
-            </p>
-          )}
-        </div>
-      )}
-
+    <div className="grid grid-cols-1 gap-5">
       <div className="rounded-2xl border border-border bg-surface p-6">
         <div className="flex items-start gap-4">
           <IconTile className="from-[#3f8f00] to-[#76b900]">

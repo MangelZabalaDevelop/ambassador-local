@@ -15,6 +15,7 @@ const tauriApi = {
   start: (hardwareId: string, modelId: string, lan: boolean) => invoke<void>("start_model", { hardwareId, modelId, lan }),
   stop: () => invoke<void>("stop_model"),
   cancel: () => invoke<void>("cancel"),
+  openChat: () => invoke<void>("open_chat"),
   version: () => getVersion(),
   checkUpdate: () => invoke<UpdateInfo | null>("check_update"),
   installUpdate: () => invoke<void>("install_update"),
@@ -79,6 +80,9 @@ function mockApi(): typeof tauriApi {
     // Como el backend: cancelar vuelve a "listo para arrancar".
     cancel: async () => {
       cancelled = true;
+    },
+    openChat: async () => {
+      throw "Preview only: the chat opens in the app.";
     },
     version: async () => "0.1.0",
     checkUpdate: async () => ({ version: "0.2.0", current: "0.1.0", notes: "New models for GB10." }),

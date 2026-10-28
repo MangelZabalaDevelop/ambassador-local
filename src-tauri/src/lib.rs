@@ -1,4 +1,5 @@
 mod catalog;
+mod chat;
 mod cluster;
 mod detect;
 mod download;
@@ -136,7 +137,11 @@ async fn kill_in_background(inner: Arc<Mutex<Inner>>) {
 }
 
 fn emit_status(app: &AppHandle, inner: &Mutex<Inner>, status: Status) {
-    inner.lock().unwrap().status = Some(status.clone());
+    let was_ready = matches!(inner.lock().unwrap().status.replace(status.clone()), Some(Status::Ready { .. }));
+    // El chat es de ese servidor: si se para, se cae o se arranca otro modelo, su ventana ya no sirve.
+    if was_ready && !matches!(status, Status::Ready { .. }) {
+        chat::close_all(app);
+    }
     let _ = app.emit("status", status);
 }
 
@@ -574,12 +579,19 @@ pub fn run() {
             start_model,
             stop_model,
             cancel,
+            chat::open_chat,
             update::check_update,
             update::install_update,
             uninstall::uninstall_info,
             uninstall::uninstall,
             uninstall::quit
         ])
+        // Cerrar la ventana principal cierra la app aunque quede un chat abierto (y con ella, el servidor).
+        .on_window_event(|window, event| {
+            if window.label() == "main" && matches!(event, tauri::WindowEvent::Destroyed) {
+                chat::close_all(window.app_handle());
+            }
+        })
         .build(tauri::generate_context!())
         .expect("error while starting the app")
         .run(|app, event| {

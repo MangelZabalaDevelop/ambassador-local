@@ -5,6 +5,7 @@ mod detect;
 mod download;
 mod engine;
 mod lifetime;
+mod proxy;
 mod recipe;
 mod uninstall;
 mod update;
@@ -138,9 +139,11 @@ async fn kill_in_background(inner: Arc<Mutex<Inner>>) {
 
 fn emit_status(app: &AppHandle, inner: &Mutex<Inner>, status: Status) {
     let was_ready = matches!(inner.lock().unwrap().status.replace(status.clone()), Some(Status::Ready { .. }));
-    // El chat es de ese servidor: si se para, se cae o se arranca otro modelo, su ventana ya no sirve.
+    // El chat es de ese servidor: si se para, se cae o se arranca otro modelo, su ventana (y el proxy de vLLM o
+    // TensorFold) ya no sirve.
     if was_ready && !matches!(status, Status::Ready { .. }) {
         chat::close_all(app);
+        proxy::stop();
     }
     let _ = app.emit("status", status);
 }

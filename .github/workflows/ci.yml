@@ -46,7 +46,7 @@ jobs:
 
       - name: Shell scripts
         run: |
-          shellcheck -S warning install.sh
+          shellcheck -S warning install.sh scripts/*.sh
           for d in recipes/*/*/; do (cd "$d" && shellcheck -x -S warning -e SC1090,SC1091,SC2034,SC2148 *.sh); done
 
   # The same tests on Windows: release.yml runs them there too, and a test that only works on Linux

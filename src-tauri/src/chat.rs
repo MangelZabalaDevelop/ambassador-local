@@ -1,12 +1,14 @@
-//! Chat de llama-server en una ventana de la app. En el navegador su página pide la API key y hay que pegarla a mano;
-//! aquí se deja puesta antes de que cargue. El servidor la sigue exigiendo a todos los demás.
+//! El chat del modelo en marcha, en una ventana de la app: la página de chat de llama.cpp. llama-server la trae; para
+//! vLLM y TensorFold, que solo tienen la API, la sirve el proxy de la app (proxy.rs). En el navegador esa página pide
+//! la API key y hay que pegarla a mano; aquí se deja puesta antes de que cargue. El servidor la sigue exigiendo a
+//! todos los demás.
 
 use tauri::webview::NewWindowResponse;
 use tauri::{AppHandle, Manager, State, WebviewUrl, WebviewWindowBuilder};
 use tauri_plugin_opener::OpenerExt;
 use url::{Origin, Url};
 
-use crate::{AppState, Status};
+use crate::{proxy, AppState, Status};
 
 /// Cada servidor tiene su ventana: "chat-<puerto>".
 const PREFIX: &str = "chat-";
@@ -53,6 +55,15 @@ pub async fn open_chat(app: AppHandle, state: State<'_, AppState>) -> Result<(),
     let Some(Status::Ready { job, url, api_key, .. }) = status else {
         return Err("The model is not running.".into());
     };
+    let model = crate::catalog::get()?.model(&job.model_id).ok_or("Unknown model")?;
+    let recipe = model.recipes.get(&job.hardware_id).ok_or("Unknown model")?;
+    // vLLM y TensorFold: la misma página, servida por la app delante de su API.
+    let url = if model.in_container(&job.hardware_id) {
+        let engine = if recipe.vllm.is_some() { "vLLM" } else { "TensorFold" };
+        proxy::start(proxy::Target { upstream: url, key: api_key.clone(), model: model.id.clone(), ctx: recipe.ctx_size, engine }).await?
+    } else {
+        url
+    };
     let url: Url = url.parse().map_err(|e| format!("Could not open the chat: {e}"))?;
     let label = format!("{PREFIX}{}", url.port_or_known_default().unwrap_or_default());
     if let Some(window) = app.get_webview_window(&label) {
@@ -62,13 +73,12 @@ pub async fn open_chat(app: AppHandle, state: State<'_, AppState>) -> Result<(),
     }
     close_all(&app);
 
-    let name = crate::catalog::get().ok().and_then(|c| c.model(&job.model_id)).map_or(job.model_id.clone(), |m| m.name.clone());
     let origin = url.origin();
     let script = key_script(&origin.ascii_serialization(), &api_key);
     let (width, height) = size(&app);
     let (nav_app, nav_origin, popup_app) = (app.clone(), origin.clone(), app.clone());
     WebviewWindowBuilder::new(&app, label, WebviewUrl::External(url))
-        .title(format!("{name} · Chat"))
+        .title(format!("{} · Chat", model.name))
         .inner_size(width, height)
         .min_inner_size(480.0, 480.0)
         .center()

@@ -228,9 +228,7 @@ function ActionBar(props: Props) {
     );
   }
 
-  // llama-server trae su propia página de chat; los servidores en contenedor solo la API.
-  const recipe = props.model.recipes[props.hardware.id];
-  return <LiveBar status={status} since={props.liveSince} chat={!(recipe.vllm ?? recipe.tensorfold)} onStop={props.onStop} />;
+  return <LiveBar status={status} since={props.liveSince} onStop={props.onStop} />;
 }
 
 /** Otro modelo ocupa el servidor: decirlo, y ofrecer cambiar a este o ir a aquel. */
@@ -346,7 +344,7 @@ function DownloadBar({ status, onCancel }: { status: Extract<Status, { stage: "d
   );
 }
 
-function LiveBar({ status, since, chat, onStop }: { status: Extract<Status, { stage: "ready" }>; since: number | null; chat: boolean; onStop: () => void }) {
+function LiveBar({ status, since, onStop }: { status: Extract<Status, { stage: "ready" }>; since: number | null; onStop: () => void }) {
   const [, tick] = useState(0);
   useEffect(() => {
     const id = window.setInterval(() => tick((n) => n + 1), 1000);
@@ -372,26 +370,20 @@ function LiveBar({ status, since, chat, onStop }: { status: Extract<Status, { st
           {status.lan_url ? "Private server · devices on your network need the API key" : "Private server · only this machine can reach it"}
         </div>
         <div className="mt-1 flex flex-wrap items-baseline gap-x-3">
-          {/* Con chat, el botón ocupa el sitio de la dirección: la de las apps está abajo, en "Connect apps". */}
-          {chat ? (
-            <span className="text-xl font-bold">Ready to chat</span>
-          ) : (
-            <code className="font-mono text-xl font-bold break-all text-[#b6f04a] select-text">{status.url}</code>
-          )}
+          {/* El botón del chat ocupa el sitio de la dirección: la de las apps está abajo, en "Connect apps". */}
+          <span className="text-xl font-bold">Ready to chat</span>
           {since !== null && <span className="text-sm text-white/50 tabular-nums">up {formatDuration((Date.now() - since) / 1000)}</span>}
         </div>
       </div>
       <div className="flex flex-wrap items-center gap-3">
-        {chat && (
-          <button
-            onClick={openChat}
-            disabled={opening}
-            className="run-button flex items-center gap-2 rounded-xl px-5 py-2.5 font-bold text-white transition hover:-translate-y-0.5 disabled:cursor-wait disabled:opacity-70 disabled:hover:translate-y-0"
-          >
-            {opening ? <Spinner /> : <Icon d="M4 5h16v11H8l-4 4z" />}
-            {opening ? "Opening chat…" : "Open chat"}
-          </button>
-        )}
+        <button
+          onClick={openChat}
+          disabled={opening}
+          className="run-button flex items-center gap-2 rounded-xl px-5 py-2.5 font-bold text-white transition hover:-translate-y-0.5 disabled:cursor-wait disabled:opacity-70 disabled:hover:translate-y-0"
+        >
+          {opening ? <Spinner /> : <Icon d="M4 5h16v11H8l-4 4z" />}
+          {opening ? "Opening chat…" : "Open chat"}
+        </button>
         <button
           onClick={onStop}
           className="flex items-center gap-2 rounded-xl border border-red-400/40 px-5 py-2.5 font-bold text-red-200 transition hover:border-red-400 hover:bg-red-500/20"

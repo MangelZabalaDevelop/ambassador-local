@@ -68,7 +68,7 @@ starts the biggest recipes, even across two GB10:
 
 When it says **Live**, you can use it right away:
 
-- **Open chat** (llama.cpp models), next to *Stop server*: llama.cpp's chat page in its own window, with the API key already set. It closes when the model stops. In a browser the same page (the endpoint URL without `/v1`) asks for the key once.
+- **Open chat**, next to *Stop server*: llama.cpp's chat page in its own window, with the API key already set. It closes when the model stops. vLLM and TensorFold only have the API, so for them the app serves the same page on `127.0.0.1` and passes the chat to the model ([`src-tauri/src/proxy.rs`](src-tauri/src/proxy.rs)). With llama.cpp models the page also opens in a browser (the endpoint URL without `/v1`) and asks for the key once.
 - **Endpoint URL** and **API key**, in *Connect apps*: paste them into any OpenAI-compatible app. The key stays the same every time.
 - **Hermes:** run `hermes setup`, choose *Custom OpenAI-compatible endpoint*, then paste the URL and the key.
 - **OpenCode** and other coding agents: add an OpenAI-compatible provider with the same URL and key. For example, in `opencode.json`:
@@ -158,7 +158,7 @@ Files live in the app data folder
 
 Everything lives in [`recipes/catalog.json`](recipes/catalog.json). It points to [`recipes/catalog.schema.json`](recipes/catalog.schema.json), so editors like VS Code autocomplete every field and flag mistakes while you type.
 
-- `engine`: the pinned llama.cpp version and its files per OS/architecture. When you change it, check that **Open chat** still opens without asking for the API key: the app writes the key where llama.cpp's chat page keeps its settings (`LlamaUi.config` in its local storage, see [`src-tauri/src/chat.rs`](src-tauri/src/chat.rs)).
+- `engine`: the pinned llama.cpp version and its files per OS/architecture. When you change it, copy that version's chat page for vLLM and TensorFold with `scripts/vendor-llama-ui.sh` (`cargo test` checks the versions match), and check that **Open chat** still opens without asking for the API key: the app writes the key where llama.cpp's chat page keeps its settings (`LlamaUi.config` in its local storage, see [`src-tauri/src/chat.rs`](src-tauri/src/chat.rs)).
 - `hardware`: the program's workstations. `gpu_match` is used to detect them with `nvidia-smi`, and only the workstation detected on the machine can be used. `"available": false` shows it as *Coming soon* (not tested yet). `"units": 2` is for linked systems (two GB10), and `"image"` reuses another workstation's photo. Product images go in `public/hardware/<id>.webp`.
 - `families`: the lab cards (name, series, description, color). Logos go in `src/assets/labs/<id>.svg`.
 - `models`: each model with its GGUF files and one `recipe` per hardware id. A model without a recipe for a workstation is hidden on that workstation.

@@ -53,7 +53,19 @@ jobs:
         with:
           tagName: ${{ github.ref_name }}
           releaseName: Ambassador Local ${{ github.ref_name }}
-          # Borrador: los embajadores no ven nada hasta que lo pruebas y le das "Publish".
+          # Borrador mientras compila: los embajadores no ven nada hasta que el job "publish" lo publica.
           releaseDraft: true
           prerelease: false
           includeUpdaterJson: true
+
+  # Publica el borrador solo cuando las tres compilaciones terminaron bien: si una falla, no sale nada
+  # y la app sigue ofreciendo la versión anterior.
+  publish:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release edit "${{ github.ref_name }}" --repo "${{ github.repository }}" --draft=false --latest

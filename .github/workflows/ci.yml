@@ -48,3 +48,33 @@ jobs:
         run: |
           shellcheck -S warning install.sh
           for d in recipes/*/*/; do (cd "$d" && shellcheck -x -S warning -e SC1090,SC1091,SC2034,SC2148 *.sh); done
+
+  # The same tests on Windows: release.yml runs them there too, and a test that only works on Linux
+  # stops the Windows installer from being built.
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - name: Install
+        run: npm ci
+
+      - name: Interface (TypeScript + build)
+        run: npm run build
+
+      - name: Rust tests
+        working-directory: src-tauri
+        run: cargo test
+
+      - name: Clippy
+        working-directory: src-tauri
+        run: cargo clippy --all-targets -- -D warnings

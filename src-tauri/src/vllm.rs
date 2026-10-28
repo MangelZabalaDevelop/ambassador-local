@@ -251,85 +251,91 @@ mod tests {
         assert_eq!(get(&m, "image"), "no answer");
     }
 
-    /// Corre el script de verdad con bash en un $HOME de prueba (sin docker ni GPU: solo mira los pesos).
-    fn probe_in(home: &std::path::Path, v: &Target, env: &[(&str, &std::path::Path)]) -> HashMap<String, String> {
-        let mut cmd = Command::new("bash");
-        cmd.args(["-c", &probe_script(v)]).env("HOME", home).env_remove("HF_HOME").env_remove("HF_HUB_CACHE");
-        for (k, val) in env {
-            cmd.env(k, val);
+    /// El verificador solo corre en Linux (en Windows `verify` responde sin mirar nada) y necesita bash.
+    #[cfg(target_os = "linux")]
+    mod probe {
+        use super::*;
+
+        /// Corre el script de verdad con bash en un $HOME de prueba (sin docker ni GPU: solo mira los pesos).
+        fn probe_in(home: &std::path::Path, v: &Target, env: &[(&str, &std::path::Path)]) -> HashMap<String, String> {
+            let mut cmd = Command::new("bash");
+            cmd.args(["-c", &probe_script(v)]).env("HOME", home).env_remove("HF_HOME").env_remove("HF_HUB_CACHE");
+            for (k, val) in env {
+                cmd.env(k, val);
+            }
+            parse(&String::from_utf8_lossy(&cmd.output().unwrap().stdout))
         }
-        parse(&String::from_utf8_lossy(&cmd.output().unwrap().stdout))
-    }
 
-    /// Una revisión con su índice y dos archivos de pesos, como la deja `hf download`.
-    fn snapshot(hub: &std::path::Path, t: &Target, missing: bool) {
-        let dir = hub.join(&t.snapshot);
-        std::fs::create_dir_all(&dir).unwrap();
-        std::fs::write(dir.join("model.safetensors.index.json"), r#"{"weight_map": {"a": "model-1.safetensors", "b": "model-2.safetensors"}}"#).unwrap();
-        std::fs::write(dir.join("model-1.safetensors"), "x").unwrap();
-        if !missing {
-            std::fs::write(dir.join("model-2.safetensors"), "x").unwrap();
+        /// Una revisión con su índice y dos archivos de pesos, como la deja `hf download`.
+        fn snapshot(hub: &std::path::Path, t: &Target, missing: bool) {
+            let dir = hub.join(&t.snapshot);
+            std::fs::create_dir_all(&dir).unwrap();
+            std::fs::write(dir.join("model.safetensors.index.json"), r#"{"weight_map": {"a": "model-1.safetensors", "b": "model-2.safetensors"}}"#).unwrap();
+            std::fs::write(dir.join("model-1.safetensors"), "x").unwrap();
+            if !missing {
+                std::fs::write(dir.join("model-2.safetensors"), "x").unwrap();
+            }
         }
-    }
 
-    fn scratch(name: &str) -> std::path::PathBuf {
-        let d = std::env::temp_dir().join(format!("al-probe-{name}-{}", std::process::id()));
-        let _ = std::fs::remove_dir_all(&d);
-        std::fs::create_dir_all(&d).unwrap();
-        d
-    }
+        fn scratch(name: &str) -> std::path::PathBuf {
+            let d = std::env::temp_dir().join(format!("al-probe-{name}-{}", std::process::id()));
+            let _ = std::fs::remove_dir_all(&d);
+            std::fs::create_dir_all(&d).unwrap();
+            d
+        }
 
-    fn first_target(tensorfold: bool) -> Target {
-        let cat = crate::catalog::get().unwrap();
-        cat.models
-            .iter()
-            .flat_map(|m| cat.hardware.iter().filter_map(move |h| target_for(m, h)))
-            .find(|t| t.prepared.is_some() == tensorfold)
-            .unwrap()
-    }
+        fn first_target(tensorfold: bool) -> Target {
+            let cat = crate::catalog::get().unwrap();
+            cat.models
+                .iter()
+                .flat_map(|m| cat.hardware.iter().filter_map(move |h| target_for(m, h)))
+                .find(|t| t.prepared.is_some() == tensorfold)
+                .unwrap()
+        }
 
-    #[test]
-    fn probe_finds_weights_in_the_default_cache() {
-        let home = scratch("default");
-        let t = first_target(false);
-        snapshot(&home.join(".cache/huggingface/hub"), &t, false);
-        assert_eq!(get(&probe_in(&home, &t, &[]), "weights"), "ok");
-    }
+        #[test]
+        fn probe_finds_weights_in_the_default_cache() {
+            let home = scratch("default");
+            let t = first_target(false);
+            snapshot(&home.join(".cache/huggingface/hub"), &t, false);
+            assert_eq!(get(&probe_in(&home, &t, &[]), "weights"), "ok");
+        }
 
-    #[test]
-    fn probe_reports_missing_weight_files() {
-        let home = scratch("missing");
-        let t = first_target(false);
-        snapshot(&home.join(".cache/huggingface/hub"), &t, true);
-        assert_eq!(get(&probe_in(&home, &t, &[]), "weights"), "missing 1");
-        assert_eq!(get(&probe_in(&scratch("none"), &t, &[]), "weights"), "none");
-    }
+        #[test]
+        fn probe_reports_missing_weight_files() {
+            let home = scratch("missing");
+            let t = first_target(false);
+            snapshot(&home.join(".cache/huggingface/hub"), &t, true);
+            assert_eq!(get(&probe_in(&home, &t, &[]), "weights"), "missing 1");
+            assert_eq!(get(&probe_in(&scratch("none"), &t, &[]), "weights"), "none");
+        }
 
-    /// Igual que config.sh: HF_HUB_CACHE manda sobre HF_HOME y sobre la ruta por defecto.
-    #[test]
-    fn probe_follows_hf_hub_cache_like_the_recipe_scripts() {
-        let home = scratch("hubcache");
-        let hub = home.join("other-disk/hub");
-        let t = first_target(false);
-        snapshot(&hub, &t, false);
-        assert_eq!(get(&probe_in(&home, &t, &[("HF_HUB_CACHE", &hub)]), "weights"), "ok");
-    }
+        /// Igual que config.sh: HF_HUB_CACHE manda sobre HF_HOME y sobre la ruta por defecto.
+        #[test]
+        fn probe_follows_hf_hub_cache_like_the_recipe_scripts() {
+            let home = scratch("hubcache");
+            let hub = home.join("other-disk/hub");
+            let t = first_target(false);
+            snapshot(&hub, &t, false);
+            assert_eq!(get(&probe_in(&home, &t, &[("HF_HUB_CACHE", &hub)]), "weights"), "ok");
+        }
 
-    /// TensorFold: lo que el embajador fijó en local.env (pesos en otro disco) y el sello de prepare.sh.
-    #[test]
-    fn probe_reads_tensorfold_local_env_and_ready_stamp() {
-        let home = scratch("tensorfold");
-        let t = first_target(true);
-        let (dir, stamp) = t.prepared.clone().unwrap();
-        let hub = home.join("big-disk/hub");
-        snapshot(&hub, &t, false);
-        std::fs::create_dir_all(home.join(&dir)).unwrap();
-        std::fs::write(home.join(&dir).join("local.env"), format!("HF_HUB_CACHE={}\n", hub.display())).unwrap();
-        let m = probe_in(&home, &t, &[]);
-        assert_eq!(get(&m, "weights"), "ok");
-        assert_eq!(get(&m, "prepared"), "no");
-        std::fs::write(home.join(&dir).join(".ready"), format!("{stamp}\n")).unwrap();
-        assert_eq!(get(&probe_in(&home, &t, &[]), "prepared"), "ok");
+        /// TensorFold: lo que el embajador fijó en local.env (pesos en otro disco) y el sello de prepare.sh.
+        #[test]
+        fn probe_reads_tensorfold_local_env_and_ready_stamp() {
+            let home = scratch("tensorfold");
+            let t = first_target(true);
+            let (dir, stamp) = t.prepared.clone().unwrap();
+            let hub = home.join("big-disk/hub");
+            snapshot(&hub, &t, false);
+            std::fs::create_dir_all(home.join(&dir)).unwrap();
+            std::fs::write(home.join(&dir).join("local.env"), format!("HF_HUB_CACHE={}\n", hub.display())).unwrap();
+            let m = probe_in(&home, &t, &[]);
+            assert_eq!(get(&m, "weights"), "ok");
+            assert_eq!(get(&m, "prepared"), "no");
+            std::fs::write(home.join(&dir).join(".ready"), format!("{stamp}\n")).unwrap();
+            assert_eq!(get(&probe_in(&home, &t, &[]), "prepared"), "ok");
+        }
     }
 
     /// Imprime el script de una receta para probarlo a mano en una GB10:

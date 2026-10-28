@@ -381,12 +381,14 @@ mod tests {
     #[test]
     fn only_our_own_folders_can_be_deleted() {
         let id = "io.github.ambassadorlocal.app";
-        assert!(safe_to_delete(Path::new("/home/ana/.local/share/io.github.ambassadorlocal.app"), id));
-        assert!(safe_to_delete(Path::new("/home/ana/.cache/ambassador-local"), id));
-        assert!(!safe_to_delete(Path::new("/home/ana/.cache"), id));
-        assert!(!safe_to_delete(Path::new("/ambassador-local"), id));
+        // Una ruta absoluta de verdad en cada sistema (en Windows, "/home/..." no lo es: falta la unidad).
+        let home = Path::new(if cfg!(windows) { r"C:\Users\ana" } else { "/home/ana" });
+        assert!(safe_to_delete(&home.join(".local/share/io.github.ambassadorlocal.app"), id));
+        assert!(safe_to_delete(&home.join(".cache/ambassador-local"), id));
+        assert!(!safe_to_delete(&home.join(".cache"), id));
+        assert!(!safe_to_delete(&home.join(".cache/huggingface"), id));
+        assert!(!safe_to_delete(Path::new(if cfg!(windows) { r"C:\ambassador-local" } else { "/ambassador-local" }), id));
         assert!(!safe_to_delete(Path::new("relative/x/y/ambassador-local"), id));
-        assert!(!safe_to_delete(Path::new("/home/ana/.cache/huggingface"), id));
     }
 
     /// Lo que se libera: sin contar enlaces duros (borrarlos no libera nada) ni seguir enlaces simbólicos.

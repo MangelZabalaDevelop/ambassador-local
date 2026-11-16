@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { api, formatBytes } from "../api";
-import { downloadsFor, formatContext, quantFor, type Family, type Hardware, type Job, type Model, type Status } from "../types";
+import { diskFor, formatContext, quantFor, type Family, type Hardware, type Job, type Model, type Status } from "../types";
 import { HardwarePhoto, labLogoSrc, RecipeBadges } from "./Illustrations";
 
 type Props = {
@@ -60,7 +60,7 @@ export function RunScreen(props: Props) {
   // Recetas en contenedor (las afinadas de la T2 y de las dos GB10): la app las arranca igual que las demás.
   const container = recipe.vllm ?? recipe.tensorfold;
   const single = hardware.units <= 1;
-  const size = container ? container.size : downloadsFor(model, hardware.id).reduce((a, f) => a + f.size, 0);
+  const size = diskFor(model, hardware.id);
 
   return (
     <div className="@container mt-8 flex flex-col gap-5">

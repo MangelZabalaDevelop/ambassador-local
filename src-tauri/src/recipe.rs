@@ -12,6 +12,9 @@ macro_rules! scripts {
 /// `motor/receta` → archivos que necesita run.sh y stop.sh. Los pesos y la imagen los deja listos la revisión previa.
 const SCRIPTS: &[(&str, &[(&str, &str)])] = &[
     scripts!("vllm/qwen38-flash-next-fp4-t2": "config.sh", "run.sh", "stop.sh", "engine.env"),
+    scripts!("vllm/qwen38-flash-next-fp4-gb10": "config.sh", "run.sh", "stop.sh", "engine.env"),
+    scripts!("vllm/deepseek-v4-flash-vision-gb10": "config.sh", "run.sh", "stop.sh", "engine.env", "Dockerfile"),
+    scripts!("vllm/glm53-flash-exl3-gb10": "config.sh", "run.sh", "stop.sh", "engine.env", "Dockerfile"),
     scripts!("tensorfold/deepseek-v41-flash-1017": "config.sh", "run.sh", "stop.sh", "memwatch.sh"),
 ];
 

@@ -107,29 +107,30 @@ Without the app: on Windows, *Settings → Apps → Ambassador Local → Uninsta
 
 ## Tested on
 
-Each recipe is tuned and measured on the workstation in its column; the number is the average speed measured there.
+Each recipe is tuned and measured on the workstation in its column: the average speed measured there and the disk space its weights need.
 A model only appears in the app on the workstations marked here.
 
 <!-- models:start -->
 | Model | Pro Max Tower T2 | Pro Max 18 Plus (not tested yet) | Pro Max 16 Premium (not tested yet) | GB10 | GB10 ×2 |
 | --- | --- | --- | --- | --- | --- |
-| NVIDIA · **Nemotron 3.5 Super VL** 120B-A12B | — | — | — | ✓ 27.9 tok/s | — |
-| NVIDIA · **Nemotron 3.5 Bolt** 74B-A9B | ✓ 111.1 tok/s | — | — | ✓ 21.9 tok/s | — |
-| NVIDIA · **Nemotron 3.5 Lightning** 30B-A3B | ✓ 341.7 tok/s | — | — | ✓ 81 tok/s | — |
-| Qwen · **Qwen3.8 Flash Next** 180B | ✓ 116.9 tok/s | — | — | ✓ 29.2 tok/s | ✓ 30.3 tok/s |
-| Qwen · **Qwen3.6 35B-A3B** | ✓ 327.7 tok/s | — | — | ✓ 84.8 tok/s | — |
-| Qwen · **Qwen3.8 27B** | ✓ 85.6 tok/s | — | — | ✓ 22.4 tok/s | — |
-| Qwen · **Qwen3-Coder-Next** 80B-A3B | ✓ 203.7 tok/s | — | — | ✓ 54.3 tok/s | — |
-| Google · **Gemma 4 31B** | ✓ 106.5 tok/s | — | — | ✓ 34 tok/s | — |
-| Google · **Gemma 4 26B-A4B** | ✓ 315.4 tok/s | — | — | ✓ 120.5 tok/s | — |
-| Google · **Gemma 4 12B** | ✓ 209.5 tok/s | — | — | ✓ 76.3 tok/s | — |
-| GLM · **GLM-4.7-Flash** 30B-A3B | ✓ 168.1 tok/s | — | — | ✓ 69.1 tok/s | — |
-| GLM · **GLM-5.3-Flash** 320B-A18B | — | — | — | — | ✓ 17.3 tok/s |
-| DeepSeek · **DeepSeek V4 Flash** 284B-A13B | — | — | — | ✓ 17 tok/s | ✓ 15.7 tok/s |
-| OpenAI · **gpt-oss-120b** 117B-A5B | ✓ 203.3 tok/s | — | — | ✓ 43 tok/s | — |
-| Google · **Gemma 3 12B** | ✓ 91 tok/s | — | — | ✓ | — |
-| Qwen · **Qwen3.8 Flash Next FP4** 180B | ✓ 191.5 tok/s · Miguel Tuned | — | — | — | — |
-| DeepSeek · **DeepSeek-V4.1-Flash-1017** 552B-A16B | — | — | — | — | ✓ 53.9 tok/s · Miguel Tuned |
+| NVIDIA · **Nemotron 3.5 Super VL** 120B-A12B | — | — | — | ✓ 27.9 tok/s · 87 GB | — |
+| NVIDIA · **Nemotron 3.5 Bolt** 74B-A9B | ✓ 111.1 tok/s · 79 GB | — | — | ✓ 21.9 tok/s · 50 GB | — |
+| NVIDIA · **Nemotron 3.5 Lightning** 30B-A3B | ✓ 341.7 tok/s · 39 GB | — | — | ✓ 81 tok/s · 26 GB | — |
+| Qwen · **Qwen3.8 Flash Next** 180B | ✓ 116.9 tok/s · 94 GB | — | — | ✓ 29.2 tok/s · 94 GB | ✓ 30.3 tok/s · 114 GB |
+| Qwen · **Qwen3.6 35B-A3B** | ✓ 327.7 tok/s · 39 GB | — | — | ✓ 84.8 tok/s · 23 GB | — |
+| Qwen · **Qwen3.8 27B** | ✓ 85.6 tok/s · 31 GB | — | — | ✓ 22.4 tok/s · 18 GB | — |
+| Qwen · **Qwen3-Coder-Next** 80B-A3B | ✓ 203.7 tok/s · 86 GB | — | — | ✓ 54.3 tok/s · 50 GB | — |
+| Google · **Gemma 4 31B** | ✓ 106.5 tok/s · 36 GB | — | — | ✓ 34 tok/s · 18 GB | — |
+| Google · **Gemma 4 26B-A4B** | ✓ 315.4 tok/s · 28 GB | — | — | ✓ 120.5 tok/s · 15 GB | — |
+| Google · **Gemma 4 12B** | ✓ 209.5 tok/s · 14 GB | — | — | ✓ 76.3 tok/s · 7 GB | — |
+| GLM · **GLM-4.7-Flash** 30B-A3B | ✓ 168.1 tok/s · 36 GB | — | — | ✓ 69.1 tok/s · 18 GB | — |
+| GLM · **GLM-5.3-Flash** 320B-A18B | — | — | — | ✓ 19.6 tok/s · 88 GB | ✓ 17.3 tok/s · 157 GB |
+| DeepSeek · **DeepSeek V4 Flash** 284B-A13B | — | — | — | ✓ 17 tok/s · 104 GB | ✓ 15.7 tok/s · 155 GB |
+| DeepSeek · **DeepSeek V4 Flash Vision** 305B | — | — | — | ✓ 23.3 tok/s · 116 GB | — |
+| OpenAI · **gpt-oss-120b** 117B-A5B | ✓ 203.3 tok/s · 65 GB | — | — | ✓ 43 tok/s · 65 GB | — |
+| Google · **Gemma 3 12B** | ✓ 91 tok/s · 14 GB | — | — | ✓ · 7 GB | — |
+| Qwen · **Qwen3.8 Flash Next FP4** 180B | ✓ 191.5 tok/s · 102 GB · Miguel Tuned | — | — | ✓ 36.9 tok/s · 102 GB | — |
+| DeepSeek · **DeepSeek-V4.1-Flash-1017** 552B-A16B | — | — | — | — | ✓ 53.9 tok/s · 211 GB · Miguel Tuned |
 <!-- models:end -->
 
 ### Share a recipe

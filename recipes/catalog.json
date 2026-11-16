@@ -1057,7 +1057,7 @@
       "family": "glm",
       "name": "GLM-5.3-Flash",
       "size": "320B-A18B",
-      "tagline": "Z.ai's big agentic coder, split across two GB10.",
+      "tagline": "Z.ai's big agentic coder, on one GB10 or split across two.",
       "quant": "UD-IQ4_XS",
       "size_class": "xlarge",
       "intelligence": 5,
@@ -1094,6 +1094,20 @@
         }
       ],
       "recipes": {
+        "pro-max-gb10": {
+          "speed": 2,
+          "tokens_per_sec": 19.6,
+          "ctx_size": 262144,
+          "quant": "2-bit",
+          "vllm": {
+            "image": "ghcr.io/gitcommit90/glm-5.3-one-spark@sha256:ba6db0547b24162854948fb16cda68dd4408360e03aeba480edb8d3d876eaeef",
+            "image_id": "sha256:6aef9d4749213583f6f61f3647983be624af605479c33db93b2472eb0692bdf6",
+            "repo": "turboderp/GLM-5.3-Flash-exl3",
+            "revision": "51058cd551c7e570d87bd32a4adee720edce2349",
+            "size": 87575945045,
+            "recipe": "glm53-flash-exl3-gb10"
+          }
+        },
         "pro-max-gb10-x2": {
           "speed": 2,
           "tokens_per_sec": 17.3,
@@ -1182,6 +1196,37 @@
       }
     },
     {
+      "id": "deepseek-v4-flash-vision",
+      "family": "deepseek",
+      "name": "DeepSeek V4 Flash Vision",
+      "size": "305B",
+      "tagline": "DeepSeek V4 Flash that also reads images, on one GB10.",
+      "quant": "2-3 bit",
+      "size_class": "xlarge",
+      "intelligence": 5,
+      "best_for": [
+        "Reasoning",
+        "Coding",
+        "Images"
+      ],
+      "files": [],
+      "recipes": {
+        "pro-max-gb10": {
+          "speed": 2,
+          "tokens_per_sec": 23.3,
+          "ctx_size": 245760,
+          "vllm": {
+            "image": "ghcr.io/0xsero/deepseek-v4-flash-0731-spark-sparkinfer@sha256:2e077489a83a0360952828051fe7f7a32c1801e5ce8436d85f7267583d614ff4",
+            "image_id": "sha256:3324f96434a2076e80e6a6bc4fbd187e5dd31e80ed85620961f9cff5dbdc3791",
+            "repo": "GaelicThunder/DeepSeek-V4-Flash-Vision-Exp-ablit-EXL3-Kalibrated",
+            "revision": "178652ce2ef562c9135488def954a2418db6f5e5",
+            "size": 116066519546,
+            "recipe": "deepseek-v4-flash-vision-gb10"
+          }
+        }
+      }
+    },
+    {
       "id": "gpt-oss-120b",
       "family": "openai",
       "name": "gpt-oss-120b",
@@ -1262,7 +1307,7 @@
       "name": "Qwen3.8 Flash Next FP4",
       "size": "180B",
       "tagline": "The largest Qwen, in NVIDIA's FP4.",
-      "quant": "NVFP4 (FP4-Local)",
+      "quant": "4-bit (FP4)",
       "size_class": "xlarge",
       "intelligence": 5,
       "best_for": [
@@ -1285,6 +1330,19 @@
             "revision": "b9ce18a6887e18c089fdea8509a33e63429a3300",
             "size": 102262310289,
             "recipe": "qwen38-flash-next-fp4-t2"
+          }
+        },
+        "pro-max-gb10": {
+          "speed": 3,
+          "tokens_per_sec": 36.9,
+          "ctx_size": 262144,
+          "vllm": {
+            "image": "eugr/spark-vllm-b12x@sha256:19ab778dd57f019c44caf5df91a671cf688923d1ca9fa8ce92be0c9acb46d215",
+            "image_id": "sha256:c34501ebfa793ce49408a72e559e70b765fd1e28e1f6012370a744635340cc02",
+            "repo": "nvidia/Qwen3.8-Flash-Next-FP4-Local",
+            "revision": "b9ce18a6887e18c089fdea8509a33e63429a3300",
+            "size": 102262310289,
+            "recipe": "qwen38-flash-next-fp4-gb10"
           }
         }
       }

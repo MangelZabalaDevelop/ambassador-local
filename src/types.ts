@@ -86,6 +86,12 @@ export const downloadsFor = (m: Model, hardwareId: string) => {
   const draft = m.recipes[hardwareId]?.mtp?.draft;
   return draft ? [...filesFor(m, hardwareId), draft] : filesFor(m, hardwareId);
 };
+/** Bytes de disco que necesitan los pesos de la receta de este equipo (en contenedor: por GB10). */
+export const diskFor = (m: Model, hardwareId: string) => {
+  const r = m.recipes[hardwareId];
+  const container = r?.vllm ?? r?.tensorfold;
+  return container ? container.size : downloadsFor(m, hardwareId).reduce((a, f) => a + f.size, 0);
+};
 export const quantFor = (m: Model, hardwareId: string) => m.recipes[hardwareId]?.quant ?? m.quant;
 /** Clave de `downloaded_models`: el mismo modelo puede estar bajado para un equipo y no para otro. */
 export const downloadKey = (m: Model, hardwareId: string) => `${m.id}@${hardwareId}`;

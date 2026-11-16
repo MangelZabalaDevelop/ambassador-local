@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from "react";
-import { downloadKey, formatContext, type Model, type SizeClass } from "../types";
+import { formatBytes } from "../api";
+import { diskFor, downloadKey, formatContext, type Model, type SizeClass } from "../types";
 import { RecipeBadges } from "./Illustrations";
 
 type Props = {
@@ -34,7 +35,7 @@ const COLUMNS: { key: string; title: string; tip: ReactNode; legend?: ReactNode 
     title: "Size",
     tip: (
       <>
-        How big the model is. Bigger models know more, but need more GPU memory.
+        How big the model is, and the disk space it needs. Bigger models know more, but need more GPU memory.
         <ul className="mt-2 space-y-1">
           {Object.values(SIZES).map((s) => (
             <li key={s.label} className="flex items-center gap-2">
@@ -117,6 +118,7 @@ function Row(props: { model: Model; hardwareId: string; selected: boolean; downl
   const { model: m, selected } = props;
   const recipe = m.recipes[props.hardwareId];
   const size = SIZES[m.size_class];
+  const disk = diskFor(m, props.hardwareId);
   const cell = (key: string, children: ReactNode) => {
     const col = COLUMNS.find((c) => c.key === key)!;
     return (
@@ -166,6 +168,7 @@ function Row(props: { model: Model; hardwareId: string; selected: boolean; downl
               <span className="font-bold">{size.label}</span>
             </div>
             <div className="mt-1 text-xs text-muted">{m.size} parameters</div>
+            {disk > 0 && <div className="text-xs text-muted tabular-nums">{formatBytes(disk)} of disk</div>}
           </>,
         )}
         {cell("speed", <Rating value={recipe.speed} d={BOLT} on="text-amber-400" label="Speed" />)}

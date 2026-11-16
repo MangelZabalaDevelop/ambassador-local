@@ -20,15 +20,22 @@ const families = Object.fromEntries(catalog.families.map((f) => [f.id, f.name]))
 const short = (h) => h.name.replace(/^Dell /, "").replace(/^Pro Max with /, "");
 const header = ["Model", ...hardware.map((h) => (h.available === false ? `${short(h)} (not tested yet)` : short(h)))];
 
-const cell = (r) => {
+// Disk the weights need on that workstation (in a container: per GB10), like the app shows it.
+const disk = (m, r) => {
+  const c = r.vllm ?? r.tensorfold;
+  const bytes = c ? c.size : [...(r.files ?? m.files), ...(r.mtp?.draft ? [r.mtp.draft] : [])].reduce((a, f) => a + f.size, 0);
+  return bytes > 0 ? ` · ${Math.round(bytes / 1e9)} GB` : "";
+};
+
+const cell = (m, r) => {
   if (!r) return "—";
   const tps = r.tokens_per_sec ? ` ${r.tokens_per_sec} tok/s` : "";
-  return `✓${tps}${r.tuned ? " · Miguel Tuned" : ""}`;
+  return `✓${tps}${disk(m, r)}${r.tuned ? " · Miguel Tuned" : ""}`;
 };
 
 const rows = catalog.models.map((m) => [
   `${families[m.family] ?? m.family} · **${m.name}**${m.name.endsWith(m.size) ? "" : ` ${m.size}`}`,
-  ...hardware.map((h) => cell(m.recipes[h.id])),
+  ...hardware.map((h) => cell(m, m.recipes[h.id])),
 ]);
 
 const table = [header, header.map(() => "---"), ...rows].map((r) => `| ${r.join(" | ")} |`).join("\n");

@@ -454,7 +454,9 @@ impl Catalog {
                 if !(512..=max_ctx).contains(&r.ctx_size) {
                     return Err(format!("{}: ctx_size out of range", m.id));
                 }
-                if r.quant.is_some() != r.files.is_some() || r.quant.as_ref().is_some_and(|q| q.is_empty()) {
+                // Archivos propios llevan su quant; una receta en contenedor puede nombrar la suya sin archivos.
+                let quant_ok = if r.files.is_some() { r.quant.is_some() } else { r.quant.is_none() || r.in_container() };
+                if !quant_ok || r.quant.as_ref().is_some_and(|q| q.is_empty()) {
                     return Err(format!("{}: recipe for {hw} must set quant and files together", m.id));
                 }
                 if let Some(mtp) = &r.mtp {

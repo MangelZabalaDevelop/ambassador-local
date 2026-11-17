@@ -3,21 +3,21 @@
   "schema": 1,
   "engine": {
     "name": "llama.cpp",
-    "version": "b11827",
+    "version": "b12359",
     "builds": [
       {
         "os": "windows",
         "arch": "x86_64",
         "files": [
           {
-            "url": "https://github.com/ggml-org/llama.cpp/releases/download/b11827/llama-b11827-bin-win-cuda-13.4-x64.zip",
-            "sha256": "5d54c5fa2f26d9c80fa7439692e5929e8f7f1e7b2d00e3d6ab5a919154c768fa",
-            "size": 159849608
+            "url": "https://github.com/ggml-org/llama.cpp/releases/download/b12359/llama-b12359-bin-win-cuda-13.5-x64.zip",
+            "sha256": "1de9ca1ff408d6e348ea0007c6880ad2393311a02e7799bcde26dc16daef03dd",
+            "size": 179546112
           },
           {
-            "url": "https://github.com/ggml-org/llama.cpp/releases/download/b11827/cudart-llama-bin-win-cuda-13.4-x64.zip",
-            "sha256": "738f8c251ac22b70c3ae6f83a10cf222725df0395246a2cf58f32bdb85fbe668",
-            "size": 423535356
+            "url": "https://github.com/ggml-org/llama.cpp/releases/download/b12359/cudart-llama-bin-win-cuda-13.5-x64.zip",
+            "sha256": "c2bf4cc202bfbaaa7a0b75f5082457c3811326947bb216059b72839d844e9cba",
+            "size": 426314199
           }
         ]
       },
@@ -26,14 +26,14 @@
         "arch": "x86_64",
         "files": [
           {
-            "url": "https://github.com/ggml-org/llama.cpp/releases/download/b11827/llama-b11827-bin-ubuntu-cuda-13.4-x64.tar.gz",
-            "sha256": "1baf6ae4459bfcccb04b66bc6acb2914923ae5698bc40cf475be0ab1c939d95a",
-            "size": 158793855
+            "url": "https://github.com/ggml-org/llama.cpp/releases/download/b12359/llama-b12359-bin-ubuntu-cuda-13.5-x64.tar.gz",
+            "sha256": "9440f417615bed0e191acef03bff0249117d2be74335358265a6d28475a9baf0",
+            "size": 178419847
           },
           {
-            "url": "https://github.com/ggml-org/llama.cpp/releases/download/b11827/cudart-llama-b11827-bin-ubuntu-cuda-13.4-x64.tar.gz",
-            "sha256": "7c55cfc0ab65e36c0fcb03868f7c281273fcf7a91426c4343c3960fff3b17c20",
-            "size": 440236709
+            "url": "https://github.com/ggml-org/llama.cpp/releases/download/b12359/cudart-llama-b12359-bin-ubuntu-cuda-13.5-x64.tar.gz",
+            "sha256": "976a9146bb8a487a6ea701224d7fb14b05e494ab3c8f5c1799ffc4e5805d640c",
+            "size": 444078822
           }
         ]
       },
@@ -42,14 +42,14 @@
         "arch": "aarch64",
         "files": [
           {
-            "url": "https://github.com/ggml-org/llama.cpp/releases/download/b11827/llama-b11827-bin-ubuntu-cuda-13.4-arm64.tar.gz",
-            "sha256": "a73d21437f6d46cd764987c1011de61dd289e5f806d8de607dc6aafadf1c75d4",
-            "size": 153922734
+            "url": "https://github.com/ggml-org/llama.cpp/releases/download/b12359/llama-b12359-bin-ubuntu-cuda-13.5-arm64.tar.gz",
+            "sha256": "e12fd3ca9a599349cac5ec767825e17f8cab9dc2dab8d8e5b85d50ce21ef6d7d",
+            "size": 173529798
           },
           {
-            "url": "https://github.com/ggml-org/llama.cpp/releases/download/b11827/cudart-llama-b11827-bin-ubuntu-cuda-13.4-arm64.tar.gz",
-            "sha256": "81eb43df00f59f4d13f49d9a4a8d751609af82bc4bfbe0f352600bca4feb114b",
-            "size": 552522184
+            "url": "https://github.com/ggml-org/llama.cpp/releases/download/b12359/cudart-llama-b12359-bin-ubuntu-cuda-13.5-arm64.tar.gz",
+            "sha256": "998f62318999710d398dad40821d1d037731f360791e41628d9dfcde207909d1",
+            "size": 559874231
           }
         ]
       }
@@ -491,7 +491,7 @@
       "recipes": {
         "pro-max-gb10": {
           "speed": 3,
-          "tokens_per_sec": 27.9,
+          "tokens_per_sec": 28.3,
           "ctx_size": 262144,
           "mtp": {
             "draft_n_max": 2
@@ -533,7 +533,7 @@
       "recipes": {
         "pro-max-gb10": {
           "speed": 2,
-          "tokens_per_sec": 21.9,
+          "tokens_per_sec": 22.7,
           "ctx_size": 262144
         },
         "pro-max-t2": {
@@ -585,7 +585,7 @@
       "recipes": {
         "pro-max-gb10": {
           "speed": 5,
-          "tokens_per_sec": 81.0,
+          "tokens_per_sec": 77.0,
           "ctx_size": 262144,
           "mtp": {
             "draft_n_max": 2
@@ -643,7 +643,7 @@
       "recipes": {
         "pro-max-gb10": {
           "speed": 3,
-          "tokens_per_sec": 29.2,
+          "tokens_per_sec": 27.3,
           "ctx_size": 262144
         },
         "pro-max-t2": {
@@ -653,7 +653,7 @@
         },
         "pro-max-gb10-x2": {
           "speed": 3,
-          "tokens_per_sec": 30.3,
+          "tokens_per_sec": 29.1,
           "ctx_size": 262144,
           "quant": "UD-Q4_K_XL",
           "files": [
@@ -713,7 +713,7 @@
       "recipes": {
         "pro-max-gb10": {
           "speed": 5,
-          "tokens_per_sec": 84.8,
+          "tokens_per_sec": 82.5,
           "ctx_size": 262144,
           "mtp": {
             "draft_n_max": 2
@@ -760,11 +760,17 @@
       ],
       "recipes": {
         "pro-max-gb10": {
-          "speed": 2,
-          "tokens_per_sec": 22.4,
+          "speed": 3,
+          "tokens_per_sec": 32.3,
           "ctx_size": 262144,
           "mtp": {
-            "draft_n_max": 3
+            "draft_n_max": 6,
+            "method": "dflash",
+            "draft": {
+              "url": "https://huggingface.co/incoai/Qwen3.8-27B-DFlash2-GGUF/resolve/144eb06583b4fb0b6e54bc814b16a206a240f4d2/Qwen3.8-27B-DFlash2-Q4_K_M.gguf",
+              "sha256": "d169ad335929adc0d77e10e2523f968f3e75f547637ad739b0a137ccde111b5f",
+              "size": 1143006816
+            }
           }
         },
         "pro-max-t2": {
@@ -808,7 +814,7 @@
       "recipes": {
         "pro-max-gb10": {
           "speed": 4,
-          "tokens_per_sec": 54.3,
+          "tokens_per_sec": 48.5,
           "ctx_size": 262144
         },
         "pro-max-t2": {
@@ -860,7 +866,7 @@
       "recipes": {
         "pro-max-gb10": {
           "speed": 3,
-          "tokens_per_sec": 34.0,
+          "tokens_per_sec": 32.6,
           "ctx_size": 262144,
           "mtp": {
             "draft_n_max": 4,
@@ -918,7 +924,7 @@
       "recipes": {
         "pro-max-gb10": {
           "speed": 5,
-          "tokens_per_sec": 120.5,
+          "tokens_per_sec": 107.3,
           "ctx_size": 262144,
           "mtp": {
             "draft_n_max": 2,
@@ -976,7 +982,7 @@
       "recipes": {
         "pro-max-gb10": {
           "speed": 4,
-          "tokens_per_sec": 76.3,
+          "tokens_per_sec": 71.9,
           "ctx_size": 262144,
           "mtp": {
             "draft_n_max": 4,
@@ -1034,7 +1040,7 @@
       "recipes": {
         "pro-max-gb10": {
           "speed": 4,
-          "tokens_per_sec": 69.1,
+          "tokens_per_sec": 59.2,
           "ctx_size": 262144
         },
         "pro-max-t2": {
@@ -1110,7 +1116,7 @@
         },
         "pro-max-gb10-x2": {
           "speed": 2,
-          "tokens_per_sec": 17.3,
+          "tokens_per_sec": 16.9,
           "ctx_size": 262144,
           "mtp": {
             "draft_n_max": 2
@@ -1157,12 +1163,12 @@
       "recipes": {
         "pro-max-gb10": {
           "speed": 2,
-          "tokens_per_sec": 17.0,
+          "tokens_per_sec": 16.9,
           "ctx_size": 131072
         },
         "pro-max-gb10-x2": {
           "speed": 2,
-          "tokens_per_sec": 15.7,
+          "tokens_per_sec": 14.8,
           "ctx_size": 262144,
           "quant": "UD-Q4_K_XL",
           "files": [
@@ -1250,7 +1256,7 @@
       "recipes": {
         "pro-max-gb10": {
           "speed": 3,
-          "tokens_per_sec": 43.0,
+          "tokens_per_sec": 40.6,
           "ctx_size": 131072
         },
         "pro-max-t2": {

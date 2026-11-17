@@ -425,7 +425,8 @@ mod tests {
         assert_eq!(p["model_alias"], "deepseek-v41-flash-1017");
         assert_eq!(p["default_generation_settings"]["n_ctx"], 1_048_576);
         assert_eq!(p["default_generation_settings"]["params"], json!({}));
-        assert_eq!(p["build_info"], "TensorFold (llama.cpp chat page b11827)");
+        let version = &crate::catalog::get().unwrap().engine.version;
+        assert_eq!(p["build_info"], format!("TensorFold (llama.cpp chat page {version})"));
         assert_eq!(models(&t)["data"][0]["id"], "deepseek-v41-flash-1017");
     }
 

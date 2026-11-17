@@ -295,9 +295,16 @@
           "maximum": 16,
           "description": "Tokens drafted per step, --spec-draft-n-max. Measure 2–4 and keep the fastest."
         },
+        "method": {
+          "enum": [
+            "mtp",
+            "dflash"
+          ],
+          "description": "Who drafts: mtp (the model's MTP head, the default) or dflash (a separate DFlash draft model in draft, --spec-type draft-dflash)."
+        },
         "draft": {
           "$ref": "#/$defs/file",
-          "description": "Separate GGUF with the MTP head (-md), e.g. mtp-*.gguf. Leave out when the MTP head is inside the model's GGUF."
+          "description": "Separate GGUF with the draft model (-md): the MTP head (mtp-*.gguf) or the DFlash model. Leave out when the MTP head is inside the model's GGUF."
         }
       }
     },

@@ -99,7 +99,7 @@ export function RunScreen(props: Props) {
             {/* Cuatro en fila solo con sitio de sobra; si no, 2×2 para que nada se parta letra a letra. */}
             <div className="mt-6 grid grid-cols-2 gap-2 @xl:grid-cols-4 @3xl:grid-cols-2 @5xl:grid-cols-4">
               <Tile label="Parameters" value={model.size} />
-              <Tile label={recipe.mtp ? "Quantization · MTP boost" : "Quantization"} value={quantFor(model, hardware.id)} />
+              <Tile label={recipe.mtp ? `Quantization · ${recipe.mtp.method === "dflash" ? "DFlash" : "MTP"} boost` : "Quantization"} value={quantFor(model, hardware.id)} />
               <Tile label="Context" value={formatContext(recipe.ctx_size)} />
               <Tile label={container ? (single ? "Weights" : "Weights per GB10") : props.downloaded ? "On disk" : "Download"} value={formatBytes(size)} />
             </div>

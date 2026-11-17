@@ -232,6 +232,9 @@ pub struct Recipe {
 pub struct Mtp {
     /// Tokens que propone en cada paso (--spec-draft-n-max).
     pub draft_n_max: u32,
+    /// Quién propone: "mtp" (la cabeza MTP del modelo, por defecto) o "dflash" (un modelo DFlash aparte en `draft`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub method: Option<String>,
     /// GGUF aparte con la cabeza MTP (-md). Vacío = viene dentro del modelo.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub draft: Option<RemoteFile>,
@@ -347,7 +350,8 @@ impl Recipe {
             args.push(k.to_string());
         }
         if let Some(m) = &self.mtp {
-            args.extend(["--spec-type".into(), "draft-mtp".into(), "--spec-draft-n-max".into(), m.draft_n_max.to_string()]);
+            let spec = format!("draft-{}", m.method.as_deref().unwrap_or("mtp"));
+            args.extend(["--spec-type".into(), spec, "--spec-draft-n-max".into(), m.draft_n_max.to_string()]);
         }
         args
     }
@@ -463,6 +467,11 @@ impl Catalog {
                     if !(1..=16).contains(&mtp.draft_n_max) {
                         return Err(format!("{}: mtp.draft_n_max for {hw} must be 1 to 16", m.id));
                     }
+                    match mtp.method.as_deref() {
+                        None | Some("mtp") => {}
+                        Some("dflash") if mtp.draft.is_some() => {}
+                        _ => return Err(format!("{}: mtp.method for {hw} must be mtp, or dflash with a draft file", m.id)),
+                    }
                     mtp.draft.iter().try_for_each(validate_file)?;
                 }
                 if let Some(files) = &r.files {
@@ -502,6 +511,17 @@ mod tests {
     #[test]
     fn bundled_catalog_is_valid() {
         super::get().unwrap();
+    }
+
+    /// MTP usa la cabeza del modelo; DFlash, el modelo aparte que va en `draft` (-md lo añade lib.rs).
+    #[test]
+    fn draft_method_picks_the_spec_type() {
+        let models = &super::get().unwrap().models;
+        let args = |id: &str, hw: &str| models.iter().find(|m| m.id == id).unwrap().recipes[hw].to_args().join(" ");
+        assert!(args("qwen38-27b", "pro-max-gb10").contains("--spec-type draft-dflash --spec-draft-n-max 6"));
+        assert!(args("qwen38-27b", "pro-max-t2").contains("--spec-type draft-mtp --spec-draft-n-max 3"));
+        let gb10 = &models.iter().find(|m| m.id == "qwen38-27b").unwrap();
+        assert!(gb10.mtp_draft_for("pro-max-gb10").unwrap().file_name().contains("DFlash2"));
     }
 
     /// Cada equipo tiene su foto: la tarjeta, el hero y la ficha la muestran (public/hardware/<image o id>.webp).

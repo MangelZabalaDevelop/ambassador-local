@@ -41,8 +41,8 @@ export type Recipe = {
   /** Otra cuantización para este equipo; va junto con `files`. */
   quant?: string | null;
   files?: RemoteFile[] | null;
-  /** Decodificación especulativa MTP; `draft` es el GGUF aparte con la cabeza MTP, si no viene dentro del modelo. */
-  mtp?: { draft_n_max: number; draft?: RemoteFile | null } | null;
+  /** Decodificación especulativa: MTP (la cabeza del modelo) o DFlash; `draft` es el GGUF aparte del que propone, si lo hay. */
+  mtp?: { draft_n_max: number; method?: "mtp" | "dflash" | null; draft?: RemoteFile | null } | null;
   /** GB10 ×2: vLLM en contenedor en vez de llama.cpp. */
   vllm?: Vllm | null;
   /** GB10 ×2: TensorFold en contenedor, con imagen construida desde recipes/tensorfold/<recipe>/. */

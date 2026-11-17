@@ -273,10 +273,10 @@ Pushing a `v*` tag makes GitHub Actions build Windows x64, Linux x64 and Linux A
 Ambassadors get a new version (new models or features) when a release is published:
 
 1. Bump `version` in `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml`, `src-tauri/Cargo.lock` and `package.json` / `package-lock.json`.
-2. Push a tag, e.g. `git tag v0.2.0 && git push origin v0.2.0`. Actions runs the tests, then builds and **signs** every installer and adds `latest.json` in a **draft** release.
-3. When all three builds succeed, Actions **publishes** the release, and from then on the app offers the update (it reads `releases/latest/download/latest.json`; drafts are invisible to it). If a build fails, nothing is published and the app keeps offering the previous version.
+2. Push a tag, e.g. `git tag v0.2.0 && git push origin v0.2.0`. Actions runs the tests, then builds and **signs** every installer in a **draft** release.
+3. When all three builds succeed, Actions writes `latest.json` from their signatures ([`scripts/updater-json.mjs`](scripts/updater-json.mjs)) and **publishes** the release, and from then on the app offers the update (it reads `releases/latest/download/latest.json`; drafts are invisible to it). If a build fails, nothing is published and the app keeps offering the previous version.
 
-To test the installers before ambassadors see them, delete the `publish` job from `.github/workflows/release.yml`: the release then stays a draft until you click **Publish**. The release notes you write are shown in the app.
+To test the installers before ambassadors see them, delete the last step (*Publish the release*) of the `publish` job in `.github/workflows/release.yml`: the release then stays a draft, with its `latest.json`, until you click **Publish**. The release notes you write are shown in the app.
 
 Signing needs two repository secrets: `TAURI_SIGNING_PRIVATE_KEY` (the contents of the private key file) and `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`. Never commit the private key, and keep a backup: if it is lost, installed apps can no longer receive updates. The matching public key is `plugins.updater.pubkey` in `tauri.conf.json`.
 

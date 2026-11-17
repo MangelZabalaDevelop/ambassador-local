@@ -635,8 +635,11 @@ mod smoke {
         let eng = engine::locate(&engine_dir).expect("llama-server");
         println!("server: {}", eng.server.display());
 
-        let model = &cat.models[0];
-        let (hw, recipe) = model.recipes.iter().next().unwrap();
+        // El ejemplo más pequeño (~7 GB, 8K de contexto): cabe en cualquier GPU de desarrollo.
+        // El primero del catálogo es de 120B y no.
+        let model = cat.models.iter().find(|m| m.id == "gemma3-12b").expect("gemma3-12b");
+        let hw = "pro-max-gb10";
+        let recipe = &model.recipes[hw];
         let files = model.files_for(hw);
         let mdir = model_dir(&root, model);
         for f in model.downloads_for(hw) {

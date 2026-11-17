@@ -2,7 +2,7 @@
 # run.sh: starts the model and stays in the foreground with its log; Ctrl+C stops it.
 # OpenAI-compatible API on http://$HOST:$PORT/v1, ready when http://127.0.0.1:$PORT/health answers.
 set -euo pipefail
-cd "$(dirname "$0")"; source ./config.sh
+cd "$(dirname "$0")" || exit 1; source ./config.sh
 
 docker info >/dev/null 2>&1 || die "Docker is not reachable without sudo"
 docker image inspect "$IMAGE" >/dev/null 2>&1 || die "missing the engine image: docker pull $IMAGE"

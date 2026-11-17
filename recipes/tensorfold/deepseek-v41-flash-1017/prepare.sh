@@ -11,7 +11,7 @@
 #
 # --node R is the per-GB10 part (steps 2-5); the first GB10 runs it for itself and, over SSH, on the other one.
 set -euo pipefail
-cd "$(dirname "$0")"; source ./config.sh
+cd "$(dirname "$0")" || exit 1; source ./config.sh
 HERE=$PWD
 mkdir -p "$LOGS" "$WORK/data" "$RANK_CACHE"
 

@@ -2,7 +2,7 @@
 # run.sh: starts rank 1 on the other GB10 and rank 0 (the API) here, and stays in the foreground.
 # It stops both ranks as soon as either one dies, or on Ctrl+C. OpenAI-compatible API on http://$HOST:$PORT/v1
 set -euo pipefail
-cd "$(dirname "$0")"; source ./config.sh
+cd "$(dirname "$0")" || exit 1; source ./config.sh
 need_link
 mkdir -p "$LOGS"
 ready="$ENGINE_COMMIT $REVISION"

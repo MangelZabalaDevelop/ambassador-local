@@ -1,6 +1,6 @@
 #!/bin/bash
 # stop.sh: stops the model, keeps its last 10 logs (compressed) and frees the GPU.
-cd "$(dirname "$0")"; source ./config.sh
+cd "$(dirname "$0")" || exit 1; source ./config.sh
 mkdir -p "$LOGS"
 if docker ps -aq -f "name=^${NAME}\$" | grep -q .; then
   docker stop -t 30 "$NAME" >/dev/null 2>&1

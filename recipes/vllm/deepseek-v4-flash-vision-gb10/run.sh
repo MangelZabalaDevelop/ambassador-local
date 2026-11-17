@@ -3,7 +3,7 @@
 # OpenAI-compatible API on http://$HOST:$PORT/v1 (text and images), ready when http://127.0.0.1:$PORT/health answers.
 # The first start builds the fixed engine image (~1 min), downloads the recipe source (~3 MB) and compiles kernels.
 set -euo pipefail
-cd "$(dirname "$0")"; source ./config.sh
+cd "$(dirname "$0")" || exit 1; source ./config.sh
 HERE=$PWD
 
 docker info >/dev/null 2>&1 || die "Docker is not reachable without sudo"

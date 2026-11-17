@@ -23,7 +23,7 @@ You get a private, OpenAI-compatible endpoint protected by an API key. No cloud,
 | **Dell Pro Max 18 Plus** · up to RTX PRO 5000 Blackwell 24 GB | Not tested yet: shown as *Coming soon* |
 | **Dell Pro Max 16 Premium** · up to RTX PRO 3000 Blackwell 12 GB | Not tested yet: shown as *Coming soon* |
 
-Every recipe is tested on the workstation it is listed for: see [Tested on](#tested-on).
+Every recipe is tested on the workstation it is listed for: see [Which model should I pick?](#which-model-should-i-pick)
 
 ## Get started in three steps
 
@@ -53,7 +53,7 @@ Start menu or the app menu.
 
 **System → Workstation → Lab → Model.** Your system and workstation are detected for you, and every model shows the
 speed measured on that workstation. **Miguel Tuned** marks recipes tuned and tested by hand; the crown marks the
-recommended one.
+recommended one. Not sure which one? See [Which model should I pick?](#which-model-should-i-pick).
 
 ### 3. Press Run
 
@@ -105,9 +105,33 @@ to free their space too. Weights in the Hugging Face cache and Docker images sta
 
 Without the app: on Windows, *Settings → Apps → Ambassador Local → Uninstall*; on Linux, `sudo apt remove ambassador-local`.
 
+## Which model should I pick?
+
+Find your workstation below. Models are grouped by how smart they are, from the smartest at the top, and each bar
+shows how fast it answers on that workstation (measured there, in tokens per second: a token is about ¾ of a word).
+**Pick the highest group that still feels fast enough for you.** For chat, anything above about 20 tokens/s already
+writes faster than you can read; for coding agents, faster is better.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/img/pick-pro-max-t2-dark.svg">
+  <img src="docs/img/pick-pro-max-t2-light.svg" alt="Pro Max Tower T2: models grouped by intelligence, with the speed measured on it" width="100%">
+</picture>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/img/pick-pro-max-gb10-dark.svg">
+  <img src="docs/img/pick-pro-max-gb10-light.svg" alt="Pro Max with GB10: models grouped by intelligence, with the speed measured on it" width="100%">
+</picture>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/img/pick-pro-max-gb10-x2-dark.svg">
+  <img src="docs/img/pick-pro-max-gb10-x2-light.svg" alt="Two Pro Max with GB10: models grouped by intelligence, with the speed measured on them" width="100%">
+</picture>
+
+The Pro Max 18 Plus and Pro Max 16 Premium have no tested recipes yet.
+
 ## Tested on
 
-Each recipe is tuned and measured on the workstation in its column: the average speed measured there and the disk space its weights need.
+The full list. Each recipe is tuned and measured on the workstation in its column: the average speed measured there and the disk space its weights need.
 A model only appears in the app on the workstations marked here.
 
 <!-- models:start -->
@@ -233,7 +257,7 @@ The cluster check also confirms that `prepare.sh` finished on both GB10. `cargo 
 Each file needs a URL pinned to a commit (`/resolve/<commit-sha>/file.gguf`), its `sha256` and its `size`.
 Hugging Face lists them at `https://huggingface.co/api/models/<repo>/tree/main` (`lfs.oid` is the sha256).
 
-Update the [Tested on](#tested-on) table:
+Update the [Tested on](#tested-on) table and the [Which model should I pick?](#which-model-should-i-pick) charts:
 
 ```bash
 npm run models-table

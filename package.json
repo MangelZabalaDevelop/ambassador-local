@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "tauri": "tauri",
-    "models-table": "node scripts/models-table.mjs"
+    "models-table": "node scripts/models-table.mjs && node scripts/models-chart.mjs"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.12.4",

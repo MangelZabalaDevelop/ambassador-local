@@ -36,6 +36,8 @@ export type SizeClass = "small" | "medium" | "large" | "xlarge";
 
 export type Recipe = {
   speed: number;
+  /** Solo en estos sistemas; vacío = todos los del equipo (las de contenedor, solo Linux). */
+  os?: ("windows" | "linux")[] | null;
   tokens_per_sec?: number | null;
   ctx_size: number;
   /** Otra cuantización para este equipo; va junto con `files`. */

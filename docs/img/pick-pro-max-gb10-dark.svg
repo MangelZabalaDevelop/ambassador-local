@@ -1,7 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="900" height="1104" viewBox="0 0 900 1104" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" role="img" aria-labelledby="t d">
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="1060" viewBox="0 0 900 1060" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" role="img" aria-labelledby="t d">
 <title id="t">Which model should I pick on the Pro Max with GB10?</title>
-<desc id="d">Models grouped by the Artificial Analysis Intelligence Index, each with the speed measured on the Pro Max with GB10. Nemotron 3.5 Super VL: Intelligence Index 14, 28.3 tokens per second; Nemotron 3.5 Bolt: Intelligence Index estimated, 22.7 tokens per second; Nemotron 3.5 Lightning: Intelligence Index 6, 77 tokens per second; Qwen3.8 Flash Next: Intelligence Index 29, 27.3 tokens per second; Qwen3.6 35B-A3B: Intelligence Index estimated, 82.5 tokens per second; Qwen3.8 27B: Intelligence Index 20, 32.3 tokens per second; Qwen3-Coder-Next: Intelligence Index estimated, 48.5 tokens per second; Gemma 4 31B: Intelligence Index 4, 32.6 tokens per second; Gemma 4 26B-A4B: Intelligence Index estimated, 107.3 tokens per second; Gemma 4 12B: Intelligence Index estimated, 71.9 tokens per second; GLM-4.7-Flash: Intelligence Index estimated, 59.2 tokens per second; GLM-5.3-Flash: Intelligence Index 28, 19.6 tokens per second; DeepSeek V4 Flash: Intelligence Index estimated, 16.9 tokens per second; DeepSeek V4 Flash Vision: Intelligence Index estimated, 23.3 tokens per second; gpt-oss-120b: Intelligence Index 4, 40.6 tokens per second; Gemma 3 12B: Intelligence Index estimated, speed not measured yet; Qwen3.8 Flash Next FP4: Intelligence Index 29, 36.9 tokens per second.</desc>
-<rect x="0.5" y="0.5" width="899" height="1103" rx="12" fill="#0d1117" stroke="#3d444d"/>
+<desc id="d">Models grouped by the Artificial Analysis Intelligence Index, each with the speed measured on the Pro Max with GB10. Nemotron 3.5 Super VL: Intelligence Index 14, 28.3 tokens per second; Nemotron 3.5 Bolt: Intelligence Index estimated, 22.7 tokens per second; Nemotron 3.5 Lightning: Intelligence Index 6, 77 tokens per second; Qwen3.6 35B-A3B: Intelligence Index estimated, 82.5 tokens per second; Qwen3.8 27B: Intelligence Index 20, 32.3 tokens per second; Qwen3-Coder-Next: Intelligence Index estimated, 48.5 tokens per second; Gemma 4 31B: Intelligence Index 4, 32.6 tokens per second; Gemma 4 26B-A4B: Intelligence Index estimated, 107.3 tokens per second; Gemma 4 12B: Intelligence Index estimated, 71.9 tokens per second; GLM-4.7-Flash: Intelligence Index estimated, 59.2 tokens per second; GLM-5.3-Flash: Intelligence Index 28, 19.6 tokens per second; DeepSeek V4 Flash: Intelligence Index estimated, 16.9 tokens per second; DeepSeek V4 Flash Vision: Intelligence Index estimated, 23.3 tokens per second; gpt-oss-120b: Intelligence Index 4, 40.6 tokens per second; Gemma 3 12B: Intelligence Index estimated, speed not measured yet; Qwen3.8 Flash Next FP4: Intelligence Index 29, 36.9 tokens per second.</desc>
+<rect x="0.5" y="0.5" width="899" height="1059" rx="12" fill="#0d1117" stroke="#3d444d"/>
 <text x="28" y="46" font-size="22" font-weight="700" fill="#f0f6fc">Pro Max with GB10</text>
 <text x="28" y="70" font-size="14" fill="#9198a1">NVIDIA GB10 Grace Blackwell · 128 GB</text>
 <text x="28" y="98" font-size="14" fill="#f0f6fc"><tspan font-weight="700">Higher group = smarter.</tspan> <tspan font-weight="700">Longer bar = faster answers</tspan><tspan fill="#9198a1"> (words appear on screen faster; measured on this workstation).</tspan></text>
@@ -15,122 +15,115 @@
 <text x="471.49487418452935" y="181" font-size="14" fill="#f0f6fc"><tspan font-weight="700">36.9</tspan><tspan fill="#9198a1"> tokens/s</tspan></text>
 </g>
 <g>
-<title>Qwen Qwen3.8 Flash Next 180B, Intelligence Index 29: 27.3 tokens/s. Good for Coding, Agents, Long documents.</title>
-<text x="28" y="215" font-size="14" font-weight="600" fill="#f0f6fc">Qwen3.8 Flash Next 180B</text>
-<text x="28" y="232" font-size="12" fill="#9198a1">Index 29 · Qwen · Coding, Agents</text>
-<path d="M328 212h96.24417520969246a4 4 0 0 1 4 4v8a4 4 0 0 1 -4 4h-96.24417520969246z" fill="#3d8fe0"/>
-<text x="436.24417520969246" y="225" font-size="14" fill="#f0f6fc"><tspan font-weight="700">27.3</tspan><tspan fill="#9198a1"> tokens/s</tspan></text>
-</g>
-<g>
 <title>GLM GLM-5.3-Flash 320B-A18B, Intelligence Index 28: 19.6 tokens/s. Good for Coding, Agents, Reasoning.</title>
-<text x="28" y="259" font-size="14" font-weight="600" fill="#f0f6fc">GLM-5.3-Flash 320B-A18B</text>
-<text x="28" y="276" font-size="12" fill="#9198a1">Index 28 · GLM · Coding, Agents</text>
-<path d="M328 256h67.97017707362535a4 4 0 0 1 4 4v8a4 4 0 0 1 -4 4h-67.97017707362535z" fill="#3d8fe0"/>
-<text x="407.97017707362534" y="269" font-size="14" fill="#f0f6fc"><tspan font-weight="700">19.6</tspan><tspan fill="#9198a1"> tokens/s</tspan></text>
+<text x="28" y="215" font-size="14" font-weight="600" fill="#f0f6fc">GLM-5.3-Flash 320B-A18B</text>
+<text x="28" y="232" font-size="12" fill="#9198a1">Index 28 · GLM · Coding, Agents</text>
+<path d="M328 212h67.97017707362535a4 4 0 0 1 4 4v8a4 4 0 0 1 -4 4h-67.97017707362535z" fill="#3d8fe0"/>
+<text x="407.97017707362534" y="225" font-size="14" fill="#f0f6fc"><tspan font-weight="700">19.6</tspan><tspan fill="#9198a1"> tokens/s</tspan></text>
 </g>
-<rect x="16" y="294" width="868" height="32" rx="6" fill="#151b23"/>
-<text x="28" y="316" font-size="15" fill="#f0f6fc"><tspan fill="#d4a017" letter-spacing="1">★★★★☆</tspan><tspan dx="10" font-weight="700">Very smart</tspan><tspan dx="8" fill="#9198a1">Intelligence Index 10 to 24: a strong balance</tspan></text>
+<rect x="16" y="250" width="868" height="32" rx="6" fill="#151b23"/>
+<text x="28" y="272" font-size="15" fill="#f0f6fc"><tspan fill="#d4a017" letter-spacing="1">★★★★☆</tspan><tspan dx="10" font-weight="700">Very smart</tspan><tspan dx="8" fill="#9198a1">Intelligence Index 10 to 24: a strong balance</tspan></text>
 <g>
 <title>Qwen Qwen3.8 27B, Intelligence Index 20: 32.3 tokens/s. Good for Coding, Reasoning, Agents.</title>
-<text x="28" y="353" font-size="14" font-weight="600" fill="#f0f6fc">Qwen3.8 27B</text>
-<text x="28" y="370" font-size="12" fill="#9198a1">Index 20 · Qwen · Coding, Reasoning</text>
-<path d="M328 350h114.60391425908666a4 4 0 0 1 4 4v8a4 4 0 0 1 -4 4h-114.60391425908666z" fill="#3d8fe0"/>
-<text x="454.60391425908665" y="363" font-size="14" fill="#f0f6fc"><tspan font-weight="700">32.3</tspan><tspan fill="#9198a1"> tokens/s</tspan></text>
+<text x="28" y="309" font-size="14" font-weight="600" fill="#f0f6fc">Qwen3.8 27B</text>
+<text x="28" y="326" font-size="12" fill="#9198a1">Index 20 · Qwen · Coding, Reasoning</text>
+<path d="M328 306h114.60391425908666a4 4 0 0 1 4 4v8a4 4 0 0 1 -4 4h-114.60391425908666z" fill="#3d8fe0"/>
+<text x="454.60391425908665" y="319" font-size="14" fill="#f0f6fc"><tspan font-weight="700">32.3</tspan><tspan fill="#9198a1"> tokens/s</tspan></text>
 </g>
 <g>
 <title>NVIDIA Nemotron 3.5 Super VL 120B-A12B, Intelligence Index 14: 28.3 tokens/s. Good for Reasoning, Agents, Coding.</title>
-<text x="28" y="397" font-size="14" font-weight="600" fill="#f0f6fc">Nemotron 3.5 Super VL 120B-A12B</text>
-<text x="28" y="414" font-size="12" fill="#9198a1">Index 14 · NVIDIA · Reasoning, Agents</text>
-<path d="M328 394h99.9161230195713a4 4 0 0 1 4 4v8a4 4 0 0 1 -4 4h-99.9161230195713z" fill="#3d8fe0"/>
-<text x="439.9161230195713" y="407" font-size="14" fill="#f0f6fc"><tspan font-weight="700">28.3</tspan><tspan fill="#9198a1"> tokens/s</tspan></text>
+<text x="28" y="353" font-size="14" font-weight="600" fill="#f0f6fc">Nemotron 3.5 Super VL 120B-A12B</text>
+<text x="28" y="370" font-size="12" fill="#9198a1">Index 14 · NVIDIA · Reasoning, Agents</text>
+<path d="M328 350h99.9161230195713a4 4 0 0 1 4 4v8a4 4 0 0 1 -4 4h-99.9161230195713z" fill="#3d8fe0"/>
+<text x="439.9161230195713" y="363" font-size="14" fill="#f0f6fc"><tspan font-weight="700">28.3</tspan><tspan fill="#9198a1"> tokens/s</tspan></text>
 </g>
 <g>
 <title>DeepSeek DeepSeek V4 Flash Vision 305B, Intelligence Index estimated: 23.3 tokens/s. Good for Reasoning, Coding, Images.</title>
-<text x="28" y="441" font-size="14" font-weight="600" fill="#f0f6fc">DeepSeek V4 Flash Vision 305B</text>
-<text x="28" y="458" font-size="12" fill="#9198a1">Estimated · DeepSeek · Reasoning, Coding</text>
-<path d="M328 438h81.55638397017708a4 4 0 0 1 4 4v8a4 4 0 0 1 -4 4h-81.55638397017708z" fill="#3d8fe0"/>
-<text x="421.5563839701771" y="451" font-size="14" fill="#f0f6fc"><tspan font-weight="700">23.3</tspan><tspan fill="#9198a1"> tokens/s</tspan></text>
+<text x="28" y="397" font-size="14" font-weight="600" fill="#f0f6fc">DeepSeek V4 Flash Vision 305B</text>
+<text x="28" y="414" font-size="12" fill="#9198a1">Estimated · DeepSeek · Reasoning, Coding</text>
+<path d="M328 394h81.55638397017708a4 4 0 0 1 4 4v8a4 4 0 0 1 -4 4h-81.55638397017708z" fill="#3d8fe0"/>
+<text x="421.5563839701771" y="407" font-size="14" fill="#f0f6fc"><tspan font-weight="700">23.3</tspan><tspan fill="#9198a1"> tokens/s</tspan></text>
 </g>
 <g>
 <title>DeepSeek DeepSeek V4 Flash 284B-A13B, Intelligence Index estimated: 16.9 tokens/s. Good for Reasoning, Coding, Long documents.</title>
-<text x="28" y="485" font-size="14" font-weight="600" fill="#f0f6fc">DeepSeek V4 Flash 284B-A13B</text>
-<text x="28" y="502" font-size="12" fill="#9198a1">Estimated · DeepSeek · Reasoning, Coding</text>
-<path d="M328 482h58.055917986952466a4 4 0 0 1 4 4v8a4 4 0 0 1 -4 4h-58.055917986952466z" fill="#3d8fe0"/>
-<text x="398.05591798695247" y="495" font-size="14" fill="#f0f6fc"><tspan font-weight="700">16.9</tspan><tspan fill="#9198a1"> tokens/s</tspan></text>
+<text x="28" y="441" font-size="14" font-weight="600" fill="#f0f6fc">DeepSeek V4 Flash 284B-A13B</text>
+<text x="28" y="458" font-size="12" fill="#9198a1">Estimated · DeepSeek · Reasoning, Coding</text>
+<path d="M328 438h58.055917986952466a4 4 0 0 1 4 4v8a4 4 0 0 1 -4 4h-58.055917986952466z" fill="#3d8fe0"/>
+<text x="398.05591798695247" y="451" font-size="14" fill="#f0f6fc"><tspan font-weight="700">16.9</tspan><tspan fill="#9198a1"> tokens/s</tspan></text>
 </g>
-<rect x="16" y="520" width="868" height="32" rx="6" fill="#151b23"/>
-<text x="28" y="542" font-size="15" fill="#f0f6fc"><tspan fill="#d4a017" letter-spacing="1">★★★☆☆</tspan><tspan dx="10" font-weight="700">Smart</tspan><tspan dx="8" fill="#9198a1">Intelligence Index under 10: quick everyday help</tspan></text>
+<rect x="16" y="476" width="868" height="32" rx="6" fill="#151b23"/>
+<text x="28" y="498" font-size="15" fill="#f0f6fc"><tspan fill="#d4a017" letter-spacing="1">★★★☆☆</tspan><tspan dx="10" font-weight="700">Smart</tspan><tspan dx="8" fill="#9198a1">Intelligence Index under 10: quick everyday help</tspan></text>
 <g>
 <title>Google Gemma 4 26B-A4B, Intelligence Index estimated: 107.3 tokens/s. Good for Chat, Writing, Coding.</title>
-<text x="28" y="579" font-size="14" font-weight="600" fill="#f0f6fc">Gemma 4 26B-A4B</text>
-<text x="28" y="596" font-size="12" fill="#9198a1">Estimated · Google · Chat, Writing</text>
-<path d="M328 576h390a4 4 0 0 1 4 4v8a4 4 0 0 1 -4 4h-390z" fill="#3d8fe0"/>
-<text x="730" y="589" font-size="14" fill="#f0f6fc"><tspan font-weight="700">107.3</tspan><tspan fill="#9198a1"> tokens/s</tspan></text>
+<text x="28" y="535" font-size="14" font-weight="600" fill="#f0f6fc">Gemma 4 26B-A4B</text>
+<text x="28" y="552" font-size="12" fill="#9198a1">Estimated · Google · Chat, Writing</text>
+<path d="M328 532h390a4 4 0 0 1 4 4v8a4 4 0 0 1 -4 4h-390z" fill="#3d8fe0"/>
+<text x="730" y="545" font-size="14" fill="#f0f6fc"><tspan font-weight="700">107.3</tspan><tspan fill="#9198a1"> tokens/s</tspan></text>
 </g>
 <g>
 <title>Qwen Qwen3.6 35B-A3B, Intelligence Index estimated: 82.5 tokens/s. Good for Chat, Coding, Agents.</title>
-<text x="28" y="623" font-size="14" font-weight="600" fill="#f0f6fc">Qwen3.6 35B-A3B</text>
-<text x="28" y="640" font-size="12" fill="#9198a1">Estimated · Qwen · Chat, Coding</text>
-<path d="M328 620h298.9356943150047a4 4 0 0 1 4 4v8a4 4 0 0 1 -4 4h-298.9356943150047z" fill="#3d8fe0"/>
-<text x="638.9356943150046" y="633" font-size="14" fill="#f0f6fc"><tspan font-weight="700">82.5</tspan><tspan fill="#9198a1"> tokens/s</tspan></text>
+<text x="28" y="579" font-size="14" font-weight="600" fill="#f0f6fc">Qwen3.6 35B-A3B</text>
+<text x="28" y="596" font-size="12" fill="#9198a1">Estimated · Qwen · Chat, Coding</text>
+<path d="M328 576h298.9356943150047a4 4 0 0 1 4 4v8a4 4 0 0 1 -4 4h-298.9356943150047z" fill="#3d8fe0"/>
+<text x="638.9356943150046" y="589" font-size="14" fill="#f0f6fc"><tspan font-weight="700">82.5</tspan><tspan fill="#9198a1"> tokens/s</tspan></text>
 </g>
 <g>
 <title>NVIDIA Nemotron 3.5 Lightning 30B-A3B, Intelligence Index 6: 77 tokens/s. Good for Chat, Agents, Coding.</title>
-<text x="28" y="667" font-size="14" font-weight="600" fill="#f0f6fc">Nemotron 3.5 Lightning 30B-A3B</text>
-<text x="28" y="684" font-size="12" fill="#9198a1">Index 6 · NVIDIA · Chat, Agents</text>
-<path d="M328 664h278.73998136067104a4 4 0 0 1 4 4v8a4 4 0 0 1 -4 4h-278.73998136067104z" fill="#3d8fe0"/>
-<text x="618.739981360671" y="677" font-size="14" fill="#f0f6fc"><tspan font-weight="700">77</tspan><tspan fill="#9198a1"> tokens/s</tspan></text>
+<text x="28" y="623" font-size="14" font-weight="600" fill="#f0f6fc">Nemotron 3.5 Lightning 30B-A3B</text>
+<text x="28" y="640" font-size="12" fill="#9198a1">Index 6 · NVIDIA · Chat, Agents</text>
+<path d="M328 620h278.73998136067104a4 4 0 0 1 4 4v8a4 4 0 0 1 -4 4h-278.73998136067104z" fill="#3d8fe0"/>
+<text x="618.739981360671" y="633" font-size="14" fill="#f0f6fc"><tspan font-weight="700">77</tspan><tspan fill="#9198a1"> tokens/s</tspan></text>
 </g>
 <g>
 <title>Google Gemma 4 12B, Intelligence Index estimated: 71.9 tokens/s. Good for Chat, Writing, Summaries.</title>
-<text x="28" y="711" font-size="14" font-weight="600" fill="#f0f6fc">Gemma 4 12B</text>
-<text x="28" y="728" font-size="12" fill="#9198a1">Estimated · Google · Chat, Writing</text>
-<path d="M328 708h260.01304753028893a4 4 0 0 1 4 4v8a4 4 0 0 1 -4 4h-260.01304753028893z" fill="#3d8fe0"/>
-<text x="600.013047530289" y="721" font-size="14" fill="#f0f6fc"><tspan font-weight="700">71.9</tspan><tspan fill="#9198a1"> tokens/s</tspan></text>
+<text x="28" y="667" font-size="14" font-weight="600" fill="#f0f6fc">Gemma 4 12B</text>
+<text x="28" y="684" font-size="12" fill="#9198a1">Estimated · Google · Chat, Writing</text>
+<path d="M328 664h260.01304753028893a4 4 0 0 1 4 4v8a4 4 0 0 1 -4 4h-260.01304753028893z" fill="#3d8fe0"/>
+<text x="600.013047530289" y="677" font-size="14" fill="#f0f6fc"><tspan font-weight="700">71.9</tspan><tspan fill="#9198a1"> tokens/s</tspan></text>
 </g>
 <g>
 <title>GLM GLM-4.7-Flash 30B-A3B, Intelligence Index estimated: 59.2 tokens/s. Good for Coding, Agents, Chat.</title>
-<text x="28" y="755" font-size="14" font-weight="600" fill="#f0f6fc">GLM-4.7-Flash 30B-A3B</text>
-<text x="28" y="772" font-size="12" fill="#9198a1">Estimated · GLM · Coding, Agents</text>
-<path d="M328 752h213.3793103448276a4 4 0 0 1 4 4v8a4 4 0 0 1 -4 4h-213.3793103448276z" fill="#3d8fe0"/>
-<text x="553.3793103448276" y="765" font-size="14" fill="#f0f6fc"><tspan font-weight="700">59.2</tspan><tspan fill="#9198a1"> tokens/s</tspan></text>
+<text x="28" y="711" font-size="14" font-weight="600" fill="#f0f6fc">GLM-4.7-Flash 30B-A3B</text>
+<text x="28" y="728" font-size="12" fill="#9198a1">Estimated · GLM · Coding, Agents</text>
+<path d="M328 708h213.3793103448276a4 4 0 0 1 4 4v8a4 4 0 0 1 -4 4h-213.3793103448276z" fill="#3d8fe0"/>
+<text x="553.3793103448276" y="721" font-size="14" fill="#f0f6fc"><tspan font-weight="700">59.2</tspan><tspan fill="#9198a1"> tokens/s</tspan></text>
 </g>
 <g>
 <title>Qwen Qwen3-Coder-Next 80B-A3B, Intelligence Index estimated: 48.5 tokens/s. Good for Coding, Agents.</title>
-<text x="28" y="799" font-size="14" font-weight="600" fill="#f0f6fc">Qwen3-Coder-Next 80B-A3B</text>
-<text x="28" y="816" font-size="12" fill="#9198a1">Estimated · Qwen · Coding, Agents</text>
-<path d="M328 796h174.08946877912396a4 4 0 0 1 4 4v8a4 4 0 0 1 -4 4h-174.08946877912396z" fill="#3d8fe0"/>
-<text x="514.089468779124" y="809" font-size="14" fill="#f0f6fc"><tspan font-weight="700">48.5</tspan><tspan fill="#9198a1"> tokens/s</tspan></text>
+<text x="28" y="755" font-size="14" font-weight="600" fill="#f0f6fc">Qwen3-Coder-Next 80B-A3B</text>
+<text x="28" y="772" font-size="12" fill="#9198a1">Estimated · Qwen · Coding, Agents</text>
+<path d="M328 752h174.08946877912396a4 4 0 0 1 4 4v8a4 4 0 0 1 -4 4h-174.08946877912396z" fill="#3d8fe0"/>
+<text x="514.089468779124" y="765" font-size="14" fill="#f0f6fc"><tspan font-weight="700">48.5</tspan><tspan fill="#9198a1"> tokens/s</tspan></text>
 </g>
 <g>
 <title>OpenAI gpt-oss-120b 117B-A5B, Intelligence Index 4: 40.6 tokens/s. Good for Reasoning, Coding, Agents.</title>
-<text x="28" y="843" font-size="14" font-weight="600" fill="#f0f6fc">gpt-oss-120b 117B-A5B</text>
-<text x="28" y="860" font-size="12" fill="#9198a1">Index 4 · OpenAI · Reasoning, Coding</text>
-<path d="M328 840h145.0810810810811a4 4 0 0 1 4 4v8a4 4 0 0 1 -4 4h-145.0810810810811z" fill="#3d8fe0"/>
-<text x="485.0810810810811" y="853" font-size="14" fill="#f0f6fc"><tspan font-weight="700">40.6</tspan><tspan fill="#9198a1"> tokens/s</tspan></text>
+<text x="28" y="799" font-size="14" font-weight="600" fill="#f0f6fc">gpt-oss-120b 117B-A5B</text>
+<text x="28" y="816" font-size="12" fill="#9198a1">Index 4 · OpenAI · Reasoning, Coding</text>
+<path d="M328 796h145.0810810810811a4 4 0 0 1 4 4v8a4 4 0 0 1 -4 4h-145.0810810810811z" fill="#3d8fe0"/>
+<text x="485.0810810810811" y="809" font-size="14" fill="#f0f6fc"><tspan font-weight="700">40.6</tspan><tspan fill="#9198a1"> tokens/s</tspan></text>
 </g>
 <g>
 <title>Google Gemma 4 31B, Intelligence Index 4: 32.6 tokens/s. Good for Writing, Reasoning, Chat.</title>
-<text x="28" y="887" font-size="14" font-weight="600" fill="#f0f6fc">Gemma 4 31B</text>
-<text x="28" y="904" font-size="12" fill="#9198a1">Index 4 · Google · Writing, Reasoning</text>
-<path d="M328 884h115.70549860205033a4 4 0 0 1 4 4v8a4 4 0 0 1 -4 4h-115.70549860205033z" fill="#3d8fe0"/>
-<text x="455.70549860205034" y="897" font-size="14" fill="#f0f6fc"><tspan font-weight="700">32.6</tspan><tspan fill="#9198a1"> tokens/s</tspan></text>
+<text x="28" y="843" font-size="14" font-weight="600" fill="#f0f6fc">Gemma 4 31B</text>
+<text x="28" y="860" font-size="12" fill="#9198a1">Index 4 · Google · Writing, Reasoning</text>
+<path d="M328 840h115.70549860205033a4 4 0 0 1 4 4v8a4 4 0 0 1 -4 4h-115.70549860205033z" fill="#3d8fe0"/>
+<text x="455.70549860205034" y="853" font-size="14" fill="#f0f6fc"><tspan font-weight="700">32.6</tspan><tspan fill="#9198a1"> tokens/s</tspan></text>
 </g>
 <g>
 <title>NVIDIA Nemotron 3.5 Bolt 74B-A9B, Intelligence Index estimated: 22.7 tokens/s. Good for Agents, Reasoning, Coding.</title>
-<text x="28" y="931" font-size="14" font-weight="600" fill="#f0f6fc">Nemotron 3.5 Bolt 74B-A9B</text>
-<text x="28" y="948" font-size="12" fill="#9198a1">Estimated · NVIDIA · Agents, Reasoning</text>
-<path d="M328 928h79.35321528424976a4 4 0 0 1 4 4v8a4 4 0 0 1 -4 4h-79.35321528424976z" fill="#3d8fe0"/>
-<text x="419.35321528424976" y="941" font-size="14" fill="#f0f6fc"><tspan font-weight="700">22.7</tspan><tspan fill="#9198a1"> tokens/s</tspan></text>
+<text x="28" y="887" font-size="14" font-weight="600" fill="#f0f6fc">Nemotron 3.5 Bolt 74B-A9B</text>
+<text x="28" y="904" font-size="12" fill="#9198a1">Estimated · NVIDIA · Agents, Reasoning</text>
+<path d="M328 884h79.35321528424976a4 4 0 0 1 4 4v8a4 4 0 0 1 -4 4h-79.35321528424976z" fill="#3d8fe0"/>
+<text x="419.35321528424976" y="897" font-size="14" fill="#f0f6fc"><tspan font-weight="700">22.7</tspan><tspan fill="#9198a1"> tokens/s</tspan></text>
 </g>
 <g>
 <title>Google Gemma 3 12B, Intelligence Index estimated: speed not measured yet. Good for Chat, Writing, Summaries.</title>
-<text x="28" y="975" font-size="14" font-weight="600" fill="#f0f6fc">Gemma 3 12B</text>
-<text x="28" y="992" font-size="12" fill="#9198a1">Estimated · Google · Chat, Writing</text>
-<text x="328" y="985" font-size="13" font-style="italic" fill="#6e7681">speed not measured yet</text>
+<text x="28" y="931" font-size="14" font-weight="600" fill="#f0f6fc">Gemma 3 12B</text>
+<text x="28" y="948" font-size="12" fill="#9198a1">Estimated · Google · Chat, Writing</text>
+<text x="328" y="941" font-size="13" font-style="italic" fill="#6e7681">speed not measured yet</text>
 </g>
-<line x1="28" y1="1010" x2="872" y2="1010" stroke="#3d444d"/>
-<rect x="28" y="1024" width="14" height="14" rx="3" fill="#3d8fe0"/>
-<text x="50" y="1036" font-size="13" fill="#9198a1">Speed measured on this workstation</text>
-<text x="28" y="1064" font-size="12" fill="#6e7681">Intelligence: Artificial Analysis Intelligence Index v5 (November 2026). Models it has not rated yet are estimated from their closest rated relative.</text>
+<line x1="28" y1="966" x2="872" y2="966" stroke="#3d444d"/>
+<rect x="28" y="980" width="14" height="14" rx="3" fill="#3d8fe0"/>
+<text x="50" y="992" font-size="13" fill="#9198a1">Speed measured on this workstation</text>
+<text x="28" y="1020" font-size="12" fill="#6e7681">Intelligence: Artificial Analysis Intelligence Index v5 (November 2026). Models it has not rated yet are estimated from their closest rated relative.</text>
 </svg>

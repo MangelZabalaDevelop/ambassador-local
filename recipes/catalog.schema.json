@@ -212,6 +212,18 @@
           "$ref": "#/$defs/rating",
           "description": "1–5 lightning bolts: how fast it answers on this workstation"
         },
+        "os": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "windows",
+              "linux"
+            ]
+          },
+          "description": "Offer this recipe only on these systems, e.g. [\"windows\"] when Linux has a better recipe of the same model. Leave out for every system the workstation runs (container recipes are Linux only)."
+        },
         "tokens_per_sec": {
           "type": "number",
           "exclusiveMinimum": 0,

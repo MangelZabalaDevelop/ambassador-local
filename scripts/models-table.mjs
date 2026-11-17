@@ -27,15 +27,22 @@ const disk = (m, r) => {
   return bytes > 0 ? ` · ${Math.round(bytes / 1e9)} GB` : "";
 };
 
-const cell = (m, r) => {
+// Said only when the recipe is not offered on every system the workstation runs.
+const only = (h, r) => {
+  const s = r.vllm || r.tensorfold ? ["linux"] : (r.os ?? h.os);
+  if (s.length >= h.os.length) return "";
+  return s[0] === "windows" ? " · Windows only" : " · Ubuntu only";
+};
+
+const cell = (m, r, h) => {
   if (!r) return "—";
   const tps = r.tokens_per_sec ? ` ${r.tokens_per_sec} tok/s` : "";
-  return `✓${tps}${disk(m, r)}${r.tuned ? " · Miguel Tuned" : ""}`;
+  return `✓${tps}${disk(m, r)}${only(h, r)}${r.tuned ? " · Miguel Tuned" : ""}`;
 };
 
 const rows = catalog.models.map((m) => [
   `${families[m.family] ?? m.family} · **${m.name}**${m.name.endsWith(m.size) ? "" : ` ${m.size}`}`,
-  ...hardware.map((h) => cell(m, m.recipes[h.id])),
+  ...hardware.map((h) => cell(m, m.recipes[h.id], h)),
 ]);
 
 const table = [header, header.map(() => "---"), ...rows].map((r) => `| ${r.join(" | ")} |`).join("\n");

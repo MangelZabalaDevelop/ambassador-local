@@ -209,6 +209,10 @@ pub struct Recipe {
     /// En vez de llama.cpp, TensorFold en contenedor (solo GB10 ×2): imagen construida con la receta del repo.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub tensorfold: Option<TensorFold>,
+    /// Sistemas donde se ofrece, p. ej. `["windows"]` cuando en Linux hay otra mejor del mismo modelo.
+    /// Vacío = todos los del equipo (las de contenedor, solo Linux).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub os: Option<Vec<String>>,
     /// Receta afinada a mano por el autor del catálogo: se ve con la etiqueta "Miguel Tuned".
     #[serde(default)]
     pub tuned: bool,
@@ -445,6 +449,13 @@ impl Catalog {
                 }
                 if !hw_ids.contains(hw.as_str()) {
                     return Err(format!("{}: unknown hardware {hw}", m.id));
+                }
+                if let Some(os) = &r.os {
+                    let h = self.hardware.iter().find(|h| &h.id == hw).unwrap();
+                    let container = r.vllm.is_some() || r.tensorfold.is_some();
+                    if os.is_empty() || os.iter().any(|o| !h.os.contains(o) || (container && o != "linux")) {
+                        return Err(format!("{}: os for {hw} must list systems that workstation runs (containers: linux)", m.id));
+                    }
                 }
                 if r.vllm.as_ref().is_some_and(|v| !valid_vllm(v)) {
                     return Err(format!("{}: invalid vllm image, repo or revision for {hw}", m.id));

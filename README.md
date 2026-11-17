@@ -141,7 +141,7 @@ A model only appears in the app on the workstations marked here.
 | NVIDIA · **Nemotron 3.5 Super VL** 120B-A12B | — | — | — | ✓ 28.3 tok/s · 87 GB | — |
 | NVIDIA · **Nemotron 3.5 Bolt** 74B-A9B | ✓ 111.1 tok/s · 79 GB | — | — | ✓ 22.7 tok/s · 50 GB | — |
 | NVIDIA · **Nemotron 3.5 Lightning** 30B-A3B | ✓ 341.7 tok/s · 39 GB | — | — | ✓ 77 tok/s · 26 GB | — |
-| Qwen · **Qwen3.8 Flash Next** 180B | ✓ 116.9 tok/s · 94 GB | — | — | ✓ 27.3 tok/s · 94 GB | ✓ 29.1 tok/s · 114 GB |
+| Qwen · **Qwen3.8 Flash Next** 180B | ✓ 116.9 tok/s · 94 GB · Windows only | — | — | — | ✓ 29.1 tok/s · 114 GB |
 | Qwen · **Qwen3.6 35B-A3B** | ✓ 327.7 tok/s · 39 GB | — | — | ✓ 82.5 tok/s · 23 GB | — |
 | Qwen · **Qwen3.8 27B** | ✓ 85.6 tok/s · 31 GB | — | — | ✓ 32.3 tok/s · 19 GB | — |
 | Qwen · **Qwen3-Coder-Next** 80B-A3B | ✓ 203.7 tok/s · 86 GB | — | — | ✓ 48.5 tok/s · 50 GB | — |
@@ -154,7 +154,7 @@ A model only appears in the app on the workstations marked here.
 | DeepSeek · **DeepSeek V4 Flash Vision** 305B | — | — | — | ✓ 23.3 tok/s · 116 GB | — |
 | OpenAI · **gpt-oss-120b** 117B-A5B | ✓ 203.3 tok/s · 65 GB | — | — | ✓ 40.6 tok/s · 65 GB | — |
 | Google · **Gemma 3 12B** | ✓ 91 tok/s · 14 GB | — | — | ✓ · 7 GB | — |
-| Qwen · **Qwen3.8 Flash Next FP4** 180B | ✓ 191.5 tok/s · 102 GB · Miguel Tuned | — | — | ✓ 36.9 tok/s · 102 GB | — |
+| Qwen · **Qwen3.8 Flash Next FP4** 180B | ✓ 191.5 tok/s · 102 GB · Ubuntu only · Miguel Tuned | — | — | ✓ 36.9 tok/s · 102 GB | — |
 | DeepSeek · **DeepSeek-V4.1-Flash-1017** 552B-A16B | — | — | — | — | ✓ 53.9 tok/s · 211 GB · Miguel Tuned |
 <!-- models:end -->
 

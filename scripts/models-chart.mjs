@@ -37,7 +37,13 @@ const short = (h) => h.name.replace(/^Dell /, "");
 const fmt = (n) => (Number.isInteger(n) ? String(n) : n.toFixed(1));
 
 function chart(hw, t) {
-  const linuxOnly = (r) => (r.vllm || r.tensorfold) && hw.os.includes("windows");
+  // Which of the workstation's systems offer this recipe, said only when it is not all of them.
+  const systems = (r) => (r.vllm || r.tensorfold ? ["linux"] : r.os ?? hw.os);
+  const only = (r) => {
+    const s = systems(r);
+    if (s.length >= hw.os.length) return null;
+    return s[0] === "windows" ? "Windows only" : "Ubuntu only";
+  };
   const models = catalog.models
     .filter((m) => m.recipes[hw.id])
     .map((m) => ({ m, r: m.recipes[hw.id] }));
@@ -83,8 +89,8 @@ function chart(hw, t) {
       const name = `${m.name}${size}`;
       // The Intelligence Index from Artificial Analysis, or "estimated" while it has not rated the model.
       const score = m.aa_index != null ? `Index ${m.aa_index}` : "Estimated";
-      const uses = m.best_for.slice(0, linuxOnly(r) ? 1 : 2);
-      const note = [score, family, uses.join(", "), linuxOnly(r) ? "Ubuntu only" : null].filter(Boolean).join(" · ");
+      const uses = m.best_for.slice(0, only(r) ? 1 : 2);
+      const note = [score, family, uses.join(", "), only(r)].filter(Boolean).join(" · ");
       const cy = y + ROW / 2;
       s.push(`<g>`);
       s.push(`<title>${esc(`${family} ${name}, ${m.aa_index != null ? `Intelligence Index ${m.aa_index}` : "Intelligence Index estimated"}: ${r.tokens_per_sec ? fmt(r.tokens_per_sec) + " tokens/s" : "speed not measured yet"}. Good for ${m.best_for.join(", ")}.`)}</title>`);

@@ -100,13 +100,14 @@ export default function App() {
   const family = catalog?.families.find((f) => f.id === familyId) ?? null;
   const model = catalog?.models.find((m) => m.id === modelId) ?? null;
 
-  // Only families/models that have a recipe for the selected hardware. Container recipes (vLLM, TensorFold) are Linux only.
+  // Only families/models that have a recipe for the selected hardware and system. Container recipes (vLLM, TensorFold)
+  // are Linux only, and a recipe can name its systems (os).
   const models = useMemo(
     () =>
       catalog && hardwareId
         ? catalog.models.filter((m) => {
             const r = m.recipes[hardwareId];
-            return r && (os === "linux" || !(r.vllm || r.tensorfold));
+            return r && (os === "linux" || !(r.vllm || r.tensorfold)) && (!r.os || r.os.includes(os as "windows" | "linux"));
           })
         : [],
     [catalog, hardwareId, os],

@@ -17,7 +17,7 @@
 <g>
 <title>Qwen Qwen3.8 Flash Next 180B, Intelligence Index 29: 116.9 tokens/s. Good for Coding, Agents, Long documents.</title>
 <text x="28" y="215" font-size="14" font-weight="600" fill="#f0f6fc">Qwen3.8 Flash Next 180B</text>
-<text x="28" y="232" font-size="12" fill="#9198a1">Index 29 · Qwen · Coding, Agents</text>
+<text x="28" y="232" font-size="12" fill="#9198a1">Index 29 · Qwen · Coding · Windows only</text>
 <path d="M328 212h130.7925080479953a4 4 0 0 1 4 4v8a4 4 0 0 1 -4 4h-130.7925080479953z" fill="#3d8fe0"/>
 <text x="470.7925080479953" y="225" font-size="14" fill="#f0f6fc"><tspan font-weight="700">116.9</tspan><tspan fill="#9198a1"> tokens/s</tspan></text>
 </g>

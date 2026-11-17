@@ -74,6 +74,8 @@ export type Model = {
   quant: string;
   size_class: SizeClass;
   intelligence: number;
+  /** Artificial Analysis Intelligence Index v5; null = not rated yet, so `intelligence` is an estimate. */
+  aa_index?: number | null;
   best_for: string[];
   files: RemoteFile[];
   recipes: Record<string, Recipe>;

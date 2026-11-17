@@ -18,9 +18,9 @@ const themes = {
 };
 
 const tiers = [
-  { level: 5, title: "Smartest", hint: "best answers, hardest tasks" },
-  { level: 4, title: "Very smart", hint: "a strong balance" },
-  { level: 3, title: "Smart", hint: "quick everyday help" },
+  { level: 5, title: "Smartest", hint: "Intelligence Index 25 or more: best answers, hardest tasks" },
+  { level: 4, title: "Very smart", hint: "Intelligence Index 10 to 24: a strong balance" },
+  { level: 3, title: "Smart", hint: "Intelligence Index under 10: quick everyday help" },
 ];
 
 const W = 900;
@@ -52,14 +52,14 @@ function chart(hw, t) {
     .filter((g) => g.rows.length);
 
   const top = 112;
-  const legendH = 44;
+  const legendH = 66;
   const height = top + groups.reduce((h, g) => h + TIER_HEAD + g.rows.length * ROW + 10, 0) + legendH + PAD;
   const font = `font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif"`;
   const s = [];
   s.push(`<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${height}" viewBox="0 0 ${W} ${height}" ${font} role="img" aria-labelledby="t d">`);
   s.push(`<title id="t">Which model should I pick on the ${esc(short(hw))}?</title>`);
-  s.push(`<desc id="d">Models grouped by intelligence, each with the speed measured on the ${esc(short(hw))}. ${esc(
-    models.map((x) => `${x.m.name}: intelligence ${x.m.intelligence} of 5, ${x.r.tokens_per_sec ? fmt(x.r.tokens_per_sec) + " tokens per second" : "speed not measured yet"}`).join("; "),
+  s.push(`<desc id="d">Models grouped by the Artificial Analysis Intelligence Index, each with the speed measured on the ${esc(short(hw))}. ${esc(
+    models.map((x) => `${x.m.name}: ${x.m.aa_index != null ? "Intelligence Index " + x.m.aa_index : "Intelligence Index estimated"}, ${x.r.tokens_per_sec ? fmt(x.r.tokens_per_sec) + " tokens per second" : "speed not measured yet"}`).join("; "),
   )}.</desc>`);
   s.push(`<rect x="0.5" y="0.5" width="${W - 1}" height="${height - 1}" rx="12" fill="${t.surface}" stroke="${t.border}"/>`);
 
@@ -81,14 +81,15 @@ function chart(hw, t) {
       const family = families[m.family] ?? m.family;
       const size = m.name.endsWith(m.size) ? "" : ` ${m.size}`;
       const name = `${m.name}${size}`;
-      // Two uses when "Ubuntu only" also has to fit on the line.
-      const uses = m.best_for.slice(0, linuxOnly(r) ? 2 : 3);
-      const note = [family, uses.join(", "), linuxOnly(r) ? "Ubuntu only" : null].filter(Boolean).join(" · ");
+      // The Intelligence Index from Artificial Analysis, or "estimated" while it has not rated the model.
+      const score = m.aa_index != null ? `Index ${m.aa_index}` : "Estimated";
+      const uses = m.best_for.slice(0, linuxOnly(r) ? 1 : 2);
+      const note = [score, family, uses.join(", "), linuxOnly(r) ? "Ubuntu only" : null].filter(Boolean).join(" · ");
       const cy = y + ROW / 2;
       s.push(`<g>`);
-      s.push(`<title>${esc(`${family} ${name}: ${r.tokens_per_sec ? fmt(r.tokens_per_sec) + " tokens/s" : "speed not measured yet"}. Good for ${m.best_for.join(", ")}.`)}</title>`);
+      s.push(`<title>${esc(`${family} ${name}, ${m.aa_index != null ? `Intelligence Index ${m.aa_index}` : "Intelligence Index estimated"}: ${r.tokens_per_sec ? fmt(r.tokens_per_sec) + " tokens/s" : "speed not measured yet"}. Good for ${m.best_for.join(", ")}.`)}</title>`);
       s.push(`<text x="${PAD}" y="${cy - 3}" font-size="14" font-weight="600" fill="${t.ink}">${esc(fit(name, 34))}${r.recommended ? ` <tspan fill="#d4a017">♛</tspan>` : ""}</text>`);
-      s.push(`<text x="${PAD}" y="${cy + 14}" font-size="12" fill="${t.soft}">${esc(fit(note, 44))}</text>`);
+      s.push(`<text x="${PAD}" y="${cy + 14}" font-size="12" fill="${t.soft}">${esc(fit(note, 46))}</text>`);
       if (r.tokens_per_sec) {
         const w = Math.max(6, (r.tokens_per_sec / max) * BAR_MAX);
         const h = 16;
@@ -117,6 +118,7 @@ function chart(hw, t) {
     s.push(`<rect x="${lx}" y="${ly}" width="14" height="14" rx="3" fill="${t.tuned}"/>`);
     s.push(`<text x="${lx + 22}" y="${ly + 12}" font-size="13" fill="${t.soft}">Miguel Tuned: tuned and tested by hand   <tspan fill="#d4a017">♛</tspan> recommended</text>`);
   }
+  s.push(`<text x="${PAD}" y="${ly + 40}" font-size="12" fill="${t.faint}">Intelligence: Artificial Analysis Intelligence Index v5 (November 2026). Models it has not rated yet are estimated from their closest rated relative.</text>`);
   s.push(`</svg>`);
   return s.join("\n") + "\n";
 }

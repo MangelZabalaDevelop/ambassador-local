@@ -465,7 +465,8 @@
       "tagline": "NVIDIA's biggest model that fits in one GB10.",
       "quant": "UD-Q4_K_XL",
       "size_class": "large",
-      "intelligence": 5,
+      "intelligence": 4,
+      "aa_index": 14,
       "best_for": [
         "Reasoning",
         "Agents",
@@ -507,7 +508,7 @@
       "tagline": "Mid-size Nemotron for agents and tool use.",
       "quant": "UD-Q4_K_XL",
       "size_class": "large",
-      "intelligence": 4,
+      "intelligence": 3,
       "best_for": [
         "Agents",
         "Reasoning",
@@ -570,6 +571,7 @@
       "quant": "UD-Q4_K_XL",
       "size_class": "medium",
       "intelligence": 3,
+      "aa_index": 6,
       "best_for": [
         "Chat",
         "Agents",
@@ -585,7 +587,7 @@
       "recipes": {
         "pro-max-gb10": {
           "speed": 5,
-          "tokens_per_sec": 77.0,
+          "tokens_per_sec": 77,
           "ctx_size": 262144,
           "mtp": {
             "draft_n_max": 2
@@ -618,6 +620,7 @@
       "quant": "UD-IQ4_XS",
       "size_class": "large",
       "intelligence": 5,
+      "aa_index": 29,
       "best_for": [
         "Coding",
         "Agents",
@@ -746,6 +749,7 @@
       "quant": "UD-Q4_K_XL",
       "size_class": "medium",
       "intelligence": 4,
+      "aa_index": 20,
       "best_for": [
         "Coding",
         "Reasoning",
@@ -799,7 +803,7 @@
       "tagline": "Qwen's coding specialist, built for coding agents.",
       "quant": "UD-Q4_K_XL",
       "size_class": "large",
-      "intelligence": 4,
+      "intelligence": 3,
       "best_for": [
         "Coding",
         "Agents"
@@ -850,7 +854,8 @@
       "tagline": "The largest Gemma 4: dense and careful.",
       "quant": "QAT UD-Q4_K_XL",
       "size_class": "medium",
-      "intelligence": 4,
+      "intelligence": 3,
+      "aa_index": 4,
       "best_for": [
         "Writing",
         "Reasoning",
@@ -1067,6 +1072,7 @@
       "quant": "UD-IQ4_XS",
       "size_class": "xlarge",
       "intelligence": 5,
+      "aa_index": 28,
       "best_for": [
         "Coding",
         "Agents",
@@ -1132,7 +1138,7 @@
       "tagline": "DeepSeek's big reasoner with long chains of thought.",
       "quant": "UD-IQ3_XXS",
       "size_class": "large",
-      "intelligence": 5,
+      "intelligence": 4,
       "best_for": [
         "Reasoning",
         "Coding",
@@ -1209,7 +1215,7 @@
       "tagline": "DeepSeek V4 Flash that also reads images, on one GB10.",
       "quant": "2-3 bit",
       "size_class": "xlarge",
-      "intelligence": 5,
+      "intelligence": 4,
       "best_for": [
         "Reasoning",
         "Coding",
@@ -1240,7 +1246,8 @@
       "tagline": "OpenAI's open-weight reasoning model.",
       "quant": "MXFP4",
       "size_class": "large",
-      "intelligence": 4,
+      "intelligence": 3,
+      "aa_index": 4,
       "best_for": [
         "Reasoning",
         "Coding",
@@ -1316,6 +1323,7 @@
       "quant": "4-bit (FP4)",
       "size_class": "xlarge",
       "intelligence": 5,
+      "aa_index": 29,
       "best_for": [
         "Coding",
         "Agents",
@@ -1362,6 +1370,7 @@
       "quant": "EXL3 2.9bpw",
       "size_class": "xlarge",
       "intelligence": 5,
+      "aa_index": 33,
       "best_for": [
         "Reasoning",
         "Coding",

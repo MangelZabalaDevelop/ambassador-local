@@ -107,8 +107,9 @@ Without the app: on Windows, *Settings → Apps → Ambassador Local → Uninsta
 
 ## Which model should I pick?
 
-Find your workstation below. Models are grouped by how smart they are, from the smartest at the top, and each bar
-shows how fast it answers on that workstation (measured there, in tokens per second: a token is about ¾ of a word).
+Find your workstation below. Models are grouped by how smart they are, from the smartest at the top, using the
+[Artificial Analysis Intelligence Index](https://artificialanalysis.ai/leaderboards/models) (models it has not rated yet
+are estimated from their closest rated relative). Each bar shows how fast the model answers on that workstation (measured there, in tokens per second: a token is about ¾ of a word).
 **Pick the highest group that still feels fast enough for you.** For chat, anything above about 20 tokens/s already
 writes faster than you can read; for coding agents, faster is better.
 

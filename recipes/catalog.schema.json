@@ -157,7 +157,13 @@
         },
         "intelligence": {
           "$ref": "#/$defs/rating",
-          "description": "1–5 light bulbs: how capable the answers are"
+          "description": "1–5 light bulbs: how capable the answers are. From aa_index: 5 at 25 or more, 4 at 10–24, 3 below 10"
+        },
+        "aa_index": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Artificial Analysis Intelligence Index v5 (artificialanalysis.ai). Leave out while it is not rated: intelligence is then estimated from its closest rated relative"
         },
         "best_for": {
           "type": "array",

@@ -127,8 +127,12 @@ pub struct Model {
     pub quant: String,
     /// Categoría de tamaño que ve el embajador.
     pub size_class: SizeClass,
-    /// 1 a 5 bombillas: qué tan capaz es el modelo.
+    /// 1 a 5 bombillas: qué tan capaz es el modelo. Sale de `aa_index`: 5 desde 25, 4 desde 10, 3 por debajo.
     pub intelligence: u8,
+    /// Artificial Analysis Intelligence Index v5. Vacío = aún no lo califican y `intelligence` se estima
+    /// con el pariente calificado más cercano.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub aa_index: Option<u8>,
     /// Para qué sirve, en pocas palabras (1 a 3 etiquetas).
     pub best_for: Vec<String>,
     pub files: Vec<RemoteFile>,
@@ -417,6 +421,17 @@ impl Catalog {
             m.files.iter().try_for_each(validate_file)?;
             if !(1..=5).contains(&m.intelligence) {
                 return Err(format!("{}: intelligence must be 1 to 5", m.id));
+            }
+            // Con nota de Artificial Analysis, las bombillas salen de ella: 5 desde 25, 4 desde 10, 3 por debajo.
+            if let Some(aa) = m.aa_index {
+                let want = match aa {
+                    25.. => 5,
+                    10..=24 => 4,
+                    _ => 3,
+                };
+                if m.intelligence != want {
+                    return Err(format!("{}: aa_index {aa} means intelligence {want}", m.id));
+                }
             }
             if m.best_for.is_empty() || m.best_for.len() > 3 || m.best_for.iter().any(|b| b.is_empty() || b.len() > 24) {
                 return Err(format!("{}: best_for needs 1 to 3 short labels", m.id));

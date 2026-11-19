@@ -11,7 +11,8 @@ docker info >/dev/null 2>&1 || die "Docker is not reachable without sudo"
 command -v python3 >/dev/null || die "python3 is required (the bad_words proxy)"
 
 "$HERE/stop.sh" >/dev/null 2>&1 || true
-apps=$(nvidia-smi --query-compute-apps=name --format=csv,noheader 2>/dev/null | sed 's/.*\///' | sort -u | paste -sd, -)
+# Small GPU users don't count (the desktop, remote desktop's ~300 MiB): only 2 GiB or more, or an unknown size.
+apps=$(nvidia-smi --query-compute-apps=name,used_memory --format=csv,noheader,nounits 2>/dev/null | awk -F', ' '$NF !~ /^[0-9]+$/ || $NF >= 2048 {sub(/, [^,]*$/, ""); sub(/.*\//, ""); print}' | sort -u | paste -sd, -)
 [[ -z "$apps" ]] || die "the GPU is in use by $apps. Stop it first."
 free=$(awk '/MemAvailable/{printf "%d", $2/1048576}' /proc/meminfo)
 (( free >= MIN_FREE_GB )) || die "only ${free} GB of memory free, need ${MIN_FREE_GB}. Stop other models first."

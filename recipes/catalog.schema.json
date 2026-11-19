@@ -374,6 +374,16 @@
             "llama.cpp"
           ],
           "description": "The engine the recipe folder runs, when it is not vLLM: llama.cpp for a patched build that no llama.cpp release has yet, built into its image by the recipe (needs recipe). Only the name shown changes; the weights may be GGUF."
+        },
+        "include": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9._+-]+(/[A-Za-z0-9._+-]+)*$",
+            "maxLength": 256
+          },
+          "description": "Only these files of the repo (paths inside it), when the recipe does not use the whole repo, e.g. one GGUF of a repo with several quantizations. Without it, the app downloads the whole revision into the Hugging Face cache."
         }
       }
     },

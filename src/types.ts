@@ -59,7 +59,7 @@ export type Recipe = {
 };
 
 /** Imagen fijada por digest y pesos de Hugging Face fijados por commit; `size` en bytes por GB10. */
-export type Vllm = { image: string; image_id: string; repo: string; revision: string; size: number; recipe?: string; engine?: "vLLM" | "llama.cpp" };
+export type Vllm = { image: string; image_id: string; repo: string; revision: string; size: number; recipe?: string; engine?: "vLLM" | "llama.cpp"; include?: string[] };
 
 /** Imagen local con el commit del motor en su etiqueta; pesos fijados por commit; `size` en bytes por GB10. */
 export type TensorFold = { image: string; engine_commit: string; recipe: string; repo: string; revision: string; size: number };
@@ -126,7 +126,8 @@ export type Job = { hardware_id: string; model_id: string };
 export type Status =
   | { stage: "idle" }
   | ({ stage: "downloading"; label: string; step: number; steps: number; downloaded: number; total: number } & Job)
-  | ({ stage: "extracting" } & Job)
+  /** label: what the engine step is doing, when it is not unpacking llama.cpp (a container recipe pulling or building its image). */
+  | ({ stage: "extracting"; label?: string } & Job)
   | ({ stage: "starting" } & Job)
   | ({ stage: "ready"; url: string; api_url: string; api_key: string; lan_url: string | null } & Job)
   /** Con el modelo cuando el error es de uno concreto (no arrancó, o se cayó estando en marcha). */

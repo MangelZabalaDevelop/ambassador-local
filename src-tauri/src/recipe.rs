@@ -9,14 +9,15 @@ macro_rules! scripts {
     };
 }
 
-/// `motor/receta` → archivos que necesita run.sh y stop.sh. Los pesos y la imagen los deja listos la revisión previa.
+/// `motor/receta` → archivos que necesita run.sh y stop.sh. En un equipo solo la app baja antes los pesos y la imagen,
+/// y corre build.sh si la receta lo trae (construye la imagen del motor).
 const SCRIPTS: &[(&str, &[(&str, &str)])] = &[
     scripts!("vllm/qwen38-flash-next-fp4-t2": "config.sh", "run.sh", "stop.sh", "engine.env"),
     scripts!("vllm/qwen38-flash-next-fp4-gb10": "config.sh", "run.sh", "stop.sh", "engine.env"),
     scripts!("vllm/deepseek-v4-flash-vision-gb10": "config.sh", "run.sh", "stop.sh", "engine.env", "Dockerfile"),
     scripts!("vllm/glm53-flash-exl3-gb10": "config.sh", "run.sh", "stop.sh", "engine.env", "Dockerfile"),
     scripts!("vllm/hy4-flash-nvfp4-gb10x2": "config.sh", "run.sh", "stop.sh", "memwatch.sh", "Dockerfile"),
-    scripts!("vllm/hy4-flash-spark4bit-gb10": "config.sh", "run.sh", "stop.sh", "memwatch.sh", "engine.env", "Dockerfile"),
+    scripts!("vllm/hy4-flash-spark4bit-gb10": "config.sh", "build.sh", "run.sh", "stop.sh", "memwatch.sh", "engine.env", "Dockerfile"),
     scripts!("tensorfold/deepseek-v41-flash-1017": "config.sh", "run.sh", "stop.sh", "memwatch.sh"),
 ];
 

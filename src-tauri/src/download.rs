@@ -61,20 +61,84 @@ pub struct Progress<'a> {
     pub on_bytes: &'a (dyn Fn(u64) + Send + Sync),
 }
 
+/// La huella que debe tener un archivo. Hugging Face da el SHA256 de los archivos grandes (LFS); de los pequeños
+/// (config.json, el tokenizador) solo el id de git: SHA-1 de `blob <tamaño>\0` seguido del contenido.
+#[derive(Debug, Clone, Copy)]
+pub enum Fingerprint<'a> {
+    Sha256(&'a str),
+    GitBlob(&'a str),
+}
+
+impl Fingerprint<'_> {
+    fn expected(&self) -> &str {
+        match self {
+            Fingerprint::Sha256(h) | Fingerprint::GitBlob(h) => h,
+        }
+    }
+
+    fn hasher(&self, size: u64) -> Hasher {
+        match self {
+            Fingerprint::Sha256(_) => Hasher::Sha256(Sha256::new()),
+            Fingerprint::GitBlob(_) => {
+                let mut h = sha1::Sha1::new();
+                h.update(format!("blob {size}\0"));
+                Hasher::GitBlob(h)
+            }
+        }
+    }
+}
+
+#[derive(Clone)]
+enum Hasher {
+    Sha256(Sha256),
+    GitBlob(sha1::Sha1),
+}
+
+impl Hasher {
+    fn update(&mut self, data: &[u8]) {
+        match self {
+            Hasher::Sha256(h) => h.update(data),
+            Hasher::GitBlob(h) => h.update(data),
+        }
+    }
+
+    fn hex(self) -> String {
+        match self {
+            Hasher::Sha256(h) => hex::encode(h.finalize()),
+            Hasher::GitBlob(h) => hex::encode(h.finalize()),
+        }
+    }
+}
+
 pub async fn fetch(client: &reqwest::Client, file: &RemoteFile, dest: &Path, progress: Progress<'_>) -> Result<(), String> {
     if is_verified(file, dest) {
         (progress.on_bytes)(file.size);
         return Ok(());
     }
-    if let Some(dir) = dest.parent() {
-        tokio::fs::create_dir_all(dir).await.map_err(|e| e.to_string())?;
-    }
     let part = part_path(dest);
-    let mut hasher = Sha256::new();
+    fetch_part(client, &file.url, file.file_name(), file.size, Fingerprint::Sha256(&file.sha256), &part, progress).await?;
+    finish(file, &part, dest).await
+}
+
+/// Descarga `url` en `part`, reanudando lo que ya haya ahí. Solo devuelve Ok con el archivo entero y con su huella;
+/// moverlo a su sitio es cosa de quien llama. `name` es para los mensajes.
+pub async fn fetch_part(
+    client: &reqwest::Client,
+    url: &str,
+    name: &str,
+    size: u64,
+    fingerprint: Fingerprint<'_>,
+    part: &Path,
+    progress: Progress<'_>,
+) -> Result<(), String> {
+    if let Some(dir) = part.parent() {
+        tokio::fs::create_dir_all(dir).await.map_err(|e| format!("Could not create {}: {e}", dir.display()))?;
+    }
+    let mut hasher = fingerprint.hasher(size);
     let mut have: u64 = 0;
 
     // Reanudar: rehashear lo que ya está en disco. Con decenas de GB tarda; la barra avanza mientras tanto.
-    if let Ok(mut f) = tokio::fs::File::open(&part).await {
+    if let Ok(mut f) = tokio::fs::File::open(part).await {
         let mut buf = vec![0u8; 1 << 20];
         let mut last_emit = Instant::now();
         loop {
@@ -88,38 +152,38 @@ pub async fn fetch(client: &reqwest::Client, file: &RemoteFile, dest: &Path, pro
                 return Err("cancelled".into());
             }
             if last_emit.elapsed() > Duration::from_millis(250) {
-                (progress.on_bytes)(have.min(file.size));
+                (progress.on_bytes)(have.min(size));
                 last_emit = Instant::now();
             }
         }
-        if have > file.size {
+        if have > size {
             have = 0;
-            hasher = Sha256::new();
+            hasher = fingerprint.hasher(size);
         }
     }
     // Ya está entero (se cortó justo antes de renombrarlo): pedir "bytes=<tamaño>-" daría 416 para siempre.
-    if have == file.size {
-        if hex::encode(hasher.clone().finalize()) == file.sha256 {
+    if have == size {
+        if hasher.clone().hex() == fingerprint.expected() {
             (progress.on_bytes)(have);
-            return finish(file, &part, dest).await;
+            return Ok(());
         }
         have = 0;
-        hasher = Sha256::new();
+        hasher = fingerprint.hasher(size);
     }
 
-    let mut req = client.get(&file.url);
+    let mut req = client.get(url);
     if have > 0 {
         req = req.header(reqwest::header::RANGE, format!("bytes={have}-"));
     }
-    let resp = req.send().await.map_err(|e| format!("Could not download {}: {e}", file.file_name()))?;
+    let resp = req.send().await.map_err(|e| format!("Could not download {name}: {e}"))?;
     let status = resp.status();
     if have > 0 && status != reqwest::StatusCode::PARTIAL_CONTENT {
         // El servidor no aceptó reanudar: empezar de cero.
         have = 0;
-        hasher = Sha256::new();
+        hasher = fingerprint.hasher(size);
     }
     if !status.is_success() {
-        return Err(format!("{}: HTTP {status}", file.file_name()));
+        return Err(format!("{name}: HTTP {status}"));
     }
 
     let mut out = tokio::fs::OpenOptions::new()
@@ -127,9 +191,9 @@ pub async fn fetch(client: &reqwest::Client, file: &RemoteFile, dest: &Path, pro
         .write(true)
         .append(have > 0)
         .truncate(have == 0)
-        .open(&part)
+        .open(part)
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| format!("Could not save {name}: {e}"))?;
 
     (progress.on_bytes)(have);
     let mut last_emit = Instant::now();
@@ -143,34 +207,37 @@ pub async fn fetch(client: &reqwest::Client, file: &RemoteFile, dest: &Path, pro
         }
         let Ok(next) = next else { continue };
         let Some(chunk) = next else { break };
-        let chunk = chunk.map_err(|e| format!("Download of {} interrupted ({e}). Press Try again to resume it.", file.file_name()))?;
+        let chunk = chunk.map_err(|e| format!("Download of {name} interrupted ({e}). Press Try again to resume it."))?;
         have += chunk.len() as u64;
-        if have > file.size {
+        if have > size {
             drop(out);
-            tokio::fs::remove_file(&part).await.ok();
-            return Err(format!("{}: larger than expected", file.file_name()));
+            tokio::fs::remove_file(part).await.ok();
+            return Err(format!("{name}: larger than expected"));
         }
         hasher.update(&chunk);
-        out.write_all(&chunk).await.map_err(|e| format!("Could not save {}: {e}", file.file_name()))?;
+        out.write_all(&chunk).await.map_err(|e| format!("Could not save {name}: {e}"))?;
         if last_emit.elapsed() > Duration::from_millis(250) {
             (progress.on_bytes)(have);
             last_emit = Instant::now();
         }
     }
-    out.flush().await.map_err(|e| format!("Could not save {}: {e}", file.file_name()))?;
+    out.flush().await.map_err(|e| format!("Could not save {name}: {e}"))?;
     drop(out);
     (progress.on_bytes)(have);
 
     // La conexión se cerró antes de tiempo sin error: lo recibido sirve, se reanuda en el próximo intento.
-    if have < file.size {
-        return Err(format!("Download of {} interrupted. Press Try again to resume it.", file.file_name()));
+    if have < size {
+        return Err(format!("Download of {name} interrupted. Press Try again to resume it."));
     }
-    let digest = hex::encode(hasher.finalize());
-    if digest != file.sha256 {
-        tokio::fs::remove_file(&part).await.ok();
-        return Err(format!("{}: SHA256 fingerprint does not match; the file was discarded", file.file_name()));
+    if hasher.hex() != fingerprint.expected() {
+        tokio::fs::remove_file(part).await.ok();
+        let kind = match fingerprint {
+            Fingerprint::Sha256(_) => "SHA256",
+            Fingerprint::GitBlob(_) => "Git SHA-1",
+        };
+        return Err(format!("{name}: {kind} fingerprint does not match; the file was discarded"));
     }
-    finish(file, &part, dest).await
+    Ok(())
 }
 
 /// El .part ya verificado pasa a ser el archivo final, con su marca de verificado.
@@ -319,6 +386,24 @@ mod tests {
         let err = get(&file, &dest, &AtomicBool::new(false)).await.unwrap_err();
         assert!(err.contains("SHA256"), "{err}");
         assert!(!dest.exists() && !part_path(&dest).exists());
+    }
+
+    /// Los archivos pequeños de Hugging Face se verifican con su id de git (`git hash-object`).
+    #[tokio::test]
+    async fn verifies_git_blob_ids() {
+        let b = b"hello
+".to_vec();
+        let (url, _) = serve(b.clone(), Mode::Ranges).await;
+        let dest = scratch("gitblob");
+        let part = part_path(&dest);
+        let quiet = |_: u64| {};
+        let cancel = AtomicBool::new(false);
+        let c = client();
+        let fetch = |oid: &'static str| fetch_part(&c, &url, "hello", 6, Fingerprint::GitBlob(oid), &part, Progress { cancel: &cancel, on_bytes: &quiet });
+        let err = fetch("0000000000000000000000000000000000000000").await.unwrap_err();
+        assert!(err.contains("Git SHA-1"), "{err}");
+        fetch("ce013625030ba8dba906f756967f9e9ca394464a").await.unwrap();
+        assert_eq!(std::fs::read(&part).unwrap(), b);
     }
 
     /// Antes, un corte limpio a medias se tomaba por archivo dañado y se borraba todo lo descargado.

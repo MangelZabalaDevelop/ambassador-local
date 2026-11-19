@@ -175,7 +175,7 @@ marked with the workstation it was tested on.
 - Recipes are **data, not commands**: they can only set the fields below. The app always sets `--host` itself (127.0.0.1, or your network when you allow it) and adds `--jinja`.
 - No admin rights, no telemetry.
 - **GB10 ×2 with llama.cpp:** the app runs on one GB10 and borrows the second one's memory with llama.cpp's `ggml-rpc-server`. It reaches the second GB10 over the passwordless SSH that NVIDIA's cluster setup leaves between the two, copies the same engine there if it is missing, and starts the RPC server bound **only to the direct ConnectX cable's IP** (never your home or office network). It is stopped when you stop the model or close the app, and also if the app crashes.
-- **Container recipes (vLLM, TensorFold):** images are pinned by digest or built from pinned sources, and weights by commit. The app checks the machine before it starts anything, runs the recipe's own scripts (which it carries inside), and stops the containers, on both GB10 when there are two, when you stop the model or close the app.
+- **Container recipes (vLLM, TensorFold):** images are pinned by digest or built from pinned sources, and weights by commit. On a single workstation the app downloads what is missing itself: each weight file is checked against the fingerprint Hugging Face lists for that commit. The app checks the machine before it starts anything, runs the recipe's own scripts (which it carries inside), and stops the containers, on both GB10 when there are two, when you stop the model or close the app.
 - **Updates are optional and signed.** At startup the app asks GitHub once whether this repo has a newer release (nothing is downloaded or sent). It installs only when you click **Update** and confirm, and only a package signed with the project's key: the public key is built into the app, so a tampered or third-party package is rejected. New models come with the update, since the catalog is part of the app.
 
 Files live in the app data folder
@@ -233,10 +233,12 @@ Some tuned recipes are NVFP4 models served by vLLM. A Linux recipe can carry a `
 | `repo`, `revision` | Hugging Face weights pinned to a commit; each GB10 needs them in its Hugging Face cache |
 | `size` | Bytes of those weights, per GB10 |
 | `recipe` | Folder name under [`recipes/vllm/`](recipes/vllm) with `run.sh` and `stop.sh`; required on a single workstation |
+| `engine` | `"llama.cpp"` when the folder runs a patched llama.cpp instead of vLLM (only the name shown changes; the weights may be GGUF) |
+| `include` | Only these files of the repo, e.g. one GGUF of a repo with several quantizations; without it, the whole revision |
 
 `ctx_size` is `--max-model-len` here and can go up to 1M. Those models have `"files": []`.
 
-Run starts these models like any other. First the app checks the machine (on two GB10: the second GB10 on the ConnectX cable, passwordless SSH to it, and everything below on both): Docker with the NVIDIA runtime, the pinned image, complete weights, and a free GPU. Then it writes the recipe folder's scripts, which it carries inside, to `~/.cache/ambassador-local/<engine>/<recipe>/recipe/` and runs `run.sh` with the port, the API key file and the model id. Stop, or closing the app, runs `stop.sh`. A new recipe folder must also be listed in [`src-tauri/src/recipe.rs`](src-tauri/src/recipe.rs); `cargo test` checks it.
+Run starts these models like any other. On a single workstation it first gets what is missing, with a progress bar: the weights into the Hugging Face cache (laid out as `hf download` would, so the scripts find them), the pinned image with `docker pull`, and, if the folder has a `build.sh`, the image that script builds. Then it checks the machine (on two GB10: the second GB10 on the ConnectX cable, passwordless SSH to it, and everything below on both, prepared by hand): Docker with the NVIDIA runtime, the pinned image, complete weights, and a free GPU (processes under 2 GiB, like the desktop or remote desktop, don't count). Then it writes the recipe folder's scripts, which it carries inside, to `~/.cache/ambassador-local/<engine>/<recipe>/recipe/` and runs `run.sh` with the port, the API key file and the model id. Stop, or closing the app, runs `stop.sh`. A new recipe folder must also be listed in [`src-tauri/src/recipe.rs`](src-tauri/src/recipe.rs); `cargo test` checks it.
 
 The app doesn't set up the cluster: the cluster setup in NVIDIA Sync does.
 

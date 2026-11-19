@@ -102,7 +102,8 @@ else
   find -L "$S" \( -name "*.safetensors" -o -name "*.gguf" \) | grep -q . || n=$((n+1))
   [ "$n" = 0 ] && echo weights=ok || echo "weights=missing $n"
 fi
-apps=$(nvidia-smi --query-compute-apps=name --format=csv,noheader 2>/dev/null | sed 's/.*\///' | sort -u | paste -sd, -)
+# Small GPU users don't count (the desktop, remote desktop's ~300 MiB): only 2 GiB or more, or an unknown size.
+apps=$(nvidia-smi --query-compute-apps=name,used_memory --format=csv,noheader,nounits 2>/dev/null | awk -F', ' '$NF !~ /^[0-9]+$/ || $NF >= 2048 {{sub(/, [^,]*$/, ""); sub(/.*\//, ""); print}}' | sort -u | paste -sd, -)
 [ -z "$apps" ] && echo gpu_free=ok || echo "gpu_free=$apps"
 "#,
         image_test = v.image_test,
@@ -223,6 +224,30 @@ pub fn verify(v: &Target) -> Vec<Check> {
     out
 }
 
+impl Target {
+    /// Un equipo solo: la app puede dejarle la receta lista ella misma (pesos e imagen) antes de arrancarla.
+    pub fn single(&self) -> bool {
+        self.single
+    }
+}
+
+/// Docker sin sudo y con el runtime de NVIDIA: sin eso la app no puede ni preparar la receta.
+pub fn docker_ready() -> Result<(), String> {
+    let m = run_local(
+        "docker info >/dev/null 2>&1 && echo docker=ok || echo docker=no\n\
+         docker info --format '{{range $k, $v := .Runtimes}}{{$k}} {{end}}' 2>/dev/null | grep -qw nvidia && echo gpu_runtime=ok || echo gpu_runtime=no\n",
+    );
+    match docker_state(&m).as_str() {
+        "ok" => Ok(()),
+        s => Err(format!("Docker with GPU access: {s}")),
+    }
+}
+
+/// ¿Tiene Docker ya la imagen del motor (por su digest o por su id)?
+pub fn image_present(t: &Target) -> bool {
+    Command::new("bash").args(["-c", &format!("{} >/dev/null 2>&1", t.image_test)]).stdin(Stdio::null()).status().is_ok_and(|s| s.success())
+}
+
 /// Qué revisar para la receta de este equipo, si corre en contenedor.
 pub fn target_for(model: &crate::catalog::Model, hardware: &crate::catalog::Hardware) -> Option<Target> {
     let id = hardware.id.as_str();
@@ -318,6 +343,31 @@ mod tests {
             let t = first_target(false);
             snapshot(&hub, &t, false);
             assert_eq!(get(&probe_in(&home, &t, &[("HF_HUB_CACHE", &hub)]), "weights"), "ok");
+        }
+
+        /// "GPU libre" no cuenta lo pequeño (el escritorio remoto de GNOME ocupa ~300 MiB), sí un modelo o un tamaño
+        /// desconocido. nvidia-smi falso en el PATH.
+        #[test]
+        fn probe_ignores_small_gpu_users() {
+            let home = scratch("gpu");
+            let bin = home.join("bin");
+            std::fs::create_dir_all(&bin).unwrap();
+            let smi = bin.join("nvidia-smi");
+            let fake = |lines: &str| {
+                std::fs::write(&smi, format!("#!/bin/sh\nprintf '{lines}'\n")).unwrap();
+                use std::os::unix::fs::PermissionsExt;
+                std::fs::set_permissions(&smi, std::fs::Permissions::from_mode(0o755)).unwrap();
+            };
+            let path = std::path::PathBuf::from(format!("{}:{}", bin.display(), std::env::var("PATH").unwrap_or_default()));
+            let t = first_target(false);
+            fake("/usr/libexec/gnome-remote-desktop-daemon, 283\\n");
+            assert_eq!(get(&probe_in(&home, &t, &[("PATH", &path)]), "gpu_free"), "ok");
+            fake("/usr/libexec/gnome-remote-desktop-daemon, 283\\n/usr/local/bin/llama-server, 98304\\n/usr/lib/xorg/Xorg, [N/A]\\n");
+            // El orden de `sort` depende del idioma del sistema.
+            let busy = get(&probe_in(&home, &t, &[("PATH", &path)]), "gpu_free");
+            let mut apps: Vec<&str> = busy.split(',').collect();
+            apps.sort_unstable();
+            assert_eq!(apps, ["Xorg", "llama-server"]);
         }
 
         /// TensorFold: lo que el embajador fijó en local.env (pesos en otro disco) y el sello de prepare.sh.

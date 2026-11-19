@@ -26,6 +26,9 @@ all, and leaves the second GB10 free. vLLM reads long prompts about twice as fas
     --revision 65acb8ae7f59847fe03a17291f1b72b89b141a9e
   ```
 
+  Ambassador Local does this by itself when you press Run, and builds the engine too; these commands are for
+  running the recipe by hand.
+
 - 110 GB of free memory: stop any other model first.
 
 ## Start it

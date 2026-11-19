@@ -271,6 +271,10 @@ pub struct Vllm {
     /// está en una versión publicada (la receta lo construye en su imagen). Solo cambia el nombre que se muestra.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub engine: Option<String>,
+    /// Solo estos archivos del repo (rutas dentro de él), cuando la receta no usa el repo entero: uno con varias
+    /// cuantizaciones, p. ej. Sin la lista, la app descarga la revisión completa.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub include: Option<Vec<String>>,
 }
 
 impl Vllm {
@@ -335,7 +339,16 @@ fn valid_vllm(v: &Vllm) -> bool {
         Some("llama.cpp") => v.recipe.is_some(),
         Some(_) => false,
     };
-    image_ok && id_ok && repo_ok(&v.repo) && hex(&v.revision, 40) && v.size > 0 && recipe_ok && engine_ok
+    let include_ok = v.include.as_ref().is_none_or(|files| !files.is_empty() && files.iter().all(|f| repo_path_ok(f)));
+    image_ok && id_ok && repo_ok(&v.repo) && hex(&v.revision, 40) && v.size > 0 && recipe_ok && engine_ok && include_ok
+}
+
+/// Ruta de un archivo dentro de un repo de Hugging Face, sin forma de salir de la carpeta del modelo.
+pub fn repo_path_ok(path: &str) -> bool {
+    path.len() <= 256
+        && path.split('/').all(|part| {
+            !part.is_empty() && part != "." && part != ".." && part.chars().all(|c| c.is_ascii_alphanumeric() || "._-+".contains(c))
+        })
 }
 
 fn valid_tensorfold(t: &TensorFold) -> bool {

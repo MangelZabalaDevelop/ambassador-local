@@ -1427,7 +1427,11 @@
             "revision": "65acb8ae7f59847fe03a17291f1b72b89b141a9e",
             "size": 160655951584,
             "recipe": "hy4-flash-spark4bit-gb10",
-            "engine": "llama.cpp"
+            "engine": "llama.cpp",
+            "include": [
+              "Hy4-flash-SPARK-4Bit-Fast.gguf",
+              "mmproj-Hy4-flash-bf16.gguf"
+            ]
           }
         },
         "pro-max-gb10-x2": {

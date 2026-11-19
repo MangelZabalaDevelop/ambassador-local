@@ -217,7 +217,7 @@ function ActionBar(props: Props) {
         <div className="min-w-[16rem] flex-1">
           <div className="flex items-center gap-3 font-bold">
             <Spinner />
-            {status.stage === "extracting" ? "Installing the llama.cpp engine…" : "Loading the model onto the GPU…"}
+            {status.stage === "extracting" ? (status.label ?? "Installing the llama.cpp engine…") : "Loading the model onto the GPU…"}
           </div>
           <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/10">
             <div className="indeterminate h-full w-1/3 rounded-full bg-gradient-to-r from-[#2f8fff] to-[#76b900]" />

@@ -4,6 +4,7 @@ mod cluster;
 mod detect;
 mod download;
 mod engine;
+mod hub;
 mod lifetime;
 mod proxy;
 mod recipe;
@@ -56,9 +57,13 @@ enum Status {
         downloaded: u64,
         total: u64,
     },
+    /// Instalar el motor: llama.cpp descomprimido, o en una receta en contenedor bajar su imagen y construirla.
+    /// `label`: qué se está haciendo, si no es lo de siempre (descomprimir llama.cpp).
     Extracting {
         #[serde(flatten)]
         job: Job,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        label: Option<String>,
     },
     Starting {
         #[serde(flatten)]
@@ -334,7 +339,7 @@ async fn run_job(app: &AppHandle, inner: &Arc<Mutex<Inner>>, cancel: &AtomicBool
     }
 
     if need_engine {
-        emit_status(app, inner, Status::Extracting { job: job.clone() });
+        emit_status(app, inner, Status::Extracting { job: job.clone(), label: None });
         let archives: Vec<PathBuf> = build.files.iter().map(|f| root.join("downloads").join(f.file_name())).collect();
         let dir = engine_dir.clone();
         tauri::async_runtime::spawn_blocking(move || -> Result<(), String> {
@@ -432,10 +437,14 @@ async fn run_container(
         (_, Some(t)) => ("tensorfold", t.recipe.clone()),
         _ => return Err("This model has no recipe for your hardware.".into()),
     };
+    let target = vllm::target_for(model, hw).ok_or("This model has no recipe for your hardware.")?;
+    // Un equipo solo: lo que falte (pesos, imagen del motor) lo baja la app, como con los modelos de llama.cpp.
+    if let (true, true, Some(v)) = (cfg!(target_os = "linux"), target.single(), &recipe.vllm) {
+        prepare_container(app, inner, cancel, job, model, v, &folder).await?;
+    }
     emit_status(app, inner, Status::Starting { job: job.clone() });
 
     // Lo mismo que antes se veía como lista: imagen, pesos y memoria. El primer fallo es el mensaje.
-    let target = vllm::target_for(model, hw).ok_or("This model has no recipe for your hardware.")?;
     let checks = tauri::async_runtime::spawn_blocking(move || vllm::verify(&target)).await.map_err(|e| e.to_string())?;
     for c in &checks {
         push_log(app, inner, format!("{} {}: {}", if c.state == vllm::State::Ok { "✓" } else { "✕" }, c.label, c.detail));
@@ -471,6 +480,126 @@ async fn run_container(
     push_log(app, inner, format!("> {} (port {port})", dir.join("run.sh").display()));
     let child = cmd.spawn().map_err(|e| format!("Could not start the model: {e}"))?;
     serve(app, inner, cancel, child, port, job, api_key, lan, "The model server").await
+}
+
+/// Receta en contenedor en un equipo solo: deja los pesos en la caché de Hugging Face (con su barra de progreso),
+/// baja la imagen del motor y, si la receta trae build.sh, construye la suya. Lo que ya esté se salta.
+async fn prepare_container(
+    app: &AppHandle,
+    inner: &Arc<Mutex<Inner>>,
+    cancel: &AtomicBool,
+    job: &Job,
+    model: &Model,
+    v: &catalog::Vllm,
+    folder: &str,
+) -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(vllm::docker_ready).await.map_err(|e| e.to_string())??;
+
+    let hub = hub::hub_dir().ok_or("HOME is not set.")?;
+    let client = download::client();
+    let files = hub::list(&client, hub::HUGGING_FACE, &v.repo, &v.revision, v.include.as_deref()).await?;
+    let missing: Vec<&hub::HubFile> = files.iter().filter(|f| !hub::present(&hub, &v.repo, &v.revision, f)).collect();
+    if !missing.is_empty() {
+        let need = hub::bytes_missing(&hub, &v.repo, &missing);
+        // Con un margen: el disco lleno a mitad de 160 GB deja el equipo sin espacio y la descarga sin terminar.
+        if let Some(free) = hub::free_space(&hub).filter(|free| *free < need.saturating_add(1 << 30)) {
+            let gb = |b: u64| b.div_ceil(1_000_000_000);
+            return Err(format!(
+                "Not enough disk space for {}: it needs {} GB more in {} and {} GB are free.",
+                model.name,
+                gb(need),
+                hub.display(),
+                gb(free)
+            ));
+        }
+        push_log(app, inner, format!("Downloading {} files of {} @ {} into {}", missing.len(), v.repo, &v.revision[..7], hub.display()));
+        // Una sola barra para todos los archivos: el total es el modelo entero.
+        let total: u64 = missing.iter().map(|f| f.size).sum();
+        let (steps, mut before) = (missing.len(), 0u64);
+        for (step, f) in missing.iter().enumerate() {
+            let (app2, inner2, job2, label) = (app.clone(), inner.clone(), job.clone(), model.name.clone());
+            let on_bytes = move |done: u64| {
+                let status = Status::Downloading { job: job2.clone(), label: label.clone(), step: step + 1, steps, downloaded: before + done, total };
+                emit_status(&app2, &inner2, status);
+            };
+            hub::fetch(&client, hub::HUGGING_FACE, &hub, &v.repo, &v.revision, f, download::Progress { cancel, on_bytes: &on_bytes }).await?;
+            before += f.size;
+        }
+    }
+
+    let label = Some(format!("Setting up the {} engine (first time only, a few minutes)…", v.engine_name()));
+    let target = vllm::Target::from(v);
+    if !tauri::async_runtime::spawn_blocking(move || vllm::image_present(&target)).await.map_err(|e| e.to_string())? {
+        emit_status(app, inner, Status::Extracting { job: job.clone(), label: label.clone() });
+        push_log(app, inner, format!("> docker pull {}", v.image));
+        let mut cmd = tokio::process::Command::new("docker");
+        cmd.args(["pull", &v.image]);
+        run_logged(app, inner, cancel, cmd).await.map_err(|e| step_error(e, format!("Could not download the engine image {}", v.image)))?;
+    }
+    let dir = recipe::install("vllm", folder)?;
+    let build = dir.join("build.sh");
+    let built = {
+        let build = build.clone();
+        move || std::process::Command::new("bash").arg(&build).arg("--check").stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null()).status().is_ok_and(|s| s.success())
+    };
+    if build.exists() && !tauri::async_runtime::spawn_blocking(built).await.map_err(|e| e.to_string())? {
+        emit_status(app, inner, Status::Extracting { job: job.clone(), label });
+        let mut cmd = tokio::process::Command::new("bash");
+        cmd.arg(&build).current_dir(&dir);
+        run_logged(app, inner, cancel, cmd).await.map_err(|e| step_error(e, "Could not build the engine".into()))?;
+    }
+    Ok(())
+}
+
+/// Cancelar no es un fallo del paso: "cancelled" sigue tal cual para que la interfaz vuelva a "listo para arrancar".
+fn step_error(e: String, what: String) -> String {
+    if e == "cancelled" {
+        e
+    } else {
+        format!("{what} ({e}). Check the server log.")
+    }
+}
+
+/// Corre un paso de la preparación con su salida en el log del servidor. Cancel lo para (a él y a sus hijos).
+async fn run_logged(app: &AppHandle, inner: &Arc<Mutex<Inner>>, cancel: &AtomicBool, mut cmd: tokio::process::Command) -> Result<(), String> {
+    cmd.stdin(Stdio::null()).stdout(Stdio::piped()).stderr(Stdio::piped()).kill_on_drop(true);
+    lifetime::die_with_parent(&mut cmd);
+    lifetime::own_group(&mut cmd);
+    let mut child = cmd.spawn().map_err(|e| e.to_string())?;
+    let mut pipes = Vec::new();
+    for pipe in [child.stdout.take().map(|s| Box::new(s) as Box<dyn tokio::io::AsyncRead + Unpin + Send>), child.stderr.take().map(|s| Box::new(s) as _)]
+        .into_iter()
+        .flatten()
+    {
+        let (app, inner) = (app.clone(), inner.clone());
+        pipes.push(tauri::async_runtime::spawn(async move {
+            let mut lines = BufReader::new(pipe).lines();
+            while let Ok(Some(line)) = lines.next_line().await {
+                push_log(&app, &inner, line);
+            }
+        }));
+    }
+    let status = loop {
+        if cancel.load(Ordering::Relaxed) {
+            if let Some(pid) = child.id() {
+                lifetime::kill_group(pid);
+            }
+            let _ = child.kill().await;
+            return Err("cancelled".into());
+        }
+        match tokio::time::timeout(Duration::from_millis(250), child.wait()).await {
+            Ok(status) => break status.map_err(|e| e.to_string())?,
+            Err(_) => continue,
+        }
+    };
+    for p in pipes {
+        let _ = p.await;
+    }
+    if status.success() {
+        Ok(())
+    } else {
+        Err(format!("exited with {status}"))
+    }
 }
 
 /// Lleva el log del servidor a la interfaz, espera a que /health responda y vigila que siga vivo.

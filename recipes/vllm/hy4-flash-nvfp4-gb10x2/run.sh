@@ -28,7 +28,8 @@ docker rm -f "$NAME" >/dev/null 2>&1 || true
 w "docker rm -f $NAME >/dev/null 2>&1; true"
 pkill -f "[m]emwatch.sh $NAME" 2>/dev/null || true
 w "pkill -f '[m]emwatch.sh $NAME'; true"
-gpu_apps='nvidia-smi --query-compute-apps=name --format=csv,noheader 2>/dev/null | sed "s/.*\///" | sort -u | paste -sd, -'
+# Small GPU users don't count (the desktop, remote desktop's ~300 MiB): only 2 GiB or more, or an unknown size.
+gpu_apps='nvidia-smi --query-compute-apps=name,used_memory --format=csv,noheader,nounits 2>/dev/null | awk -F", " "\$NF !~ /^[0-9]+\$/ || \$NF >= 2048 {sub(/, [^,]*\$/, \"\"); sub(/.*\//, \"\"); print}" | sort -u | paste -sd, -'
 apps=$(bash -c "$gpu_apps"); [[ -z "$apps" ]] || die "the GPU of this GB10 is in use by $apps. Stop it first."
 apps=$(w "$gpu_apps"); [[ -z "$apps" ]] || die "the GPU of the other GB10 ($PEER) is in use by $apps. Stop it first."
 # On a GB10 a rank that runs out of memory freezes the machine instead of failing cleanly. Wait for the page cache.

@@ -294,6 +294,21 @@ npm run tauri build
 
 Pushing a `v*` tag makes GitHub Actions build Windows x64, Linux x64 and Linux ARM64 (GB10) and publish the release.
 
+### Development builds
+
+To try a change (a new recipe, say) the way an ambassador would before it goes out, build it on a Linux machine with
+Docker, a GB10 for example. From this checkout, uncommitted changes included:
+
+```bash
+scripts/dev-build-remote.sh user@gb10 -i ~/.ssh/gb10_key   # from another computer (Git Bash works)
+scripts/dev-build.sh                                       # on the Linux machine itself
+```
+
+It installs **Ambassador Local (dev)** for that user, next to the published app, as the next patch version with
+`-dev.<date>`: the next release still arrives as an update. Nothing is published, and no sudo is needed (the build runs
+in a container from [`scripts/dev-build/Dockerfile`](scripts/dev-build/Dockerfile)). `scripts/dev-build.sh --remove`
+removes it. Both apps share their settings and downloads; close one before opening the other.
+
 ## Shipping an update
 
 Ambassadors get a new version (new models or features) when a release is published:

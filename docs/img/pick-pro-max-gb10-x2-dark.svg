@@ -1,7 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="900" height="482" viewBox="0 0 900 482" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" role="img" aria-labelledby="t d">
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="526" viewBox="0 0 900 526" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" role="img" aria-labelledby="t d">
 <title id="t">Which model should I pick on the Pro Max with GB10 ×2?</title>
-<desc id="d">Models grouped by the Artificial Analysis Intelligence Index, each with the speed measured on the Pro Max with GB10 ×2. Qwen3.8 Flash Next: Intelligence Index 29, 29.1 tokens per second; GLM-5.3-Flash: Intelligence Index 28, 16.9 tokens per second; DeepSeek V4 Flash: Intelligence Index estimated, 14.8 tokens per second; DeepSeek-V4.1-Flash-1017: Intelligence Index 33, 53.9 tokens per second.</desc>
-<rect x="0.5" y="0.5" width="899" height="481" rx="12" fill="#0d1117" stroke="#3d444d"/>
+<desc id="d">Models grouped by the Artificial Analysis Intelligence Index, each with the speed measured on the Pro Max with GB10 ×2. Qwen3.8 Flash Next: Intelligence Index 29, 29.1 tokens per second; GLM-5.3-Flash: Intelligence Index 28, 16.9 tokens per second; DeepSeek V4 Flash: Intelligence Index estimated, 14.8 tokens per second; DeepSeek-V4.1-Flash-1017: Intelligence Index 33, 53.9 tokens per second; Hy4-flash: Intelligence Index estimated, 20.5 tokens per second.</desc>
+<rect x="0.5" y="0.5" width="899" height="525" rx="12" fill="#0d1117" stroke="#3d444d"/>
 <text x="28" y="46" font-size="22" font-weight="700" fill="#f0f6fc">Pro Max with GB10 ×2</text>
 <text x="28" y="70" font-size="14" fill="#9198a1">2 × NVIDIA GB10 Grace Blackwell · 256 GB</text>
 <text x="28" y="98" font-size="14" fill="#f0f6fc"><tspan font-weight="700">Higher group = smarter.</tspan> <tspan font-weight="700">Longer bar = faster answers</tspan><tspan fill="#9198a1"> (words appear on screen faster; measured on this workstation).</tspan></text>
@@ -31,16 +31,23 @@
 <rect x="16" y="294" width="868" height="32" rx="6" fill="#151b23"/>
 <text x="28" y="316" font-size="15" fill="#f0f6fc"><tspan fill="#d4a017" letter-spacing="1">★★★★☆</tspan><tspan dx="10" font-weight="700">Very smart</tspan><tspan dx="8" fill="#9198a1">Intelligence Index 10 to 24: a strong balance</tspan></text>
 <g>
-<title>DeepSeek DeepSeek V4 Flash 284B-A13B, Intelligence Index estimated: 14.8 tokens/s. Good for Reasoning, Coding, Long documents.</title>
-<text x="28" y="353" font-size="14" font-weight="600" fill="#f0f6fc">DeepSeek V4 Flash 284B-A13B</text>
-<text x="28" y="370" font-size="12" fill="#9198a1">Estimated · DeepSeek · Reasoning, Coding</text>
-<path d="M328 350h104.18552875695734a4 4 0 0 1 4 4v8a4 4 0 0 1 -4 4h-104.18552875695734z" fill="#3d8fe0"/>
-<text x="444.18552875695735" y="363" font-size="14" fill="#f0f6fc"><tspan font-weight="700">14.8</tspan><tspan fill="#9198a1"> tokens/s</tspan></text>
+<title>Tencent Hy4-flash 220B-A12B, Intelligence Index estimated: 20.5 tokens/s. Good for Agents, Long documents, Images.</title>
+<text x="28" y="353" font-size="14" font-weight="600" fill="#f0f6fc">Hy4-flash 220B-A12B</text>
+<text x="28" y="370" font-size="12" fill="#9198a1">Estimated · Tencent · Agents, Long documents</text>
+<path d="M328 350h145.85157699443414a4 4 0 0 1 4 4v8a4 4 0 0 1 -4 4h-145.85157699443414z" fill="#3d8fe0"/>
+<text x="485.85157699443414" y="363" font-size="14" fill="#f0f6fc"><tspan font-weight="700">20.5</tspan><tspan fill="#9198a1"> tokens/s</tspan></text>
 </g>
-<line x1="28" y1="388" x2="872" y2="388" stroke="#3d444d"/>
-<rect x="28" y="402" width="14" height="14" rx="3" fill="#3d8fe0"/>
-<text x="50" y="414" font-size="13" fill="#9198a1">Speed measured on this workstation</text>
-<rect x="298" y="402" width="14" height="14" rx="3" fill="#5f9e00"/>
-<text x="320" y="414" font-size="13" fill="#9198a1">Miguel Tuned: tuned and tested by hand   <tspan fill="#d4a017">♛</tspan> recommended</text>
-<text x="28" y="442" font-size="12" fill="#6e7681">Intelligence: Artificial Analysis Intelligence Index v5 (November 2026). Models it has not rated yet are estimated from their closest rated relative.</text>
+<g>
+<title>DeepSeek DeepSeek V4 Flash 284B-A13B, Intelligence Index estimated: 14.8 tokens/s. Good for Reasoning, Coding, Long documents.</title>
+<text x="28" y="397" font-size="14" font-weight="600" fill="#f0f6fc">DeepSeek V4 Flash 284B-A13B</text>
+<text x="28" y="414" font-size="12" fill="#9198a1">Estimated · DeepSeek · Reasoning, Coding</text>
+<path d="M328 394h104.18552875695734a4 4 0 0 1 4 4v8a4 4 0 0 1 -4 4h-104.18552875695734z" fill="#3d8fe0"/>
+<text x="444.18552875695735" y="407" font-size="14" fill="#f0f6fc"><tspan font-weight="700">14.8</tspan><tspan fill="#9198a1"> tokens/s</tspan></text>
+</g>
+<line x1="28" y1="432" x2="872" y2="432" stroke="#3d444d"/>
+<rect x="28" y="446" width="14" height="14" rx="3" fill="#3d8fe0"/>
+<text x="50" y="458" font-size="13" fill="#9198a1">Speed measured on this workstation</text>
+<rect x="298" y="446" width="14" height="14" rx="3" fill="#5f9e00"/>
+<text x="320" y="458" font-size="13" fill="#9198a1">Miguel Tuned: tuned and tested by hand   <tspan fill="#d4a017">♛</tspan> recommended</text>
+<text x="28" y="486" font-size="12" fill="#6e7681">Intelligence: Artificial Analysis Intelligence Index v5 (November 2026). Models it has not rated yet are estimated from their closest rated relative.</text>
 </svg>

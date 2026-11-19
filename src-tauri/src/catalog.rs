@@ -267,12 +267,24 @@ pub struct Vllm {
     /// Carpeta con run.sh y stop.sh: recipes/vllm/<recipe>/. Obligatoria en un equipo solo (T2).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub recipe: Option<String>,
+    /// El motor que corre la carpeta de la receta, si no es vLLM: "llama.cpp" para un llama.cpp parcheado que aún no
+    /// está en una versión publicada (la receta lo construye en su imagen). Solo cambia el nombre que se muestra.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub engine: Option<String>,
 }
 
 impl Vllm {
     /// Carpeta de la revisión en la caché de Hugging Face, relativa a `hub/`.
     pub fn snapshot_dir(&self) -> String {
         format!("models--{}/snapshots/{}", self.repo.replace('/', "--"), self.revision)
+    }
+
+    /// Nombre del motor para mostrarlo: vLLM salvo que la receta diga otro.
+    pub fn engine_name(&self) -> &'static str {
+        match self.engine.as_deref() {
+            Some("llama.cpp") => "llama.cpp",
+            _ => "vLLM",
+        }
     }
 }
 
@@ -317,7 +329,13 @@ fn valid_vllm(v: &Vllm) -> bool {
     let image_ok = v.image.split_once("@sha256:").is_some_and(|(name, digest)| image_name_ok(name) && hex(digest, 64));
     let id_ok = v.image_id.strip_prefix("sha256:").is_some_and(|id| hex(id, 64));
     let recipe_ok = v.recipe.as_deref().is_none_or(is_safe_id);
-    image_ok && id_ok && repo_ok(&v.repo) && hex(&v.revision, 40) && v.size > 0 && recipe_ok
+    // Otro motor solo con su propia carpeta: la que construye y arranca ese motor.
+    let engine_ok = match v.engine.as_deref() {
+        None | Some("vLLM") => true,
+        Some("llama.cpp") => v.recipe.is_some(),
+        Some(_) => false,
+    };
+    image_ok && id_ok && repo_ok(&v.repo) && hex(&v.revision, 40) && v.size > 0 && recipe_ok && engine_ok
 }
 
 fn valid_tensorfold(t: &TensorFold) -> bool {

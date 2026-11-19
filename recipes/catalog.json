@@ -454,6 +454,13 @@
       "series": "gpt-oss",
       "description": "OpenAI's open-weight gpt-oss models, built for reasoning and tool use.",
       "color": "#10a37f"
+    },
+    {
+      "id": "tencent",
+      "name": "Tencent",
+      "series": "Hy",
+      "description": "Tencent's Hy models (formerly Hunyuan), built for everyday office work, agents and images.",
+      "color": "#0055e9"
     }
   ],
   "models": [
@@ -1389,6 +1396,51 @@
             "repo": "LibertAIDAI/DeepSeek-V4.1-Flash-1017-EXL3-2.9bpw",
             "revision": "0be63c3337efbb2a0061d5b8bb4006fa186d433f",
             "size": 210818813941
+          }
+        }
+      }
+    },
+    {
+      "id": "hy4-flash",
+      "family": "tencent",
+      "name": "Hy4-flash",
+      "size": "220B-A12B",
+      "tagline": "Tencent's office and agent model, with image input.",
+      "quant": "NVFP4",
+      "size_class": "xlarge",
+      "intelligence": 4,
+      "best_for": [
+        "Agents",
+        "Long documents",
+        "Images"
+      ],
+      "files": [],
+      "recipes": {
+        "pro-max-gb10": {
+          "speed": 3,
+          "tokens_per_sec": 30.6,
+          "ctx_size": 262144,
+          "vllm": {
+            "image": "nvidia/cuda@sha256:b7ae301dea2c162444795462ce17a05f6a516e5a75944b57af5b88540a1a2266",
+            "image_id": "sha256:eeb4252fbb86de4ecf06e3a8624ea75d2060f5f476e9cd05656dc1de359ae953",
+            "repo": "AngelSlim/Hy4-flash-GGUF",
+            "revision": "65acb8ae7f59847fe03a17291f1b72b89b141a9e",
+            "size": 160655951584,
+            "recipe": "hy4-flash-spark4bit-gb10",
+            "engine": "llama.cpp"
+          }
+        },
+        "pro-max-gb10-x2": {
+          "speed": 2,
+          "tokens_per_sec": 20.5,
+          "ctx_size": 262144,
+          "vllm": {
+            "image": "vllm/vllm-openai@sha256:5e2c1badbca60595d6591c60feb4b8547f59da96e7a91710d40239250e721aba",
+            "image_id": "sha256:1a6349e4edde9740209d1ff35e472bb35198b9169bc5383399ccf1cc28b542d6",
+            "repo": "atakans/Hy4-flash-NVFP4",
+            "revision": "922cbf11f2abf547951d22eabc76b876f2a9d03b",
+            "size": 164691130721,
+            "recipe": "hy4-flash-nvfp4-gb10x2"
           }
         }
       }

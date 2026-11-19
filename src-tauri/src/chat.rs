@@ -59,7 +59,7 @@ pub async fn open_chat(app: AppHandle, state: State<'_, AppState>) -> Result<(),
     let recipe = model.recipes.get(&job.hardware_id).ok_or("Unknown model")?;
     // vLLM y TensorFold: la misma página, servida por la app delante de su API.
     let url = if model.in_container(&job.hardware_id) {
-        let engine = if recipe.vllm.is_some() { "vLLM" } else { "TensorFold" };
+        let engine = recipe.vllm.as_ref().map_or("TensorFold", |v| v.engine_name());
         proxy::start(proxy::Target { upstream: url, key: api_key.clone(), model: model.id.clone(), ctx: recipe.ctx_size, engine }).await?
     } else {
         url

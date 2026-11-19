@@ -367,6 +367,13 @@
           "type": "string",
           "pattern": "^[a-z0-9-]{1,64}$",
           "description": "Folder recipes/vllm/<recipe>/ with run.sh and stop.sh. Required on a single workstation (units 1)."
+        },
+        "engine": {
+          "enum": [
+            "vLLM",
+            "llama.cpp"
+          ],
+          "description": "The engine the recipe folder runs, when it is not vLLM: llama.cpp for a patched build that no llama.cpp release has yet, built into its image by the recipe (needs recipe). Only the name shown changes; the weights may be GGUF."
         }
       }
     },

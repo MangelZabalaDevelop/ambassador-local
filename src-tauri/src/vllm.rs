@@ -47,7 +47,7 @@ pub struct Target {
 impl From<&Vllm> for Target {
     fn from(v: &Vllm) -> Self {
         Target {
-            engine: "vLLM",
+            engine: v.engine_name(),
             image_test: format!("{{ docker image inspect {} || docker image inspect {}; }}", v.image, v.image_id),
             image_hint: short_image(&v.image),
             snapshot: v.snapshot_dir(),
@@ -99,7 +99,7 @@ if [ ! -d "$S" ]; then echo weights=none
 else
   n=$(find -L "$S" -type l 2>/dev/null | wc -l)
   for f in $(cat "$S"/*.safetensors.index.json 2>/dev/null | grep -o '"[^"]*\.safetensors"' | tr -d '"' | sort -u); do [ -e "$S/$f" ] || n=$((n+1)); done
-  find -L "$S" -name "*.safetensors" | grep -q . || n=$((n+1))
+  find -L "$S" \( -name "*.safetensors" -o -name "*.gguf" \) | grep -q . || n=$((n+1))
   [ "$n" = 0 ] && echo weights=ok || echo "weights=missing $n"
 fi
 apps=$(nvidia-smi --query-compute-apps=name --format=csv,noheader 2>/dev/null | sed 's/.*\///' | sort -u | paste -sd, -)

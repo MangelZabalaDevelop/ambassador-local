@@ -6,6 +6,8 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 host=${1:?usage: scripts/dev-build-remote.sh user@host [ssh options]}
 shift
+# The ~ is expanded by the remote shell, on the other machine.
+# shellcheck disable=SC2088
 dest='~/.cache/ambassador-local-dev/src'
 
 # Snapshot the working tree through a throwaway index (git add -A minus .gitignore), so the real index is untouched.

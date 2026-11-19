@@ -1,12 +1,13 @@
 // Writes the updater's latest.json from the release's signatures, once every build is done.
 // The three builds finish within seconds of each other, and each one rewriting latest.json
 // can drop another's platforms (v0.1.7 lost linux-aarch64 that way).
-// Usage: node scripts/updater-json.mjs <folder with the .sig files> <owner/repo> <tag>
+// Usage: node scripts/updater-json.mjs <folder with the .sig files> <owner/repo> <tag> [release notes file]
+// The notes are shown in the app's update box.
 import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-const [dir, repo, tag] = process.argv.slice(2);
-if (!dir || !repo || !tag) throw new Error("usage: updater-json.mjs <dir> <owner/repo> <tag>");
+const [dir, repo, tag, notesFile] = process.argv.slice(2);
+if (!dir || !repo || !tag) throw new Error("usage: updater-json.mjs <dir> <owner/repo> <tag> [notes file]");
 
 // File ending → the updater's platform keys (the plain key is the default package for that system).
 const kinds = [
@@ -30,6 +31,7 @@ const missing = kinds.flatMap(([, keys]) => keys).filter((k) => !platforms[k]);
 if (missing.length) throw new Error(`no signed package for: ${missing.join(", ")}`);
 
 const version = tag.replace(/^v/, "");
-const out = { version, notes: "", pub_date: new Date().toISOString(), platforms };
+const notes = notesFile ? readFileSync(notesFile, "utf8").trim() : "";
+const out = { version, notes, pub_date: new Date().toISOString(), platforms };
 writeFileSync(join(dir, "latest.json"), JSON.stringify(out, null, 2) + "\n");
 console.log(`latest.json ${version}: ${Object.keys(platforms).join(" ")}`);

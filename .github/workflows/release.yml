@@ -71,12 +71,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Las notas son el mensaje del tag anotado (git tag -a v0.2.0 -m "..."); un tag ligero no lleva notas.
+      - name: Release notes from the tag's message
+        run: |
+          git fetch --force origin "refs/tags/${{ github.ref_name }}:refs/tags/${{ github.ref_name }}"
+          git tag -l --format='%(if)%(*objecttype)%(then)%(contents)%(end)' "${{ github.ref_name }}" > notes.md
+          cat notes.md
+
       - name: Updater manifest from all three builds
         run: |
           mkdir sigs
           gh release download "${{ github.ref_name }}" --repo "${{ github.repository }}" -p '*.sig' -D sigs
-          node scripts/updater-json.mjs sigs "${{ github.repository }}" "${{ github.ref_name }}"
+          node scripts/updater-json.mjs sigs "${{ github.repository }}" "${{ github.ref_name }}" notes.md
           gh release upload "${{ github.ref_name }}" sigs/latest.json --clobber --repo "${{ github.repository }}"
 
       - name: Publish the release
-        run: gh release edit "${{ github.ref_name }}" --repo "${{ github.repository }}" --draft=false --latest
+        run: gh release edit "${{ github.ref_name }}" --repo "${{ github.repository }}" --notes-file notes.md --draft=false --latest

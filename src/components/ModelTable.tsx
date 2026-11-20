@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from "react";
 import { formatBytes } from "../api";
-import { diskFor, downloadKey, formatContext, type Model, type SizeClass } from "../types";
+import { diskFor, downloadKey, formatContext, readsImages, type Model, type SizeClass } from "../types";
 import { RecipeBadges } from "./Illustrations";
 
 type Props = {
@@ -154,6 +154,7 @@ function Row(props: { model: Model; hardwareId: string; selected: boolean; downl
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-base font-bold">
           <span>{m.name}</span>
           <RecipeBadges tuned={recipe.tuned} recommended={recipe.recommended} />
+          {readsImages(m, props.hardwareId) && <span className="rounded-full bg-surface-2 px-2 py-0.5 text-[10px] font-bold text-text/70">Reads images</span>}
           {props.downloaded && <span className="rounded-full bg-go-soft px-2 py-0.5 text-[10px] font-bold text-go">Downloaded</span>}
         </div>
         <div className="mt-0.5 text-sm text-muted">{m.tagline}</div>

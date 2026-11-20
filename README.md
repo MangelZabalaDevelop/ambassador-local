@@ -68,7 +68,7 @@ starts the biggest recipes, even across two GB10:
 
 When it says **Live**, you can use it right away:
 
-- **Open chat**, next to *Stop server*: llama.cpp's chat page in its own window, with the API key already set. It closes when the model stops. vLLM and TensorFold only have the API, so for them the app serves the same page on `127.0.0.1` and passes the chat to the model ([`src-tauri/src/proxy.rs`](src-tauri/src/proxy.rs)). With llama.cpp models the page also opens in a browser (the endpoint URL without `/v1`) and asks for the key once.
+- **Open chat**, next to *Stop server*: llama.cpp's chat page in its own window, with the API key already set. It closes when the model stops. vLLM and TensorFold only have the API, so for them the app serves the same page on `127.0.0.1` and passes the chat to the model ([`src-tauri/src/proxy.rs`](src-tauri/src/proxy.rs)). With llama.cpp models the page also opens in a browser (the endpoint URL without `/v1`) and asks for the key once. Models labeled **Reads images** take pictures too: attach one to your message.
 - **Endpoint URL** and **API key**, in *Connect apps*: paste them into any OpenAI-compatible app. The key stays the same every time.
 - **Hermes:** run `hermes setup`, choose *Custom OpenAI-compatible endpoint*, then paste the URL and the key.
 - **OpenCode** and other coding agents: add an OpenAI-compatible provider with the same URL and key. For example, in `opencode.json`:
@@ -188,7 +188,7 @@ Everything lives in [`recipes/catalog.json`](recipes/catalog.json). It points to
 - `engine`: the pinned llama.cpp version and its files per OS/architecture. When you change it, copy that version's chat page for vLLM and TensorFold with `scripts/vendor-llama-ui.sh` (`cargo test` checks the versions match), and check that **Open chat** still opens without asking for the API key: the app writes the key where llama.cpp's chat page keeps its settings (`LlamaUi.config` in its local storage, see [`src-tauri/src/chat.rs`](src-tauri/src/chat.rs)).
 - `hardware`: the program's workstations. `gpu_match` is used to detect them with `nvidia-smi`, and only the workstation detected on the machine can be used. `"available": false` shows it as *Coming soon* (not tested yet). `"units": 2` is for linked systems (two GB10), and `"image"` reuses another workstation's photo. Product images go in `public/hardware/<id>.webp`.
 - `families`: the lab cards (name, series, description, color). Logos go in `src/assets/labs/<id>.svg`.
-- `models`: each model with its GGUF files and one `recipe` per hardware id. A model without a recipe for a workstation is hidden on that workstation.
+- `models`: each model with its GGUF files and one `recipe` per hardware id. A model without a recipe for a workstation is hidden on that workstation. A model that reads images also names its image reader in `mmproj` (from the same repo and commit as its files: `mmproj-F16.gguf`, or `mmproj-BF16.gguf` where there is no F16). The app downloads it with the model and loads it with `--mmproj`, and the model table labels the model **Reads images**.
 
 What ambassadors see in the model table (no jargon, all icons):
 
@@ -211,6 +211,7 @@ Allowed recipe fields:
 | `quant` + `files` | `-m` (other GGUF for this workstation) | the model's `quant` and `files` |
 | `mtp.draft_n_max` (1–16) | `--spec-type draft-mtp --spec-draft-n-max` (MTP speculative decoding) | off |
 | `mtp.draft` | `-md` (separate `mtp-*.gguf`; leave out when the MTP head is inside the model) | — |
+| `mmproj` | `--mmproj` (this workstation's image reader, when its `files` come from another repo) | the model's `mmproj` |
 | `vllm` | Linux only: serve with vLLM instead of llama.cpp (see below) | off |
 | `tensorfold` | GB10 ×2 only: serve with TensorFold instead of llama.cpp (see below) | off |
 | `tuned` | — (the **Miguel Tuned** label: a recipe tuned by hand) | `false` |
@@ -235,6 +236,7 @@ Some tuned recipes are NVFP4 models served by vLLM. A Linux recipe can carry a `
 | `recipe` | Folder name under [`recipes/vllm/`](recipes/vllm) with `run.sh` and `stop.sh`; required on a single workstation |
 | `engine` | `"llama.cpp"` when the folder runs a patched llama.cpp instead of vLLM (only the name shown changes; the weights may be GGUF) |
 | `include` | Only these files of the repo, e.g. one GGUF of a repo with several quantizations; without it, the whole revision |
+| `vision` | `true` when the recipe's server accepts images, so **Open chat** lets you attach them |
 
 `ctx_size` is `--max-model-len` here and can go up to 1M. Those models have `"files": []`.
 

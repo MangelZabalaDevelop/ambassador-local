@@ -400,6 +400,7 @@ async fn run_job(app: &AppHandle, inner: &Arc<Mutex<Inner>>, cancel: &AtomicBool
         .args(recipe.to_args())
         .args(&rpc)
         .args(model.mtp_draft_for(hardware_id).map(|d| ["-md".into(), mdir.join(d.file_name()).into_os_string()]).into_iter().flatten())
+        .args(model.mmproj_for(hardware_id).map(|p| ["--mmproj".into(), mdir.join(p.file_name()).into_os_string()]).into_iter().flatten())
         .current_dir(eng.server.parent().unwrap_or(&root))
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
@@ -782,6 +783,9 @@ mod smoke {
         if let Some(d) = model.mtp_draft_for(hw) {
             cmd.arg("-md").arg(mdir.join(d.file_name()));
         }
+        if let Some(p) = model.mmproj_for(hw) {
+            cmd.arg("--mmproj").arg(mdir.join(p.file_name()));
+        }
         let lib_var = if cfg!(windows) { "PATH" } else { "LD_LIBRARY_PATH" };
         let mut paths = eng.lib_dirs.clone();
         paths.extend(std::env::split_paths(&std::env::var_os(lib_var).unwrap_or_default()));
@@ -806,10 +810,13 @@ mod smoke {
             .text()
             .await
             .unwrap();
+        // Con su lector de imágenes cargado, el servidor (y su página) acepta imágenes.
+        let props: serde_json::Value = local.get("http://127.0.0.1:8177/props").send().await.unwrap().json().await.unwrap();
         child.kill().ok();
         child.wait().ok();
         assert!(ok, "health never responded");
         println!("respuesta: {reply}");
+        assert_eq!(props["modalities"]["vision"], true, "gemma3-12b reads images");
     }
 }
 

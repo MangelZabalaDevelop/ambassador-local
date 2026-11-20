@@ -43,6 +43,8 @@ export type Recipe = {
   /** Otra cuantización para este equipo; va junto con `files`. */
   quant?: string | null;
   files?: RemoteFile[] | null;
+  /** Lector de imágenes propio, cuando `files` viene de otro repositorio. */
+  mmproj?: RemoteFile | null;
   /** Decodificación especulativa: MTP (la cabeza del modelo) o DFlash; `draft` es el GGUF aparte del que propone, si lo hay. */
   mtp?: { draft_n_max: number; method?: "mtp" | "dflash" | null; draft?: RemoteFile | null } | null;
   /** GB10 ×2: vLLM en contenedor en vez de llama.cpp. */
@@ -59,7 +61,7 @@ export type Recipe = {
 };
 
 /** Imagen fijada por digest y pesos de Hugging Face fijados por commit; `size` en bytes por GB10. */
-export type Vllm = { image: string; image_id: string; repo: string; revision: string; size: number; recipe?: string; engine?: "vLLM" | "llama.cpp"; include?: string[] };
+export type Vllm = { image: string; image_id: string; repo: string; revision: string; size: number; recipe?: string; engine?: "vLLM" | "llama.cpp"; include?: string[]; vision?: boolean };
 
 /** Imagen local con el commit del motor en su etiqueta; pesos fijados por commit; `size` en bytes por GB10. */
 export type TensorFold = { image: string; engine_commit: string; recipe: string; repo: string; revision: string; size: number };
@@ -80,15 +82,25 @@ export type Model = {
   aa_index?: number | null;
   best_for: string[];
   files: RemoteFile[];
+  /** Lector de imágenes (--mmproj) para llama.cpp; vacío = solo texto. */
+  mmproj?: RemoteFile | null;
   recipes: Record<string, Recipe>;
 };
 
 /** Archivos y cuantización que usa un equipo: los de su receta si los cambia, si no los del modelo. */
 export const filesFor = (m: Model, hardwareId: string) => m.recipes[hardwareId]?.files ?? m.files;
-/** Todo lo que baja para un equipo: el modelo y, si aplica, su archivo MTP. */
-export const downloadsFor = (m: Model, hardwareId: string) => {
-  const draft = m.recipes[hardwareId]?.mtp?.draft;
-  return draft ? [...filesFor(m, hardwareId), draft] : filesFor(m, hardwareId);
+/** Lector de imágenes de la receta con llama.cpp: el suyo si lo cambia, si no el del modelo. */
+export const mmprojFor = (m: Model, hardwareId: string) => {
+  const r = m.recipes[hardwareId];
+  return !r || r.vllm || r.tensorfold ? null : (r.mmproj ?? m.mmproj ?? null);
+};
+/** Todo lo que baja para un equipo: el modelo y, si aplica, su archivo MTP y su lector de imágenes. */
+export const downloadsFor = (m: Model, hardwareId: string) =>
+  [...filesFor(m, hardwareId), m.recipes[hardwareId]?.mtp?.draft, mmprojFor(m, hardwareId)].filter((f): f is RemoteFile => !!f);
+/** La receta de este equipo acepta imágenes. */
+export const readsImages = (m: Model, hardwareId: string) => {
+  const r = m.recipes[hardwareId];
+  return r?.vllm ? !!r.vllm.vision : !!mmprojFor(m, hardwareId);
 };
 /** Bytes de disco que necesitan los pesos de la receta de este equipo (en contenedor: por GB10). */
 export const diskFor = (m: Model, hardwareId: string) => {

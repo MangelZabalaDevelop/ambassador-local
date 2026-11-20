@@ -72,6 +72,8 @@ pub struct Target {
     pub ctx: u32,
     /// "vLLM" o "TensorFold", para la información del servidor que muestra la página.
     pub engine: &'static str,
+    /// El servidor acepta imágenes: la página deja adjuntarlas.
+    pub vision: bool,
 }
 
 struct Running {
@@ -221,7 +223,7 @@ fn props(t: &Target) -> Value {
         "total_slots": 1,
         "model_alias": t.model,
         "model_path": t.model,
-        "modalities": { "vision": false, "video": false, "audio": false },
+        "modalities": { "vision": t.vision, "video": false, "audio": false },
         "endpoint_slots": false,
         "endpoint_props": false,
         "endpoint_metrics": false,
@@ -420,7 +422,7 @@ mod tests {
 
     #[test]
     fn props_describe_the_model_without_llama_cpp_defaults() {
-        let t = Target { upstream: "http://127.0.0.1:8080".into(), key: "k".into(), model: "deepseek-v41-flash-1017".into(), ctx: 1_048_576, engine: "TensorFold" };
+        let t = Target { upstream: "http://127.0.0.1:8080".into(), key: "k".into(), model: "deepseek-v41-flash-1017".into(), ctx: 1_048_576, engine: "TensorFold", vision: false };
         let p = props(&t);
         assert_eq!(p["model_alias"], "deepseek-v41-flash-1017");
         assert_eq!(p["default_generation_settings"]["n_ctx"], 1_048_576);
@@ -428,6 +430,9 @@ mod tests {
         let version = &crate::catalog::get().unwrap().engine.version;
         assert_eq!(p["build_info"], format!("TensorFold (llama.cpp chat page {version})"));
         assert_eq!(models(&t)["data"][0]["id"], "deepseek-v41-flash-1017");
+        // Sin imágenes, la página no ofrece adjuntarlas; con ellas, sí.
+        assert_eq!(p["modalities"]["vision"], false);
+        assert_eq!(props(&Target { vision: true, ..t })["modalities"]["vision"], true);
     }
 
     /// Un servidor tipo vLLM de una sola respuesta: guarda lo que le llega y contesta en stream.
@@ -470,7 +475,7 @@ mod tests {
     #[tokio::test(flavor = "multi_thread")]
     async fn the_chat_page_talks_to_vllm_through_the_proxy() {
         let (upstream, seen) = fake_vllm().await;
-        let target = Target { upstream, key: "sk-local-test".into(), model: "qwen38-flash-next-fp4".into(), ctx: 262_144, engine: "vLLM" };
+        let target = Target { upstream, key: "sk-local-test".into(), model: "qwen38-flash-next-fp4".into(), ctx: 262_144, engine: "vLLM", vision: true };
         let url = start(target.clone()).await.unwrap();
         assert_eq!(start(target).await.unwrap(), url, "the same server reuses the proxy, so the chat keeps its history");
         let http = reqwest::Client::new();
@@ -484,9 +489,15 @@ mod tests {
         assert_eq!(http.get(format!("{url}/props")).send().await.unwrap().status(), 401);
         let props: Value = http.get(format!("{url}/props")).bearer_auth("sk-local-test").send().await.unwrap().json().await.unwrap();
         assert_eq!(props["model_alias"], "qwen38-flash-next-fp4");
+        assert_eq!(props["modalities"]["vision"], true, "the page offers to attach images");
         assert_eq!(http.post(format!("{url}/v1/chat/completions")).header("x-api-key", "wrong").send().await.unwrap().status(), 401);
 
-        let body = json!({ "messages": [{ "role": "user", "content": "hola" }], "stream": true, "max_tokens": -1, "reasoning_format": "auto", "samplers": ["top_k"] });
+        // Con una imagen adjunta, como la manda la página: llega tal cual al servidor.
+        let messages = json!([{ "role": "user", "content": [
+            { "type": "text", "text": "hola" },
+            { "type": "image_url", "image_url": { "url": "data:image/png;base64,iVBORw0KGgo=" } }
+        ] }]);
+        let body = json!({ "messages": messages, "stream": true, "max_tokens": -1, "reasoning_format": "auto", "samplers": ["top_k"] });
         let answer = http.post(format!("{url}/v1/chat/completions")).bearer_auth("sk-local-test").json(&body).send().await.unwrap();
         assert_eq!(answer.status(), 200);
         assert_eq!(answer.headers()["content-type"], "text/event-stream");
@@ -498,7 +509,7 @@ mod tests {
         assert!(request.starts_with("POST /v1/chat/completions "), "{request}");
         assert!(request.to_ascii_lowercase().contains("authorization: bearer sk-local-test"), "{request}");
         let sent: Value = serde_json::from_str(request.split_once("\r\n\r\n").unwrap().1).unwrap();
-        assert_eq!(sent, json!({ "messages": [{ "role": "user", "content": "hola" }], "stream": true, "model": "qwen38-flash-next-fp4" }));
+        assert_eq!(sent, json!({ "messages": messages, "stream": true, "model": "qwen38-flash-next-fp4" }));
 
         // Parado: deja de contestar.
         stop();

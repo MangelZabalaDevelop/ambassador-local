@@ -183,6 +183,10 @@
           },
           "description": "GGUF files for llama.cpp. Empty only when every recipe of the model is vllm or tensorfold."
         },
+        "mmproj": {
+          "$ref": "#/$defs/file",
+          "description": "The model's image reader for llama.cpp (--mmproj), from the same repo and commit as files: mmproj-F16.gguf where there is one. Leave out for text-only models."
+        },
         "recipes": {
           "type": "object",
           "description": "One recipe per workstation id that can run this model",
@@ -248,6 +252,10 @@
             "$ref": "#/$defs/file"
           },
           "description": "GGUF files for this workstation's quant. Set together with quant; leave both out to use the model's."
+        },
+        "mmproj": {
+          "$ref": "#/$defs/file",
+          "description": "This workstation's image reader (--mmproj), when its files come from another repo than the model's. Leave out to use the model's."
         },
         "mtp": {
           "$ref": "#/$defs/mtp"
@@ -384,6 +392,10 @@
             "maxLength": 256
           },
           "description": "Only these files of the repo (paths inside it), when the recipe does not use the whole repo, e.g. one GGUF of a repo with several quantizations. Without it, the app downloads the whole revision into the Hugging Face cache."
+        },
+        "vision": {
+          "type": "boolean",
+          "description": "The recipe's server accepts images, so the app's chat lets you attach them."
         }
       }
     },

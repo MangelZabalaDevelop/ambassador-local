@@ -136,6 +136,10 @@ pub struct Model {
     /// Para qué sirve, en pocas palabras (1 a 3 etiquetas).
     pub best_for: Vec<String>,
     pub files: Vec<RemoteFile>,
+    /// El lector de imágenes (--mmproj) de un modelo que las entiende, del mismo repositorio que `files`.
+    /// Vacío = solo texto con llama.cpp.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mmproj: Option<RemoteFile>,
     pub recipes: BTreeMap<String, Recipe>,
 }
 
@@ -150,9 +154,26 @@ impl Model {
         self.recipes.get(hardware_id)?.mtp.as_ref()?.draft.as_ref()
     }
 
-    /// Todo lo que hay que descargar para este equipo: el modelo y, si aplica, su archivo MTP.
+    /// Lector de imágenes (--mmproj) de la receta de este equipo con llama.cpp: el suyo si lo cambia, si no el del
+    /// modelo. Las recetas en contenedor traen el suyo.
+    pub fn mmproj_for(&self, hardware_id: &str) -> Option<&RemoteFile> {
+        let r = self.recipes.get(hardware_id).filter(|r| !r.in_container())?;
+        r.mmproj.as_ref().or(self.mmproj.as_ref())
+    }
+
+    /// Todo lo que hay que descargar para este equipo: el modelo y, si aplica, su archivo MTP y su lector de imágenes.
     pub fn downloads_for(&self, hardware_id: &str) -> Vec<&RemoteFile> {
-        self.files_for(hardware_id).iter().chain(self.mtp_draft_for(hardware_id)).collect()
+        self.files_for(hardware_id).iter().chain(self.mtp_draft_for(hardware_id)).chain(self.mmproj_for(hardware_id)).collect()
+    }
+
+    /// La receta de este equipo acepta imágenes: con llama.cpp, si carga un lector; en contenedor, si lo dice.
+    pub fn reads_images(&self, hardware_id: &str) -> bool {
+        match self.recipes.get(hardware_id) {
+            Some(Recipe { vllm: Some(v), .. }) => v.vision,
+            Some(Recipe { tensorfold: Some(_), .. }) => false,
+            Some(_) => self.mmproj_for(hardware_id).is_some(),
+            None => false,
+        }
     }
 
     pub fn vllm_for(&self, hardware_id: &str) -> Option<&Vllm> {
@@ -200,6 +221,9 @@ pub struct Recipe {
     pub quant: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub files: Option<Vec<RemoteFile>>,
+    /// Lector de imágenes propio, cuando los `files` de este equipo vienen de otro repositorio. Vacío = el del modelo.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mmproj: Option<RemoteFile>,
     /// Decodificación especulativa con la cabeza MTP del modelo: misma calidad, bastante más rápido.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub mtp: Option<Mtp>,
@@ -275,6 +299,9 @@ pub struct Vllm {
     /// cuantizaciones, p. ej. Sin la lista, la app descarga la revisión completa.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub include: Option<Vec<String>>,
+    /// El servidor de la receta acepta imágenes: el chat de la app deja adjuntarlas.
+    #[serde(default)]
+    pub vision: bool,
 }
 
 impl Vllm {
@@ -418,6 +445,16 @@ fn validate_file(f: &RemoteFile) -> Result<(), String> {
     Ok(())
 }
 
+/// El lector de imágenes va junto a los GGUF del modelo, en su carpeta: un nombre propio, que no pise ninguno.
+fn validate_mmproj(p: &RemoteFile, files: &[RemoteFile]) -> Result<(), String> {
+    validate_file(p)?;
+    let name = p.file_name();
+    if !name.contains("mmproj") || !name.ends_with(".gguf") || files.iter().any(|f| f.file_name() == name) {
+        return Err(format!("mmproj must be a .gguf named mmproj, apart from the model files: {name}"));
+    }
+    Ok(())
+}
+
 impl Catalog {
     pub fn validate(&self) -> Result<(), String> {
         if self.schema != 1 {
@@ -454,6 +491,9 @@ impl Catalog {
                 return Err(format!("{}: no files", m.id));
             }
             m.files.iter().try_for_each(validate_file)?;
+            if let Some(p) = &m.mmproj {
+                validate_mmproj(p, &m.files).map_err(|e| format!("{}: {e}", m.id))?;
+            }
             if !(1..=5).contains(&m.intelligence) {
                 return Err(format!("{}: intelligence must be 1 to 5", m.id));
             }
@@ -506,8 +546,8 @@ impl Catalog {
                     if single && r.vllm.as_ref().is_some_and(|v| v.recipe.is_none()) {
                         return Err(format!("{}: a vllm recipe for {hw} needs its recipe folder", m.id));
                     }
-                    if r.files.is_some() || r.mtp.is_some() {
-                        return Err(format!("{}: a vllm or tensorfold recipe for {hw} can't set GGUF files or mtp", m.id));
+                    if r.files.is_some() || r.mtp.is_some() || r.mmproj.is_some() {
+                        return Err(format!("{}: a vllm or tensorfold recipe for {hw} can't set GGUF files, mtp or mmproj", m.id));
                     }
                 }
                 // vLLM y TensorFold llegan a 1M de contexto; llama.cpp se queda en 256K.
@@ -536,6 +576,9 @@ impl Catalog {
                         return Err(format!("{}: recipe for {hw} has no files", m.id));
                     }
                     files.iter().try_for_each(validate_file)?;
+                }
+                if let Some(p) = &r.mmproj {
+                    validate_mmproj(p, m.files_for(hw)).map_err(|e| format!("{}: {e} ({hw})", m.id))?;
                 }
             }
         }
@@ -579,6 +622,22 @@ mod tests {
         assert!(args("qwen38-27b", "pro-max-t2").contains("--spec-type draft-mtp --spec-draft-n-max 3"));
         let gb10 = &models.iter().find(|m| m.id == "qwen38-27b").unwrap();
         assert!(gb10.mtp_draft_for("pro-max-gb10").unwrap().file_name().contains("DFlash2"));
+    }
+
+    /// Los modelos que leen imágenes bajan y cargan su lector (--mmproj): el del repositorio de sus pesos en cada
+    /// equipo. Las recetas en contenedor traen el suyo y lo dicen con `vision`.
+    #[test]
+    fn models_that_read_images_bring_their_reader() {
+        let models = &super::get().unwrap().models;
+        let model = |id: &str| models.iter().find(|m| m.id == id).unwrap();
+        let gemma = model("gemma4-12b");
+        assert!(gemma.downloads_for("pro-max-gb10").iter().any(|f| f.url.contains("gemma-4-12B-it-qat-GGUF") && f.file_name() == "mmproj-F16.gguf"));
+        assert!(gemma.mmproj_for("pro-max-t2").unwrap().url.contains("unsloth/gemma-4-12b-it-GGUF/"));
+        assert!(gemma.reads_images("pro-max-t2") && model("hy4-flash").reads_images("pro-max-t2"));
+        assert!(model("hy4-flash").mmproj_for("pro-max-gb10").is_none());
+        for (id, hw) in [("qwen3-coder-next", "pro-max-gb10"), ("gpt-oss-120b", "pro-max-t2"), ("deepseek-v41-flash-1017", "pro-max-gb10-x2")] {
+            assert!(!model(id).reads_images(hw), "{id} on {hw} is text only");
+        }
     }
 
     /// Cada equipo tiene su foto: la tarjeta, el hero y la ficha la muestran (public/hardware/<image o id>.webp).

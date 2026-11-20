@@ -60,7 +60,8 @@ pub async fn open_chat(app: AppHandle, state: State<'_, AppState>) -> Result<(),
     // vLLM y TensorFold: la misma página, servida por la app delante de su API.
     let url = if model.in_container(&job.hardware_id) {
         let engine = recipe.vllm.as_ref().map_or("TensorFold", |v| v.engine_name());
-        proxy::start(proxy::Target { upstream: url, key: api_key.clone(), model: model.id.clone(), ctx: recipe.ctx_size, engine }).await?
+        let vision = model.reads_images(&job.hardware_id);
+        proxy::start(proxy::Target { upstream: url, key: api_key.clone(), model: model.id.clone(), ctx: recipe.ctx_size, engine, vision }).await?
     } else {
         url
     };
@@ -83,6 +84,8 @@ pub async fn open_chat(app: AppHandle, state: State<'_, AppState>) -> Result<(),
         .min_inner_size(480.0, 480.0)
         .center()
         .initialization_script(script)
+        // Sin esto la ventana se queda con lo que se arrastra (en Windows, siempre): la página no recibe la imagen.
+        .disable_drag_drop_handler()
         .on_navigation(move |u| {
             let stay = inside(u, &nav_origin);
             if !stay {

@@ -1,6 +1,6 @@
 [package]
 name = "ambassador-local"
-version = "0.1.11"
+version = "0.1.12"
 description = "Local inference launcher for Dell Pro Precision Ambassadors"
 edition = "2021"
 license = "MIT"

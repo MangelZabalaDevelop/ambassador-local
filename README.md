@@ -156,7 +156,7 @@ A model only appears in the app on the workstations marked here.
 | Google · **Gemma 3 12B** | ✓ 91 tok/s · 14 GB | — | — | ✓ · 7 GB | — |
 | Qwen · **Qwen3.8 Flash Next FP4** 180B | ✓ 191.5 tok/s · 102 GB · Ubuntu only · Miguel Tuned | — | — | ✓ 36.9 tok/s · 102 GB | — |
 | DeepSeek · **DeepSeek-V4.1-Flash-1017** 552B-A16B | — | — | — | — | ✓ 53.9 tok/s · 211 GB · Miguel Tuned |
-| Tencent · **Hy4-flash** 220B-A12B | — | — | — | ✓ 30.6 tok/s · 161 GB | ✓ 20.5 tok/s · 165 GB |
+| Tencent · **Hy4-flash** 220B-A12B | ✓ 128.5 tok/s · 161 GB · Ubuntu only | — | — | ✓ 30.6 tok/s · 161 GB | ✓ 20.5 tok/s · 165 GB |
 <!-- models:end -->
 
 ### Share a recipe

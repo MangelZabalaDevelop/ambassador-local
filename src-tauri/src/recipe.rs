@@ -18,6 +18,7 @@ const SCRIPTS: &[(&str, &[(&str, &str)])] = &[
     scripts!("vllm/glm53-flash-exl3-gb10": "config.sh", "run.sh", "stop.sh", "engine.env", "Dockerfile"),
     scripts!("vllm/hy4-flash-nvfp4-gb10x2": "config.sh", "run.sh", "stop.sh", "memwatch.sh", "Dockerfile"),
     scripts!("vllm/hy4-flash-spark4bit-gb10": "config.sh", "build.sh", "run.sh", "stop.sh", "memwatch.sh", "engine.env", "Dockerfile"),
+    scripts!("vllm/hy4-flash-spark4bit-t2": "config.sh", "build.sh", "run.sh", "stop.sh", "engine.env", "Dockerfile"),
     scripts!("tensorfold/deepseek-v41-flash-1017": "config.sh", "run.sh", "stop.sh", "memwatch.sh"),
 ];
 

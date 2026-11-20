@@ -1416,6 +1416,24 @@
       ],
       "files": [],
       "recipes": {
+        "pro-max-t2": {
+          "speed": 5,
+          "tokens_per_sec": 128.5,
+          "ctx_size": 196608,
+          "vllm": {
+            "image": "nvidia/cuda@sha256:b7ae301dea2c162444795462ce17a05f6a516e5a75944b57af5b88540a1a2266",
+            "image_id": "sha256:0e655e18c204cbf20beaec9f02a4b4adc6069a12d410be4bc6d11c54a3990cca",
+            "repo": "AngelSlim/Hy4-flash-GGUF",
+            "revision": "65acb8ae7f59847fe03a17291f1b72b89b141a9e",
+            "size": 160655951584,
+            "recipe": "hy4-flash-spark4bit-t2",
+            "engine": "llama.cpp",
+            "include": [
+              "Hy4-flash-SPARK-4Bit-Fast.gguf",
+              "mmproj-Hy4-flash-bf16.gguf"
+            ]
+          }
+        },
         "pro-max-gb10": {
           "speed": 3,
           "tokens_per_sec": 30.6,

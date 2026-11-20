@@ -5,7 +5,7 @@
 | Model | Tencent Hy4-flash, 220B with 12B active per token (reads text and images) |
 | Speed | measured on one GB10: see `tokens_per_sec` in recipes/catalog.json |
 | Disk | 161 GB of model + 7 GB of engine |
-| Context | 192K tokens |
+| Context | 256K tokens |
 
 Tencent's own setup for Hy4-flash on the GB10 ([README_SPARK-4Bit.md](https://huggingface.co/AngelSlim/Hy4-flash-GGUF/blob/main/README_SPARK-4Bit.md)):
 their SPARK-4Bit-Fast GGUF (experts in NVIDIA's 4-bit float format) on llama.cpp with their patch, which adds

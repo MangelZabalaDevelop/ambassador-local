@@ -29,11 +29,17 @@ base=$(sed -n 's/^  "version": "\([0-9]*\.[0-9]*\)\.\([0-9]*\)".*/\1 \2/p' src-t
 read -r major_minor patch <<< "$base"
 VERSION="$major_minor.$((patch + 1))-dev.$(date +%Y%m%d%H%M)"
 
-# The builder image is named after its Dockerfile: a change to it builds a new one.
+# The builder image is named after its Dockerfile: a change to it builds a new one. TARGETARCH goes in by hand:
+# BuildKit sets it by itself, but Ubuntu's docker.io has no buildx and its legacy builder leaves it empty.
 IMAGE="ambassador-local/devbuild:$(sha256sum scripts/dev-build/Dockerfile | cut -c1-12)"
+case "$(uname -m)" in
+  x86_64) arch=amd64 ;;
+  aarch64 | arm64) arch=arm64 ;;
+  *) arch=$(uname -m) ;;
+esac
 if ! docker image inspect "$IMAGE" >/dev/null 2>&1; then
   echo "Building the builder image $IMAGE (a few minutes, once)"
-  docker build -q -t "$IMAGE" - < scripts/dev-build/Dockerfile >/dev/null
+  docker build -q --build-arg TARGETARCH="$arch" -t "$IMAGE" - < scripts/dev-build/Dockerfile >/dev/null
 fi
 
 mkdir -p "$CACHE"/{cargo,npm,target,home}

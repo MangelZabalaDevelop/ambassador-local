@@ -27,6 +27,8 @@ const TIP_WIDTH = 352;
 const BOLT = "M13 2 4 14h7l-1 8 9-12h-7z";
 const BULB = "M9 18h6M10 21h4M12 3a6 6 0 0 0-3.8 10.6c.6.5.8 1.2.8 2V16h6v-.4c0-.8.2-1.5.8-2A6 6 0 0 0 12 3z";
 const BOOK = "M5 4.5A1.5 1.5 0 0 1 6.5 3H19v15H6.5A1.5 1.5 0 0 0 5 19.5zM5 19.5A1.5 1.5 0 0 0 6.5 21H19v-3";
+/** Junto al nombre de los modelos que ven imágenes. */
+const EYE = "M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12zM12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z";
 
 /** Explicación de cada columna: se usa en la cabecera (ancho) y en las etiquetas de cada tarjeta (estrecho). */
 const COLUMNS: { key: string; title: string; tip: ReactNode; legend?: ReactNode }[] = [
@@ -154,7 +156,12 @@ function Row(props: { model: Model; hardwareId: string; selected: boolean; downl
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-base font-bold">
           <span>{m.name}</span>
           <RecipeBadges tuned={recipe.tuned} recommended={recipe.recommended} />
-          {readsImages(m, props.hardwareId) && <span className="rounded-full bg-surface-2 px-2 py-0.5 text-[10px] font-bold text-text/70">Reads images</span>}
+          {readsImages(m, props.hardwareId) && (
+            <svg viewBox="0 0 24 24" role="img" aria-label="Sees images" className="h-[18px] w-[18px] text-accent" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+              <title>Sees images: add pictures to the chat</title>
+              <path d={EYE} />
+            </svg>
+          )}
           {props.downloaded && <span className="rounded-full bg-go-soft px-2 py-0.5 text-[10px] font-bold text-go">Downloaded</span>}
         </div>
         <div className="mt-0.5 text-sm text-muted">{m.tagline}</div>

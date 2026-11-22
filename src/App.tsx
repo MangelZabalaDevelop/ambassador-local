@@ -4,6 +4,7 @@ import { downloadKey, jobOf, type Catalog, type Hardware, type Status, type Syst
 import {
   HardwareImage,
   LabLogo,
+  labLogoClass,
   labLogoSrc,
   LinuxLogo,
   Watermark,
@@ -307,7 +308,7 @@ export default function App() {
                       <div className="mt-5 flex w-full items-center gap-4 text-left">
                         <LabLogo id={f.id} name={f.name} color={f.color} crowned={f.featured} />
                         <div className="min-w-0">
-                          <div className="truncate text-lg font-bold">{f.name}</div>
+                          <div className="text-lg leading-tight font-bold">{f.name}</div>
                           <div
                             className="text-sm font-bold"
                             style={{ color: f.color }}
@@ -402,7 +403,7 @@ export default function App() {
                     value={family?.name ?? "—"}
                     icon={
                       family && labLogoSrc(family.id) ? (
-                        <img src={labLogoSrc(family.id)} alt="" className="h-4 w-4" draggable={false} />
+                        <img src={labLogoSrc(family.id)} alt="" className={labLogoClass(family.id, "h-4 w-4", "w-7")} draggable={false} />
                       ) : (
                         <span className="text-xs font-bold">{family?.name[0]}</span>
                       )

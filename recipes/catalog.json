@@ -3,19 +3,19 @@
   "schema": 1,
   "engine": {
     "name": "llama.cpp",
-    "version": "b12359",
+    "version": "b12613",
     "builds": [
       {
         "os": "windows",
         "arch": "x86_64",
         "files": [
           {
-            "url": "https://github.com/ggml-org/llama.cpp/releases/download/b12359/llama-b12359-bin-win-cuda-13.5-x64.zip",
-            "sha256": "1de9ca1ff408d6e348ea0007c6880ad2393311a02e7799bcde26dc16daef03dd",
-            "size": 179546112
+            "url": "https://github.com/ggml-org/llama.cpp/releases/download/b12613/llama-b12613-bin-win-cuda-13.5-x64.zip",
+            "sha256": "87fbf5aab2747a0d18699d8f2894203b904b503926a1656c830ad68bcb5d3cee",
+            "size": 225600888
           },
           {
-            "url": "https://github.com/ggml-org/llama.cpp/releases/download/b12359/cudart-llama-bin-win-cuda-13.5-x64.zip",
+            "url": "https://github.com/ggml-org/llama.cpp/releases/download/b12613/cudart-llama-bin-win-cuda-13.5-x64.zip",
             "sha256": "c2bf4cc202bfbaaa7a0b75f5082457c3811326947bb216059b72839d844e9cba",
             "size": 426314199
           }
@@ -26,14 +26,14 @@
         "arch": "x86_64",
         "files": [
           {
-            "url": "https://github.com/ggml-org/llama.cpp/releases/download/b12359/llama-b12359-bin-ubuntu-cuda-13.5-x64.tar.gz",
-            "sha256": "9440f417615bed0e191acef03bff0249117d2be74335358265a6d28475a9baf0",
-            "size": 178419847
+            "url": "https://github.com/ggml-org/llama.cpp/releases/download/b12613/llama-b12613-bin-ubuntu-cuda-13.5-x64.tar.gz",
+            "sha256": "2341f734e8a4a5b9ff44e132c4b32de2e7cc3b33a63f55a7a88eefafc6d824a6",
+            "size": 224354186
           },
           {
-            "url": "https://github.com/ggml-org/llama.cpp/releases/download/b12359/cudart-llama-b12359-bin-ubuntu-cuda-13.5-x64.tar.gz",
-            "sha256": "976a9146bb8a487a6ea701224d7fb14b05e494ab3c8f5c1799ffc4e5805d640c",
-            "size": 444078822
+            "url": "https://github.com/ggml-org/llama.cpp/releases/download/b12613/cudart-llama-b12613-bin-ubuntu-cuda-13.5-x64.tar.gz",
+            "sha256": "fe676b7a36753342af68d20e11a4d3e65eb370cf58da635f0790b7d0240df466",
+            "size": 444077873
           }
         ]
       },
@@ -42,14 +42,14 @@
         "arch": "aarch64",
         "files": [
           {
-            "url": "https://github.com/ggml-org/llama.cpp/releases/download/b12359/llama-b12359-bin-ubuntu-cuda-13.5-arm64.tar.gz",
-            "sha256": "e12fd3ca9a599349cac5ec767825e17f8cab9dc2dab8d8e5b85d50ce21ef6d7d",
-            "size": 173529798
+            "url": "https://github.com/ggml-org/llama.cpp/releases/download/b12613/llama-b12613-bin-ubuntu-cuda-13.5-arm64.tar.gz",
+            "sha256": "05cb08c64023690f2d266ac6580539d5877a094fe283400080e3914f71d4b77f",
+            "size": 219257018
           },
           {
-            "url": "https://github.com/ggml-org/llama.cpp/releases/download/b12359/cudart-llama-b12359-bin-ubuntu-cuda-13.5-arm64.tar.gz",
-            "sha256": "998f62318999710d398dad40821d1d037731f360791e41628d9dfcde207909d1",
-            "size": 559874231
+            "url": "https://github.com/ggml-org/llama.cpp/releases/download/b12613/cudart-llama-b12613-bin-ubuntu-cuda-13.5-arm64.tar.gz",
+            "sha256": "af5b402c438debaa4fe09681ef5ec087c21a5409420e0dc1375f943d9448eb85",
+            "size": 559873336
           }
         ]
       }
@@ -461,6 +461,13 @@
       "series": "Hy",
       "description": "Tencent's Hy models (formerly Hunyuan), built for everyday office work, agents and images.",
       "color": "#0055e9"
+    },
+    {
+      "id": "thinkingmachines",
+      "name": "Thinking Machines",
+      "series": "Inkling",
+      "description": "Thinking Machines Lab's open Inkling models, which think in loops to reason with few active parameters.",
+      "color": "#8c8279"
     }
   ],
   "models": [
@@ -1534,6 +1541,97 @@
             "revision": "922cbf11f2abf547951d22eabc76b876f2a9d03b",
             "size": 164691130721,
             "recipe": "hy4-flash-nvfp4-gb10x2",
+            "vision": true
+          }
+        }
+      }
+    },
+    {
+      "id": "inkling-2-mini",
+      "family": "thinkingmachines",
+      "name": "Inkling 2 Mini",
+      "size": "26B-A3.5B",
+      "tagline": "Reasons in loops, with only 3.5B active per token.",
+      "quant": "UD-Q8_K_XL",
+      "size_class": "medium",
+      "intelligence": 4,
+      "aa_index": 20,
+      "best_for": [
+        "Reasoning",
+        "Coding",
+        "Images"
+      ],
+      "files": [
+        {
+          "url": "https://huggingface.co/unsloth/Inkling-2-Mini-GGUF/resolve/ae9327c5fbc7333116ba32eee78bb5d2bbefae4f/Mainline_Support/Inkling-2-Mini-UD-Q8_K_XL.gguf_file",
+          "sha256": "2da51788d43a17e1f033bec420fa83ba9cb87ac1f0130dc9135a4d2ed2678b68",
+          "size": 22867452896
+        }
+      ],
+      "mmproj": {
+        "url": "https://huggingface.co/unsloth/Inkling-2-Mini-GGUF/resolve/ae9327c5fbc7333116ba32eee78bb5d2bbefae4f/mmproj-F16.gguf",
+        "sha256": "3bff75ffeb2d6e0371ba7bd42e30d26a7d98aea681fa44b03b5a20891cfa2c5f",
+        "size": 639348160
+      },
+      "recipes": {
+        "pro-max-t2": {
+          "speed": 5,
+          "tokens_per_sec": 81.5,
+          "ctx_size": 262144,
+          "os": [
+            "windows"
+          ],
+          "temp": 1.0,
+          "top_p": 1.0,
+          "top_k": 0,
+          "min_p": 0.0
+        }
+      }
+    },
+    {
+      "id": "inkling-2-mini-nvfp4",
+      "family": "thinkingmachines",
+      "name": "Inkling 2 Mini",
+      "size": "26B-A3.5B",
+      "tagline": "Thinking Machines' own 4-bit build, with 1M memory.",
+      "quant": "NVFP4",
+      "size_class": "medium",
+      "intelligence": 4,
+      "aa_index": 20,
+      "best_for": [
+        "Reasoning",
+        "Long documents",
+        "Images"
+      ],
+      "files": [],
+      "recipes": {
+        "pro-max-t2": {
+          "speed": 5,
+          "tokens_per_sec": 214.6,
+          "ctx_size": 1048576,
+          "vllm": {
+            "image": "lmsysorg/sglang@sha256:efac853b46811ccb760545b7b29e7119bdf907537ccf6e863fac3011fe8b98de",
+            "image_id": "sha256:aff54906ae2ec476bf60c687942883ea23e8e50af7d42130b591999aa02d4d0a",
+            "repo": "thinkingmachines/Inkling-2-Mini",
+            "revision": "ed40e7da625f594fc9c4990f5f66be24873c22d7",
+            "size": 20191643294,
+            "recipe": "inkling2-mini-nvfp4-t2",
+            "engine": "SGLang",
+            "vision": true
+          }
+        },
+        "pro-max-gb10": {
+          "speed": 3,
+          "tokens_per_sec": 37.6,
+          "ctx_size": 1048576,
+          "vllm": {
+            "image": "lmsysorg/sglang@sha256:efac853b46811ccb760545b7b29e7119bdf907537ccf6e863fac3011fe8b98de",
+            "image_id": "sha256:2e4eb06d3d7226a64b3d3f736b08e54d905f6f0f1468979fa4d2dda08e01c7ce",
+            "repo": "thinkingmachines/Inkling-2-Mini",
+            "revision": "ed40e7da625f594fc9c4990f5f66be24873c22d7",
+            "size": 20191643294,
+            "recipe": "inkling2-mini-nvfp4-gb10",
+            "engine": "SGLang",
             "vision": true
           }
         }

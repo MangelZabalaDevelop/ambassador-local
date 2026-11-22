@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Copies llama.cpp's chat page from a running llama-server into src-tauri/llama-ui/, where the app serves it to
-# vLLM and TensorFold models (src-tauri/src/proxy.rs). Run it with llama-server of the engine version in
-# recipes/catalog.json, e.g. after `npm run tauri dev` started a llama.cpp model:
+# models in containers (src-tauri/src/proxy.rs). Only the one-bundle page (up to b12359) fits the proxy; from b12600
+# the page comes in about 220 files and the script stops. Run it against a running llama-server, e.g.:
 #   scripts/vendor-llama-ui.sh http://127.0.0.1:8080
 set -euo pipefail
 

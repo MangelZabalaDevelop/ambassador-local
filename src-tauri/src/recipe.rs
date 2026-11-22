@@ -1,5 +1,6 @@
-//! Recetas en contenedor (vLLM o un llama.cpp parcheado; TensorFold en las dos GB10): la app lleva sus scripts dentro y los
-//! deja en la carpeta de trabajo de la receta antes de arrancarla, así nadie tiene que abrir una terminal.
+//! Recetas en contenedor (vLLM, SGLang o un llama.cpp parcheado; TensorFold en las dos GB10): la app lleva sus
+//! scripts dentro y los deja en la carpeta de trabajo de la receta antes de arrancarla, así nadie tiene que abrir una
+//! terminal.
 
 use std::path::{Path, PathBuf};
 
@@ -19,6 +20,8 @@ const SCRIPTS: &[(&str, &[(&str, &str)])] = &[
     scripts!("vllm/hy4-flash-nvfp4-gb10x2": "config.sh", "run.sh", "stop.sh", "memwatch.sh", "Dockerfile"),
     scripts!("vllm/hy4-flash-spark4bit-gb10": "config.sh", "build.sh", "run.sh", "stop.sh", "memwatch.sh", "engine.env", "Dockerfile"),
     scripts!("vllm/hy4-flash-spark4bit-t2": "config.sh", "build.sh", "run.sh", "stop.sh", "engine.env", "Dockerfile"),
+    scripts!("vllm/inkling2-mini-nvfp4-gb10": "config.sh", "run.sh", "stop.sh", "engine.env"),
+    scripts!("vllm/inkling2-mini-nvfp4-t2": "config.sh", "run.sh", "stop.sh", "engine.env"),
     scripts!("tensorfold/deepseek-v41-flash-1017": "config.sh", "run.sh", "stop.sh", "memwatch.sh"),
 ];
 

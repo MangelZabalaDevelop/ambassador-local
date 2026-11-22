@@ -61,7 +61,7 @@ export type Recipe = {
 };
 
 /** Imagen fijada por digest y pesos de Hugging Face fijados por commit; `size` en bytes por GB10. */
-export type Vllm = { image: string; image_id: string; repo: string; revision: string; size: number; recipe?: string; engine?: "vLLM" | "llama.cpp"; include?: string[]; vision?: boolean };
+export type Vllm = { image: string; image_id: string; repo: string; revision: string; size: number; recipe?: string; engine?: "vLLM" | "SGLang" | "llama.cpp"; include?: string[]; vision?: boolean };
 
 /** Imagen local con el commit del motor en su etiqueta; pesos fijados por commit; `size` en bytes por GB10. */
 export type TensorFold = { image: string; engine_commit: string; recipe: string; repo: string; revision: string; size: number };

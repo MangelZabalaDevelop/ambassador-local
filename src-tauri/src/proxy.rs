@@ -1,6 +1,6 @@
-//! El chat de llama.cpp para los modelos en contenedor (vLLM, TensorFold), que solo tienen la API. La app sirve en
-//! 127.0.0.1 la misma página que trae llama-server (llama-ui/, de la versión del motor del catálogo) y le pasa el chat
-//! al servidor del modelo, traduciendo lo poco que cambia:
+//! El chat de llama.cpp para los modelos en contenedor (vLLM, SGLang, TensorFold), que solo tienen la API. La app
+//! sirve en 127.0.0.1 la página que trae llama-server (llama-ui/: la de b12359, la última de un solo bundle) y le pasa
+//! el chat al servidor del modelo, traduciendo lo poco que cambia:
 //! - lo que solo tiene llama-server (/props, /build.json, /tools…) lo contesta aquí;
 //! - de cada petición se quitan los campos propios de llama.cpp (vLLM rechaza `max_tokens: -1`);
 //! - el `reasoning` de vLLM pasa a `reasoning_content`, como lo manda llama.cpp, y sus errores a la forma que la
@@ -70,7 +70,7 @@ pub struct Target {
     /// El nombre con el que lo sirve run.sh (SERVED_NAME): el id del modelo.
     pub model: String,
     pub ctx: u32,
-    /// "vLLM" o "TensorFold", para la información del servidor que muestra la página.
+    /// "vLLM", "SGLang" o "TensorFold", para la información del servidor que muestra la página.
     pub engine: &'static str,
     /// El servidor acepta imágenes: la página deja adjuntarlas.
     pub vision: bool,
@@ -427,7 +427,7 @@ mod tests {
         assert_eq!(p["model_alias"], "deepseek-v41-flash-1017");
         assert_eq!(p["default_generation_settings"]["n_ctx"], 1_048_576);
         assert_eq!(p["default_generation_settings"]["params"], json!({}));
-        let version = &crate::catalog::get().unwrap().engine.version;
+        let version = serde_json::from_slice::<Value>(BUILD_JSON).unwrap()["version"].as_str().unwrap().to_string();
         assert_eq!(p["build_info"], format!("TensorFold (llama.cpp chat page {version})"));
         assert_eq!(models(&t)["data"][0]["id"], "deepseek-v41-flash-1017");
         // Sin imágenes, la página no ofrece adjuntarlas; con ellas, sí.
@@ -526,8 +526,9 @@ mod tests {
             flate2::read::GzDecoder::new(gz).read_to_end(&mut plain).unwrap();
             assert!(plain.len() > gz.len());
         }
-        // La página es la del motor que usa la app: al cambiar de versión, scripts/vendor-llama-ui.sh.
-        let version = &crate::catalog::get().unwrap().engine.version;
-        assert_eq!(serde_json::from_slice::<Value>(BUILD_JSON).unwrap()["version"], *version, "run scripts/vendor-llama-ui.sh with llama.cpp {version}");
+        // Una página publicada de llama.cpp. Desde b12600 la página viene en ~220 archivos, que este proxy aún no sabe
+        // servir: se queda la de b12359 (la última de un solo bundle) aunque el motor del catálogo sea más nuevo.
+        let version = serde_json::from_slice::<Value>(BUILD_JSON).unwrap()["version"].as_str().unwrap().to_string();
+        assert!(version.strip_prefix('b').is_some_and(|n| !n.is_empty() && n.bytes().all(|c| c.is_ascii_digit())), "{version}");
     }
 }

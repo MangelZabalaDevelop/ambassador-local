@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { api, formatBytes } from "../api";
 import { diskFor, formatContext, quantFor, type Family, type Hardware, type Job, type Model, type Status } from "../types";
-import { HardwarePhoto, labLogoSrc, RecipeBadges } from "./Illustrations";
+import { HardwarePhoto, labLogoClass, labLogoSrc, RecipeBadges } from "./Illustrations";
 
 type Props = {
   hardware: Hardware;
@@ -79,7 +79,7 @@ export function RunScreen(props: Props) {
             <div className="flex flex-wrap items-center gap-3">
               {lab && labLogoSrc(lab.id) && (
                 <span className="grid h-8 w-8 place-items-center rounded-lg bg-white shadow">
-                  <img src={labLogoSrc(lab.id)} alt="" className="h-5 w-5" draggable={false} />
+                  <img src={labLogoSrc(lab.id)} alt="" className={labLogoClass(lab.id, "h-5 w-5", "w-7")} draggable={false} />
                 </span>
               )}
               <span className="text-xs font-bold tracking-[0.2em] text-white/60 uppercase">

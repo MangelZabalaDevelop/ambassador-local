@@ -157,6 +157,8 @@ A model only appears in the app on the workstations marked here.
 | Qwen · **Qwen3.8 Flash Next FP4** 180B | ✓ 191.5 tok/s · 102 GB · Ubuntu only · Miguel Tuned | — | — | ✓ 36.9 tok/s · 102 GB | — |
 | DeepSeek · **DeepSeek-V4.1-Flash-1017** 552B-A16B | — | — | — | — | ✓ 53.9 tok/s · 211 GB · Miguel Tuned |
 | Tencent · **Hy4-flash** 220B-A12B | ✓ 128.5 tok/s · 161 GB · Ubuntu only | — | — | ✓ 30.6 tok/s · 161 GB | ✓ 20.5 tok/s · 165 GB |
+| Thinking Machines · **Inkling 2 Mini** 26B-A3.5B | ✓ 81.5 tok/s · 23 GB · Windows only | — | — | — | — |
+| Thinking Machines · **Inkling 2 Mini** 26B-A3.5B | ✓ 214.6 tok/s · 20 GB · Ubuntu only | — | — | ✓ 37.6 tok/s · 20 GB | — |
 <!-- models:end -->
 
 ### Share a recipe
@@ -188,7 +190,7 @@ Everything lives in [`recipes/catalog.json`](recipes/catalog.json). It points to
 - `engine`: the pinned llama.cpp version and its files per OS/architecture. When you change it, copy that version's chat page for vLLM and TensorFold with `scripts/vendor-llama-ui.sh` (`cargo test` checks the versions match), and check that **Open chat** still opens without asking for the API key: the app writes the key where llama.cpp's chat page keeps its settings (`LlamaUi.config` in its local storage, see [`src-tauri/src/chat.rs`](src-tauri/src/chat.rs)).
 - `hardware`: the program's workstations. `gpu_match` is used to detect them with `nvidia-smi`, and only the workstation detected on the machine can be used. `"available": false` shows it as *Coming soon* (not tested yet). `"units": 2` is for linked systems (two GB10), and `"image"` reuses another workstation's photo. Product images go in `public/hardware/<id>.webp`.
 - `families`: the lab cards (name, series, description, color). Logos go in `src/assets/labs/<id>.svg`.
-- `models`: each model with its GGUF files and one `recipe` per hardware id. A model without a recipe for a workstation is hidden on that workstation. A model that reads images also names its image reader in `mmproj` (from the same repo and commit as its files: `mmproj-F16.gguf`, or `mmproj-BF16.gguf` where there is no F16). The app downloads it with the model and loads it with `--mmproj`, and the model table labels the model **Reads images**.
+- `models`: each model with its GGUF files and one `recipe` per hardware id. A model without a recipe for a workstation is hidden on that workstation. A model that reads images also names its image reader in `mmproj` (from the same repo and commit as its files: `mmproj-F16.gguf`, or `mmproj-BF16.gguf` where there is no F16). The app downloads it with the model and loads it with `--mmproj`, and the model table marks the model with an eye.
 
 What ambassadors see in the model table (no jargon, all icons):
 
@@ -234,7 +236,7 @@ Some tuned recipes are NVFP4 models served by vLLM. A Linux recipe can carry a `
 | `repo`, `revision` | Hugging Face weights pinned to a commit; each GB10 needs them in its Hugging Face cache |
 | `size` | Bytes of those weights, per GB10 |
 | `recipe` | Folder name under [`recipes/vllm/`](recipes/vllm) with `run.sh` and `stop.sh`; required on a single workstation |
-| `engine` | `"llama.cpp"` when the folder runs a patched llama.cpp instead of vLLM (only the name shown changes; the weights may be GGUF) |
+| `engine` | `"SGLang"` when the folder runs SGLang, or `"llama.cpp"` when it runs a patched llama.cpp, instead of vLLM (needs `recipe`; only the name shown changes; the weights may be GGUF) |
 | `include` | Only these files of the repo, e.g. one GGUF of a repo with several quantizations; without it, the whole revision |
 | `vision` | `true` when the recipe's server accepts images, so **Open chat** lets you attach them |
 

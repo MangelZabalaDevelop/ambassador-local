@@ -291,8 +291,9 @@ pub struct Vllm {
     /// Carpeta con run.sh y stop.sh: recipes/vllm/<recipe>/. Obligatoria en un equipo solo (T2).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub recipe: Option<String>,
-    /// El motor que corre la carpeta de la receta, si no es vLLM: "llama.cpp" para un llama.cpp parcheado que aún no
-    /// está en una versión publicada (la receta lo construye en su imagen). Solo cambia el nombre que se muestra.
+    /// El motor que corre la carpeta de la receta, si no es vLLM: "SGLang", o "llama.cpp" para un llama.cpp parcheado
+    /// que aún no está en una versión publicada (la receta lo construye en su imagen). Solo cambia el nombre que se
+    /// muestra.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub engine: Option<String>,
     /// Solo estos archivos del repo (rutas dentro de él), cuando la receta no usa el repo entero: uno con varias
@@ -314,6 +315,7 @@ impl Vllm {
     pub fn engine_name(&self) -> &'static str {
         match self.engine.as_deref() {
             Some("llama.cpp") => "llama.cpp",
+            Some("SGLang") => "SGLang",
             _ => "vLLM",
         }
     }
@@ -363,7 +365,7 @@ fn valid_vllm(v: &Vllm) -> bool {
     // Otro motor solo con su propia carpeta: la que construye y arranca ese motor.
     let engine_ok = match v.engine.as_deref() {
         None | Some("vLLM") => true,
-        Some("llama.cpp") => v.recipe.is_some(),
+        Some("llama.cpp" | "SGLang") => v.recipe.is_some(),
         Some(_) => false,
     };
     let include_ok = v.include.as_ref().is_none_or(|files| !files.is_empty() && files.iter().all(|f| repo_path_ok(f)));

@@ -56,12 +56,21 @@ export function Monogram({ text, color }: { text: string; color: string }) {
   );
 }
 
-// Logos de laboratorios: Lobe Icons (MIT), https://github.com/lobehub/lobe-icons
+// Logos de laboratorios: Lobe Icons (MIT), https://github.com/lobehub/lobe-icons. Thinking Machines no está ahí: su
+// logotipo oficial (el avatar de su organización en GitHub), vectorizado.
 const LAB_LOGOS = import.meta.glob<string>("../assets/labs/*.svg", { eager: true, import: "default" });
+
+/** Laboratorios cuyo logo es un logotipo de texto, más ancho que alto: en las placas va a lo ancho. */
+const WORDMARKS = new Set(["thinkingmachines"]);
 
 /** Logo del laboratorio sobre una placa blanca; se ilumina con su color al pasar el ratón. */
 export function labLogoSrc(id: string): string | undefined {
   return LAB_LOGOS[`../assets/labs/${id}.svg`];
+}
+
+/** Clases del logo en una placa: `square` para los símbolos, `wide` para los logotipos de texto. */
+export function labLogoClass(id: string, square: string, wide: string): string {
+  return WORDMARKS.has(id) ? wide : square;
 }
 
 export function LabLogo({ id, name, color, crowned }: { id: string; name: string; color: string; crowned?: boolean }) {
@@ -73,7 +82,7 @@ export function LabLogo({ id, name, color, crowned }: { id: string; name: string
           style={{ "--lab": color } as React.CSSProperties}
           className="grid h-16 w-16 place-items-center rounded-2xl border border-black/5 bg-white shadow-sm transition duration-300 group-hover:scale-110 group-hover:-rotate-3 group-hover:shadow-[0_10px_28px_-6px_var(--lab)]"
         >
-          <img src={src} alt={name} className="h-9 w-9" draggable={false} />
+          <img src={src} alt={name} className={labLogoClass(id, "h-9 w-9", "w-14")} draggable={false} />
         </div>
       ) : (
         <Monogram text={name} color={color} />
